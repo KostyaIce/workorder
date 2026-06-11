@@ -1,0 +1,59 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "workorder",
+            "displayName": "WorkOrder",
+            "description": "Single project for Qt Creator. Switch UI via CMake cache variable Type=desktop|mobile.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "Type": "desktop"
+            }
+        },
+        {
+            "name": "desktop",
+            "hidden": true,
+            "inherits": "workorder",
+            "binaryDir": "${sourceDir}/build/desktop",
+            "cacheVariables": {
+                "Type": "desktop"
+            }
+        },
+        {
+            "name": "mobile",
+            "hidden": true,
+            "inherits": "workorder",
+            "binaryDir": "${sourceDir}/build/mobile",
+            "cacheVariables": {
+                "Type": "mobile"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "build",
+            "displayName": "Build",
+            "configurePreset": "workorder",
+            "targets": ["build"]
+        },
+        {
+            "name": "run",
+            "displayName": "Run",
+            "configurePreset": "workorder",
+            "targets": ["run"]
+        },
+        {
+            "name": "test",
+            "displayName": "Test",
+            "configurePreset": "workorder",
+            "targets": ["test"]
+        }
+    ]
+}

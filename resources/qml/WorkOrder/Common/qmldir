@@ -1,0 +1,26 @@
+module WorkOrder.Common
+Card 1.0 Card.qml
+PageHeader 1.0 PageHeader.qml
+DividerLine 1.0 DividerLine.qml
+PrimaryButton 1.0 PrimaryButton.qml
+FormField 1.0 FormField.qml
+SettingsSection 1.0 SettingsSection.qml
+SettingsListItem 1.0 SettingsListItem.qml
+SettingsToggleRow 1.0 SettingsToggleRow.qml
+SettingsActionRow 1.0 SettingsActionRow.qml
+SettingsFormRow 1.0 SettingsFormRow.qml
+SelectionDialog 1.0 SelectionDialog.qml
+ConfirmDialog 1.0 ConfirmDialog.qml
+SettingsAboutSection 1.0 SettingsAboutSection.qml
+SettingsContent 1.0 SettingsContent.qml
+ServiceSearchField 1.0 ServiceSearchField.qml
+InvoiceFormContent 1.0 InvoiceFormContent.qml
+InvoiceClientField 1.0 InvoiceClientField.qml
+InvoiceLinesList 1.0 InvoiceLinesList.qml
+ServiceFormDialog 1.0 ServiceFormDialog.qml
+ServiceDeleteDialog 1.0 ServiceDeleteDialog.qml
+DatabaseContent 1.0 DatabaseContent.qml
+ReportsContent 1.0 ReportsContent.qml
+ClientFormDialog 1.0 ClientFormDialog.qml
+WorkFormDialog 1.0 WorkFormDialog.qml
+ReportResultDialog 1.0 ReportResultDialog.qml

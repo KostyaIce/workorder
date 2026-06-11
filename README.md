@@ -1,0 +1,99 @@
+# WorkOrder
+
+Приложение для создания счетов и управления базой услуг.
+
+Стек: Python 3 + PyQt6, UI на QML, логика на Python.
+
+## Структура проекта
+
+```
+workorder/
+├── CMakeLists.txt           # Сборка и переключение Type=desktop|mobile
+├── CMakePresets.json        # Пресеты для Qt Creator
+├── WorkOrder.pro            # Альтернативное открытие в Qt Creator (qmake)
+├── src/
+│   ├── main.py              # Точка входа
+│   └── backend/             # Python-логика (заглушки)
+├── resources/qml/
+│   ├── desktop/             # QML для десктопа
+│   └── mobile/              # QML для мобильных
+├── tests/                   # Unit-тесты бэкенда
+└── docs/                    # Документация
+```
+
+## Требования
+
+- Python 3.9+
+- PyQt6 6.4+
+- CMake 3.16+ (для Qt Creator и пресетов)
+- Qt Creator 11+ (опционально, для QML-редактора)
+
+## Установка зависимостей
+
+```bash
+cd workorder
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+## Запуск
+
+### Через Python (без CMake)
+
+```bash
+# Desktop
+python src/main.py --type desktop
+
+# Mobile
+python src/main.py --type mobile
+```
+
+### Через CMake (Type задаётся при конфигурации)
+
+```bash
+# Desktop (по умолчанию)
+cmake --preset workorder
+cmake --build build --target run
+
+# Mobile
+cmake --preset workorder -DType=mobile
+cmake --build build --target run
+```
+
+При сборке через CMake тип UI фиксируется в `build/*/workorder_config.py` и имеет приоритет над `--type`.
+
+## PyCharm
+
+1. **File → Open** → каталог `workorder/`
+2. **Settings → Python Interpreter** → `.venv` (создать или указать существующий), затем `python3 -m pip install -r requirements.txt`
+3. Запуск: конфигурации **WorkOrder Desktop** / **WorkOrder Mobile** (▶) или вручную `src/main.py` с `--type desktop|mobile`
+
+Подробнее: [docs/pycharm.md](docs/pycharm.md)
+
+## Qt Creator
+
+1. **File → Open File or Project** → выбрать `CMakeLists.txt` или `WorkOrder.pro`
+2. Выбрать kit (Desktop Qt или Generic)
+3. Configure с пресетом **Desktop** или **Mobile**
+4. Build target **run** для запуска приложения
+
+Подробнее: [docs/qt-creator.md](docs/qt-creator.md)
+
+## Тесты
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Или через CMake:
+
+```bash
+cmake --build build/desktop --target test
+```
+
+## Окна приложения
+
+1. **Создание счета** — выбор услуги, количество, расчёт стоимости
+2. **База услуг** — CRUD услуг и цен
+3. **Настройки** — тема, язык, параметры счетов и БД

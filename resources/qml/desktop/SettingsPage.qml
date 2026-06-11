@@ -1,0 +1,23 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import WorkOrder.Common 1.0
+
+Rectangle {
+    color: "transparent"
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 16
+
+        PageHeader {
+            title: qsTr("Настройки")
+        }
+
+        SettingsContent {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            layoutStyle: "desktop"
+        }
+    }
+}
