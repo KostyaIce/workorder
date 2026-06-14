@@ -10,8 +10,18 @@ ColumnLayout {
     spacing: 8
     Layout.fillWidth: true
 
+    ClientFormDialog {
+        id: clientDialog
+        compact: root.compact
+    }
+
+    ObjectDialog {
+        id: objectDialog
+        compact: root.compact
+    }
+
     Label {
-        text: qsTr("Заказчик / объект")
+        text: qsTr("Заказчик")
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -19,26 +29,96 @@ ColumnLayout {
     ComboBox {
         id: clientBox
         Layout.fillWidth: true
-        model: clientOptionsModel
-        textRole: "label"
-        valueRole: "clientId"
-        displayText: {
-            if(invoiceBackend.hasCurrentClient) {
-                return invoiceBackend.currentClientLabel
-            }
-            if(currentIndex >= 0 && clientOptionsModel.count > 0) {
-                return clientOptionsModel.get(currentIndex).label
-            }
-            return qsTr("Выберите заказчика или объект")
-        }
+        model: clientsModel
+        textRole: "name"
+        valueRole: "id"
+        displayText: reportBackend.selectedClientName === "" ? qsTr("Выберите заказчика") : reportBackend.selectedClientName
+
         onActivated: {
-            var item = clientOptionsModel.get(currentIndex)
-            if(item.clientId > 0) {
-                invoiceBackend.setCurrentClient(item.clientId, item.name, item.kind)
-                reportBackend.selectClient(item.clientId)
-            } else {
-                invoiceBackend.clearCurrentClient()
+            reportBackend.selectClient(currentValue)
+        }
+    
+        popup.onVisibleChanged: {
+            if(popup.visible) 
+            {
+                if(clientsModel.count === 0)
+                {
+                    clientDialog.open()
+                }
             }
+        }
+    }
+
+    PrimaryButton {
+        Layout.fillWidth: true
+        text: qsTr("Добавить заказчика")
+        onClicked: {
+            clientDialog.open()
+        }
+    }
+
+    Label {
+        text: qsTr("Объект")
+        font.pixelSize: 14
+        color: textSecondaryColor
+    }
+
+    ComboBox {
+        id: objectBox
+        Layout.fillWidth: true
+        model: objectsModel
+        textRole: "name"
+        valueRole: "id"
+        displayText: reportBackend.selectedObjectName === "" ? qsTr("Выберите объект заказчика") : reportBackend.selectedObjectName
+
+        onActivated: {
+            reportBackend.selectObject(currentValue)
+        }
+
+        popup.onVisibleChanged: {
+            if(popup.visible) 
+            {
+                if(objectsModel.count === 0)
+                {
+                    objectDialog.open()
+                }
+            }
+        }
+    }
+
+    PrimaryButton {
+        Layout.fillWidth: true
+        text: qsTr("Добавить объект")
+        enabled: reportBackend.selectedClientName !== ""
+        onClicked: {
+            objectDialog.open()
+        }
+    }
+
+    PrimaryButton {
+        Layout.fillWidth: true
+        text: qsTr("Начать новый отчет")
+        enabled: reportBackend.selectedObjectName !== ""
+        onClicked: {
+            reportBackend.updateLastTimeObject()
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+
+        Label {
+            text: qsTr("Счет на: ")
+            font.pixelSize: compact ? 12 : 13
+            color: textSecondaryColor
+        }
+
+        Label {
+            text: Qt.formatDateTime(new Date(reportBackend.selectedObjectLastOrder * 1000), "dd.MM.yyyy hh:mm" )
+            font.pixelSize: compact ? 12 : 13
+            color: textSecondaryColor
+            Layout.fillWidth: true
+            elide: Text.ElideLeft
         }
     }
 
@@ -93,21 +173,21 @@ ColumnLayout {
             label: qsTr("Не выбран")
         })
 
-        var clients = reportBackend.getAllClients()
-        var selectedIndex = 0
-        for(var i = 0; i < clients.length; i++) {
-            var kindLabel = clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик")
-            clientOptionsModel.append({
-                clientId: clients[i].id,
-                name: clients[i].name,
-                kind: clients[i].kind,
-                label: kindLabel + ": " + clients[i].name
-            })
-            if(clients[i].id === selectedId) {
-                selectedIndex = i + 1
-            }
-        }
-        clientBox.currentIndex = selectedIndex
+        // var clients = reportBackend.getAllClients()
+        // var selectedIndex = 0
+        // for(var i = 0; i < clients.length; i++) {
+        //     var kindLabel = clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик")
+        //     clientOptionsModel.append({
+        //         clientId: clients[i].id,
+        //         name: clients[i].name,
+        //         kind: clients[i].kind,
+        //         label: kindLabel + ": " + clients[i].name
+        //     })
+        //     if(clients[i].id === selectedId) {
+        //         selectedIndex = i + 1
+        //     }
+        // }
+        // clientBox.currentIndex = selectedIndex
     }
 
     Connections {

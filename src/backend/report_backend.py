@@ -6,6 +6,8 @@ Reports backend: customers, objects and work reports.
 from datetime import date
 
 from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+from models.clients_model import ClientModel
+from models.objects_model import ObjectModel
 
 from utils.db_storage import (
     add_client_entry,
@@ -15,40 +17,88 @@ from utils.db_storage import (
     load_completed_works,
     save_clients,
     save_completed_works,
+    create_object_database,
+    add_object_entry,
+    load_objects,
+    update_object_last_order_at
 )
 from utils.report_builder import save_work_report
 
+from dataclasses import dataclass
+
+@dataclass
+class ClientItem:
+    id: str = ""
+    name: str = ""
+
+@dataclass
+class ObjectItem:
+    id: str = ""
+    name: str = ""
+    address: str = ""
+    last_order_at: int = 0
 
 class ReportBackend(QObject):
     """Backend for customers/objects and work reports."""
 
     clientsChanged = pyqtSignal()
     worksChanged = pyqtSignal()
-    clientSelected = pyqtSignal(int, str, str)
+    clientSelected = pyqtSignal()
+    objectSelected = pyqtSignal()
+    objectUpdated = pyqtSignal()
     reportGenerated = pyqtSignal(str, str)
     errorOccurred = pyqtSignal(str)
 
-    def __init__(self, settings_backend, parent=None):
+    def __init__(self, settings_backend, engine,  parent=None):
         super().__init__(parent)
         self._settings_backend = settings_backend
-        # self._clients_db_path = ""
         self._works_db_path = str(default_works_db_path())
-        self._clients = []
+        # self._clients = []
         self._works = []
-        self._selected_client_id = 0
+        # self._selected_client_id = 0
         self._next_client_id = 1
         self._next_work_id = 1
         self._last_report_path = ""
         self._last_report_text = ""
+        self._current_client_data = ClientItem()
+        self._current_object_data = ObjectItem()
+        self._clients = ClientModel()
+        self._objects = ObjectModel()
+        engine.rootContext().setContextProperty(
+            "clientsModel",
+            self._clients
+        )
+        engine.rootContext().setContextProperty(
+            "objectsModel",
+            self._objects
+        )
         create_client_table()
 
     @pyqtProperty(int, notify=clientsChanged)
     def clientCount(self):
-        return len(self._clients)
+        return self._clients.rowCount()
 
-    @pyqtProperty(int, notify=clientSelected)
+    @pyqtProperty(str, notify=clientSelected)
     def selectedClientId(self):
-        return self._selected_client_id
+        return self._current_client_data.id
+
+    @pyqtProperty(str, notify=clientSelected)
+    def selectedClientName(self):
+        if self._current_client_data.name:
+            return self._current_client_data.name
+        return ""
+
+    @pyqtProperty(str, notify=objectSelected)
+    def selectedObjectName(self):
+        if self._current_object_data.name:
+            return self._current_object_data.name
+        return ""
+
+    @pyqtProperty(int, notify=objectUpdated)
+    def selectedObjectLastOrder(self):
+        if self._current_object_data.last_order_at:
+            return self._current_object_data.last_order_at
+        return 0
 
     @pyqtProperty(str, notify=reportGenerated)
     def lastReportPath(self):
@@ -77,15 +127,51 @@ class ReportBackend(QObject):
         self._load_clients()
         return result
 
-    @pyqtSlot(int)
+    @pyqtSlot(str)
     def selectClient(self, client_id):
-        for client in self._clients:
-            if client["id"] == client_id:
-                self._selected_client_id = client_id
-                self.clientSelected.emit(client_id, client["name"], client["kind"])
-                return
-        self._selected_client_id = 0
-        self.clientSelected.emit(0, "", "")
+        item = self._clients.itemData(client_id)
+        if item:
+            self._current_client_data = ClientItem(item["id"], item["name"])
+
+        self._load_objects()
+        self.clientSelected.emit()
+
+    @pyqtSlot()
+    def updateLastTimeObject(self):
+        if self._current_object_data.name == "":
+            return
+        update_object_last_order_at(self._current_client_data.name, self._current_client_data.id, self._current_object_data.id)
+        self._load_objects()
+        self._update_current_object_data()
+
+    @pyqtSlot(str)
+    def selectObject(self, object_id):
+        item = self._objects.itemData(object_id)
+        if item:
+            self._current_object_data = ObjectItem(item["id"], item["name"], item["address"], item["last_order_at"])
+        self.objectSelected.emit()
+        self.objectUpdated.emit()
+
+    def _update_current_object_data(self):
+        if self._current_object_data.name == "":
+            return
+        item = self._objects.itemData(self._current_object_data.id)
+        if item:
+            self._current_object_data = ObjectItem(item["id"], item["name"], item["address"], item["last_order_at"])
+        self.objectUpdated.emit()
+
+    @pyqtSlot("QVariantMap", result=bool)
+    def addObject(self, data):
+        """Add customer or object."""
+        if not data:
+            return False
+        if self._current_client_data.id == "":
+            return False
+        result = False
+        create_object_database(self._current_client_data.name, self._current_client_data.id)
+        result = add_object_entry(self._current_client_data.name, self._current_client_data.id, data["name"], data["address"])
+        self._load_objects()
+        return result
 
     @pyqtSlot(int, str, float, int, str, result=bool)
     def addWorkForClient(self, client_id, service_name, unit_price, quantity, notes):
@@ -147,10 +233,6 @@ class ReportBackend(QObject):
             self.errorOccurred.emit(f"Ошибка формирования отчёта: {str(exc)}")
             return False
 
-    @pyqtSlot(result=list)
-    def getAllClients(self):
-        return [client.copy() for client in self._clients]
-
     @pyqtSlot(int, result=list)
     def getClientWorks(self, client_id):
         if client_id <= 0:
@@ -169,18 +251,24 @@ class ReportBackend(QObject):
         return results
 
     def _find_client(self, client_id):
-        for client in self._clients:
-            if client["id"] == client_id:
-                return client
+        # for client in self._clients:
+        #     if client["id"] == client_id:
+        #         return client
         return None
 
     def _load_clients(self):
-        self._clients = load_clients()
-        if not self._clients:
+        clients_data = load_clients()
+        if not clients_data:
             create_client_table()
-            self._clients = load_clients()
+            clients_data = load_clients()
+        self._clients.updateModel(clients_data)
 
-        self.clientsChanged.emit()
+    def _load_objects(self):
+        objects_data = load_objects(self._current_client_data.name, self._current_client_data.id)
+        if not objects_data:
+            create_object_database(self._current_client_data.name, self._current_client_data.id)
+            objects_data = load_objects(self._current_client_data.name, self._current_client_data.id)
+        self._objects.updateModel(objects_data)
 
     def _reload_works(self):
         self._works = load_completed_works(self._works_db_path)
@@ -189,9 +277,6 @@ class ReportBackend(QObject):
         else:
             self._next_work_id = 1
         self.worksChanged.emit()
-
-    # def _persist_clients(self):
-    # save_clients(self._clients_db_path, self._clients)
 
     def _persist_works(self):
         save_completed_works(self._works_db_path, self._works)

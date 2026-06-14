@@ -66,18 +66,18 @@ def main():
     invoice_backend = InvoiceBackend()
     database_backend = DatabaseBackend()
     settings_backend = SettingsBackend()
-    report_backend = ReportBackend(settings_backend)
+    report_backend = ReportBackend(settings_backend, engine)
     report_backend.initializeData()
     invoice_backend.bind_report_backend(report_backend)
 
     def sync_invoice_services():
         invoice_backend.setServicesCatalog(database_backend.getAllServices())
 
-    def sync_invoice_client(client_id, name, kind):
-        invoice_backend.setCurrentClient(client_id, name, kind)
+    # def sync_invoice_client(client_id, name, kind):
+    #     invoice_backend.setCurrentClient(client_id, name, kind)
 
     database_backend.servicesChanged.connect(sync_invoice_services)
-    report_backend.clientSelected.connect(sync_invoice_client)
+    # report_backend.clientSelected.connect(sync_invoice_client)
     sync_invoice_services()
     
     # Регистрируем бэкенды в QML

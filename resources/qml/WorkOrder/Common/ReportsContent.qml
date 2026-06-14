@@ -13,6 +13,11 @@ Item {
         compact: root.compact
     }
 
+    ObjectDialog {
+        id: objectDialog
+        compact: root.compact
+    }
+
     WorkFormDialog {
         id: workDialog
         compact: root.compact
@@ -50,6 +55,13 @@ Item {
                 text: qsTr("+ Заказчик / объект")
                 onClicked: clientDialog.open()
             }
+
+            PrimaryButton {
+                // Layout.fillWidth: true
+                // Layout.margins: 16
+                text: qsTr("+ Объект")
+                onClicked: objectDialog.open()
+            }
         }
 
         RowLayout {
@@ -81,6 +93,13 @@ Item {
                         Layout.fillWidth: true
                         text: qsTr("+ Заказчик / объект")
                         onClicked: clientDialog.open()
+                    }
+
+                    PrimaryButton {
+                        Layout.fillWidth: true
+                        // Layout.margins: 16
+                        text: qsTr("+ Объект")
+                        onClicked: objectDialog.open()
                     }
 
                     ListView {
@@ -268,6 +287,13 @@ Item {
                 onClicked: clientDialog.open()
             }
 
+            PrimaryButton {
+                Layout.fillWidth: true
+                Layout.margins: 16
+                text: qsTr("+ Объект")
+                onClicked: objectDialog.open()
+            }
+
             ListView {
                 id: mobileClientsList
                 Layout.fillWidth: true
@@ -414,18 +440,18 @@ Item {
     }
 
     function refreshClients() {
-        clientsModel.clear()
-        var clients = reportBackend.getAllClients()
-        for(var i = 0; i < clients.length; i++) {
-            clientsModel.append({
-                clientId: clients[i].id,
-                kind: clients[i].kind,
-                kindLabel: clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик"),
-                name: clients[i].name,
-                contactInfo: clients[i].contact_info,
-                address: clients[i].address
-            })
-        }
+        // clientsModel.clear()
+        // var clients = reportBackend.getAllClients()
+        // for(var i = 0; i < clients.length; i++) {
+        //     clientsModel.append({
+        //         clientId: clients[i].id,
+        //         kind: clients[i].kind,
+        //         kindLabel: clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик"),
+        //         name: clients[i].name,
+        //         contactInfo: clients[i].contact_info,
+        //         address: clients[i].address
+        //     })
+        // }
     }
 
     function refreshWorks() {
