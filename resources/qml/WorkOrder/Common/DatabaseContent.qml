@@ -25,27 +25,35 @@ Item {
         compact: root.compact
     }
 
+    ServiceDialog {
+        id: serviceDialog
+        compact: root.compact
+    }
+
     Menu {
         id: contextMenu
-        property int serviceId: 0
-        property string serviceName: ""
-        property real servicePrice: 0.0
-
+        property string _id: ""
+        property string _name: ""
+        property int _price: 0
+        property string _keywords: ""
+        property string _unit: ""
         MenuItem {
             text: qsTr("Редактировать")
             onTriggered: {
-                // editServiceDialog.serviceId = contextMenu.serviceId
-                // editServiceDialog.serviceName = contextMenu.serviceName
-                // editServiceDialog.servicePrice = contextMenu.servicePrice
-                editServiceDialog.open()
+                serviceDialog.id =contextMenu._id
+                serviceDialog.name = contextMenu._name
+                serviceDialog.price = contextMenu._price
+                serviceDialog.keywords = contextMenu._keywords
+                serviceDialog.unit = contextMenu._unit
+                serviceDialog.open()
             }
         }
 
         MenuItem {
             text: qsTr("Удалить")
             onTriggered: {
-                // deleteServiceDialog.serviceId = contextMenu.serviceId
-                // deleteServiceDialog.serviceName = contextMenu.serviceName
+                deleteServiceDialog.id = contextMenu._id
+                deleteServiceDialog.name = contextMenu._name
                 deleteServiceDialog.open()
             }
         }
@@ -77,7 +85,11 @@ Item {
             PrimaryButton {
                 text: qsTr("+ Добавить услугу")
                 Layout.preferredWidth: implicitWidth
-                onClicked: addServiceDialog.open()
+                onClicked: 
+                {
+                    serviceDialog.clearInfo()
+                    serviceDialog.open()                    
+                }
             }
         }
 
@@ -101,13 +113,6 @@ Item {
                         anchors.fill: parent
                         anchors.leftMargin: 16
                         anchors.rightMargin: 16
-
-                        Label {
-                            text: "ID"
-                            font.bold: true
-                            color: textSecondaryColor
-                            Layout.preferredWidth: 60
-                        }
 
                         Label {
                             text: qsTr("Название услуги")
@@ -153,42 +158,48 @@ Item {
                             anchors.rightMargin: 16
 
                             Label {
-                                text: serviceId
-                                color: textSecondaryColor
-                                Layout.preferredWidth: 60
-                            }
-
-                            TextField {
                                 text: name
                                 Layout.fillWidth: true
-                                placeholderText: qsTr("Название услуги")
-                                onEditingFinished: databaseBackend.updateService(serviceId, text, price)
                             }
 
-                            TextField {
-                                text: price.toFixed(2)
+                            Label {
+                                text: (price / 100).toFixed(2)
                                 Layout.preferredWidth: 120
                                 horizontalAlignment: Text.AlignRight
-                                onEditingFinished: {
-                                    var newPrice = parseFloat(text.replace(",", "."))
-                                    if(!isNaN(newPrice)) {
-                                        databaseBackend.updateService(serviceId, name, newPrice)
-                                    }
-                                }
+                                color: primaryColor
                             }
 
+                            Label {
+                                text: "\u20BD"
+                                font.pixelSize: 15
+                                color: primaryColor
+                                font.bold: true
+                            }
                             RowLayout {
                                 Layout.preferredWidth: 100
                                 spacing: 8
 
                                 ToolButton {
                                     text: "\u270F"
-                                    onClicked: openEdit(serviceId, name, price)
+                                    onClicked: 
+                                    {
+                                        serviceDialog.id = id
+                                        serviceDialog.name = name
+                                        serviceDialog.price = price
+                                        serviceDialog.keywords = keywords
+                                        serviceDialog.unit = unit
+                                        serviceDialog.open()
+                                    }
                                 }
 
                                 ToolButton {
                                     text: "\u2715"
-                                    onClicked: openDelete(serviceId, name)
+                                    onClicked: 
+                                    {
+                                        deleteServiceDialog.id = id
+                                        deleteServiceDialog.name = name
+                                        deleteServiceDialog.open()
+                                    }
                                 }
                             }
                         }
@@ -226,204 +237,116 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: addServiceDialog.open()
+            onClicked: 
+            {
+                console.log("New service")
+                serviceDialog.clearInfo()
+                serviceDialog.open()
+            }
         }
     }
 
-    ListView {
-        id: mobileList
-        visible: compact
-        anchors.fill: parent
-        clip: true
-        spacing: 1
-        model: servicesModel
+ListView {
+    id: mobileList
+    visible: compact
+    anchors.fill: parent
+    clip: true
+    spacing: 1
+    model: servicesModel
 
-        header: Rectangle {
-            width: mobileList.width
-            height: 48
-            color: backgroundColor
+    header: Rectangle {
+        width: mobileList.width
+        height: 48
+        color: backgroundColor
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
+            Label {
+                text: qsTr("Услуги (%1)")
+                        .arg(servicesModel.count)
 
-                Label {
-                    text: qsTr("Услуги (%1)").arg(servicesModel.count)
-                    font.bold: true
-                    color: textSecondaryColor
-                    Layout.fillWidth: true
-                }
+                font.bold: true
+                color: textSecondaryColor
+                Layout.fillWidth: true
             }
         }
+    }
 
-        delegate: Rectangle {
+    delegate: Rectangle {
+        width: mobileList.width
+        height: 60
+        color: cardColor
 
-            width: mobileList.width
-            height: 62
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 8
+            anchors.topMargin: 6
+            anchors.bottomMargin: 6
 
-            color: cardColor
+            spacing: 8
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 12
-                anchors.rightMargin: 8
-                anchors.topMargin: 4
-                anchors.bottomMargin: 4
-
+            ColumnLayout {
+                Layout.fillWidth: true
                 spacing: 4
 
-                ColumnLayout {
-
+                Text {
+                    text: name
                     Layout.fillWidth: true
-                    spacing: 2
-
-                    TextField {
-                        id: nameField
-                        text: name
-                        Layout.fillWidth: true
-                        placeholderText: qsTr("Название услуги")
-                        font.pixelSize: 15
-                        selectByMouse: true
-                        padding: 0
-                        topPadding: 2
-                        bottomPadding: 2
-                        implicitHeight: 28
-
-                        background: Rectangle {
-                            color: "transparent"
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.bottom: parent.bottom
-
-                                height: 1
-                                color: textSecondaryColor
-                            }
-                        }
-
-                        onEditingFinished: {
-                            databaseBackend.updateService(
-                                serviceId,
-                                text,
-                                price
-                            )
-                        }
-                    }
-
-                    RowLayout {
-
-                        Layout.fillWidth: true
-
-                        spacing: 6
-
-                        Label {
-                            text: "ID: " + serviceId
-                            font.pixelSize: 11
-                            color: textSecondaryColor
-                        }
-
-                        Item {
-                            Layout.fillWidth: true
-                        }
-
-                        TextField {
-                            text: (price / 100).toFixed(2)
-                            font.pixelSize: 15
-                            Layout.preferredWidth: 70
-                            horizontalAlignment: Text.AlignRight
-                            padding: 0
-                            topPadding: 2
-                            bottomPadding: 2
-                            implicitHeight: 26
-
-                            validator: RegularExpressionValidator {
-                                regularExpression:
-                                    /^[0-9]+(\.[0-9]{0,2})?$/
-                            }
-
-                            background: Rectangle {
-                                color: "transparent"
-
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
-
-                                    height: 1
-                                    color: primaryColor
-                                }
-                            }
-
-                            onEditingFinished: {
-
-                                var newPrice =
-                                        parseFloat(
-                                            text.replace(",", ".")
-                                        )
-
-                                if (!isNaN(newPrice)) {
-
-                                    databaseBackend.updateService(
-                                        serviceId,
-                                        name,
-                                        newPrice
-                                    )
-                                }
-                            }
-                        }
-
-                        Label {
-                            text: "\u20BD"
-                            font.pixelSize: 15
-                            color: primaryColor
-                            font.bold: true
-                        }
-                    }
+                    font.pixelSize: 15
+                    color: textColor
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    wrapMode: Text.NoWrap
                 }
 
-                ToolButton {
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
 
-                    Layout.alignment: Qt.AlignTop
-                    text: "\u22EE"
+                    Text {
+                        text: (price / 100).toFixed(2)
+                        font.pixelSize: 15
+                        color: primaryColor
+                        horizontalAlignment: Text.AlignRight
+                    }
 
-                    onClicked: {
-
-                        // contextMenu.serviceId = id
-                        // contextMenu.serviceName = name
-                        // contextMenu.servicePrice = price
-
-                        contextMenu.popup()
+                    Label {
+                        text: "\u20BD"
+                        font.pixelSize: 15
+                        color: primaryColor
+                        font.bold: true
+                    }
+                    Item {
+                        Layout.fillWidth: true
                     }
                 }
             }
-            DividerLine {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
+
+            ToolButton {
+                Layout.alignment: Qt.AlignTop
+                text: "\u22EE"
+                onClicked: {
+                    contextMenu._id = id
+                    contextMenu._name = name
+                    contextMenu._price = price
+                    contextMenu._keywords = keywords
+                    contextMenu._unit = unit
+                    contextMenu.popup()
+                }
             }
         }
-        //     }
 
-
-        // }
+        DividerLine {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+        }
     }
-
+}
     ListModel { id: servicesListModel }
-
-    function openEdit(id, name, price) {
-        editServiceDialog.serviceId = id
-        editServiceDialog.serviceName = name
-        editServiceDialog.servicePrice = price
-        editServiceDialog.open()
-    }
-
-    function openDelete(id, name) {
-        deleteServiceDialog.serviceId = id
-        deleteServiceDialog.serviceName = name
-        deleteServiceDialog.open()
-    }
 
     function refreshServicesList() {
         servicesListModel.clear()

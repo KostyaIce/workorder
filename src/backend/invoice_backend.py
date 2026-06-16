@@ -7,7 +7,7 @@ InvoicePage Backend
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
 from models.services_model import ServiceModel
 from models.services_filter_model import ServicesFilterModel
-from utils.services_db import create_services_table, add_service, update_service,load_services
+from utils.services_db import create_services_table, add_service, update_service,load_services, delete_service
 
 
 def _keywords_from_name(name):
@@ -136,6 +136,22 @@ class InvoiceBackend(QObject):
         if not data:
             return
         result = add_service(data)
+        self._load_services()
+        return
+
+    @pyqtSlot("QVariantMap")
+    def updateService(self, data):
+        if not data:
+            return
+        update_service(data)
+        self._load_services()
+        return
+
+    @pyqtSlot(str)
+    def deleteService(self, id):
+        if not id:
+            return
+        delete_service(id)
         self._load_services()
         return
 

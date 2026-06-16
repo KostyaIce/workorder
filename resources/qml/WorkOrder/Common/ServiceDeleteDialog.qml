@@ -4,8 +4,8 @@ import QtQuick.Controls
 ConfirmDialog {
     id: root
 
-    property int serviceId: 0
-    property string serviceName: ""
+    property string id: ""
+    property string name: ""
 
     title: qsTr("Удалить услугу?")
     standardButtons: Dialog.Yes | Dialog.No
@@ -13,9 +13,9 @@ ConfirmDialog {
 
     onOpened: {
         message = compact
-                ? qsTr("Удалить \"%1\"?").arg(serviceName)
-                : qsTr("Вы уверены, что хотите удалить услугу \"%1\"?").arg(serviceName)
+                ? qsTr("Удалить \"%1\"?").arg(name)
+                : qsTr("Вы уверены, что хотите удалить услугу \"%1\"?").arg(name)
     }
 
-    onAccepted: databaseBackend.deleteService(serviceId)
+    onAccepted: invoiceBackend.deleteService(id)
 }

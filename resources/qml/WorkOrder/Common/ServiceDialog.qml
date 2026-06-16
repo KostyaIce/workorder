@@ -7,8 +7,12 @@ Dialog {
 
     property bool compact: true
     property string name: ""
+    property string id: ""
+    property int price: 0
+    property string unit: ""
+    property string keywords: ""
 
-    title: qsTr("Новая услуга")
+    title: id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
     standardButtons: Dialog.Save | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
@@ -17,9 +21,9 @@ Dialog {
 
     onOpened: {
         nameField.text = name
-        priceField.text = ""
-        keywordsField.text = ""
-        unitField.text = ""
+        priceField.text = (price/100).toFixed(2)
+        keywordsField.text = keywords
+        unitField.text = unit
     }
 
     ColumnLayout {
@@ -59,13 +63,36 @@ Dialog {
     }
 
     onAccepted: {
-        var data = {
-            "name": nameField.text,
-            "price": priceField.text,
-            "unit": unitField.text,
-            "keywords": keywordsField.text
-        };
+        if(id === "")
+        {
+            var data = {
+                "name": nameField.text,
+                "price": priceField.text,
+                "unit": unitField.text,
+                "keywords": keywordsField.text
+            };
 
-        invoiceBackend.addService(data)
+            invoiceBackend.addService(data)
+        }
+        else
+        {
+            var data = {
+                "id": id,
+                "name": nameField.text,
+                "price": priceField.text,
+                "unit": unitField.text,
+                "keywords": keywordsField.text
+            };
+            invoiceBackend.updateService(data)
+        }
+    }
+
+    function clearInfo()
+    {
+        id = ""
+        name = ""
+        price = 0.00
+        unit = ""
+        keywords = ""
     }
 }

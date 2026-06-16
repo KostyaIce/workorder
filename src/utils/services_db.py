@@ -98,10 +98,23 @@ def delete_service(service_id):
         return cursor.rowcount > 0
 
 
-def update_service(service_id, name=None, price=None, unit=None, keywords=None):
+def update_service(data):
     """Update service name, price, unit and/or keywords."""
-    if not service_id:
+    if not data:
         return False
+
+    name = data.get("name", "").strip()
+    if not name:
+        return False
+
+    id = data.get("id").strip()
+    price = int(Decimal(data.get("price", "0")) * 100)
+    unit = data.get("unit", "").strip()
+    keywords = data.get("keywords", "")
+    if not keywords:
+        keywords = _keywords_from_name(name)
+
+    now = datetime.now().isoformat()
     
     updates = []
     params = []
@@ -126,8 +139,8 @@ def update_service(service_id, name=None, price=None, unit=None, keywords=None):
         return False
     
     updates.append("updated_at = ?")
-    params.append(datetime.now().isoformat())
-    params.append(service_id)
+    params.append(now)
+    params.append(id)
     
     try:
         with _connect() as conn:
