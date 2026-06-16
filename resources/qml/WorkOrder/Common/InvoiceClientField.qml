@@ -122,56 +122,56 @@ ColumnLayout {
         }
     }
 
-    Rectangle {
-        Layout.fillWidth: true
-        height: recipientRow.height + 16
-        radius: 8
-        color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
-        visible: invoiceBackend.hasCurrentClient
+    // Rectangle {
+    //     Layout.fillWidth: true
+    //     height: recipientRow.height + 16
+    //     radius: 8
+    //     color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
+    //     visible: invoiceBackend.hasCurrentClient
 
-        RowLayout {
-            id: recipientRow
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 8
+    //     RowLayout {
+    //         id: recipientRow
+    //         anchors.fill: parent
+    //         anchors.margins: 12
+    //         spacing: 8
 
-            Label {
-                text: qsTr("Счёт для:")
-                font.pixelSize: compact ? 12 : 13
-                color: textSecondaryColor
-            }
+    //         Label {
+    //             text: qsTr("Счёт для:")
+    //             font.pixelSize: compact ? 12 : 13
+    //             color: textSecondaryColor
+    //         }
 
-            Label {
-                text: invoiceBackend.currentClientLabel
-                font.pixelSize: compact ? 15 : 16
-                font.bold: true
-                color: textColor
-                Layout.fillWidth: true
-                elide: Text.ElideRight
-            }
+    //         // Label {
+    //         //     text: invoiceBackend.currentClientLabel
+    //         //     font.pixelSize: compact ? 15 : 16
+    //         //     font.bold: true
+    //         //     color: textColor
+    //         //     Layout.fillWidth: true
+    //         //     elide: Text.ElideRight
+    //         // }
 
-            ToolButton {
-                text: "\u2715"
-                visible: compact
-                onClicked: {
-                    clientBox.currentIndex = 0
-                    invoiceBackend.clearCurrentClient()
-                }
-            }
-        }
-    }
+    //         ToolButton {
+    //             text: "\u2715"
+    //             visible: compact
+    //             onClicked: {
+    //                 clientBox.currentIndex = 0
+    //                 // invoiceBackend.clearCurrentClient()
+    //             }
+    //         }
+    //     }
+    // }
 
-    ListModel { id: clientOptionsModel }
+    // ListModel { id: clientOptionsModel }
 
-    function refreshClients() {
-        var selectedId = invoiceBackend.currentClientId
-        clientOptionsModel.clear()
-        clientOptionsModel.append({
-            clientId: 0,
-            name: "",
-            kind: "",
-            label: qsTr("Не выбран")
-        })
+    // function refreshClients() {
+    //     var selectedId = invoiceBackend.currentClientId
+    //     clientOptionsModel.clear()
+    //     clientOptionsModel.append({
+    //         clientId: 0,
+    //         name: "",
+    //         kind: "",
+    //         label: qsTr("Не выбран")
+    //     })
 
         // var clients = reportBackend.getAllClients()
         // var selectedIndex = 0
@@ -188,17 +188,17 @@ ColumnLayout {
         //     }
         // }
         // clientBox.currentIndex = selectedIndex
-    }
+    // }
 
-    Connections {
-        target: reportBackend
-        function onClientsChanged() { root.refreshClients() }
-    }
+    // Connections {
+    //     target: reportBackend
+    //     function onClientsChanged() { root.refreshClients() }
+    // }
 
-    Connections {
-        target: invoiceBackend
-        function onCurrentClientChanged() { root.refreshClients() }
-    }
+    // Connections {
+    //     target: invoiceBackend
+    //     function onCurrentClientChanged() { root.refreshClients() }
+    // }
 
-    Component.onCompleted: refreshClients()
+    // Component.onCompleted: refreshClients()
 }

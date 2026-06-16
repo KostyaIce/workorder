@@ -25,7 +25,7 @@ class InvoiceBackendTest(unittest.TestCase):
 
     def test_create_invoice_requires_service(self):
         self.assertFalse(self.backend.createInvoice())
-        self.backend.setCurrentClient(1, "Иванов И.И.", "customer")
+        # self.backend.setCurrentClient(1, "Иванов И.И.", "customer")
         self.backend.selectServiceById(1)
         self.backend.setQuantity(2)
         self.assertTrue(self.backend.addLineFromSelection())

@@ -7,10 +7,17 @@ ColumnLayout {
 
     property bool compact: true
     property alias serviceInput: serviceInput
+    property int countField: 0
+    property bool isValueGrowing: false
 
     spacing: 8
     Layout.fillWidth: true
     z: 100
+
+    ServiceDialog {
+        id: serviceDialog
+        compact: root.compact
+    }
 
     Label {
         text: qsTr("Услуга")
@@ -22,7 +29,19 @@ ColumnLayout {
         id: serviceInput
         Layout.fillWidth: true
         placeholderText: qsTr("Введите название услуги...")
-        onTextChanged: invoiceBackend.searchServices(text)
+        onTextChanged: 
+        {
+            invoiceBackend.searchServices(text)
+            if(countField < text.length)
+            {
+                isValueGrowing = true;
+            }
+            else
+            {
+                isValueGrowing = false;
+            }
+            countField = text.length
+        }
         onActiveFocusChanged: {
             if(!activeFocus) {
                 invoiceBackend.clearSuggestions()
@@ -37,7 +56,7 @@ ColumnLayout {
         border.color: "#E0E0E0"
         border.width: 1
         radius: 8
-        visible: suggestionsList.count > 0
+        visible: suggestionsList.rowCount() > 0
         clip: true
 
         Rectangle {
@@ -58,7 +77,7 @@ ColumnLayout {
             height: Math.min(count * (compact ? 56 : 48), compact ? 280 : 240)
             clip: true
             spacing: 1
-            model: ListModel { id: suggestionsModel }
+            model: servicesFilterModel
 
             delegate: Rectangle {
                 width: suggestionsList.width
@@ -84,7 +103,7 @@ ColumnLayout {
                     }
 
                     Label {
-                        text: model.price.toFixed(2) + " \u20BD"
+                        text: (model.price / 100).toFixed(2) + " \u20BD"
                         font.pixelSize: 12
                         color: primaryColor
                         font.bold: true
@@ -107,7 +126,7 @@ ColumnLayout {
                     }
 
                     Label {
-                        text: model.price.toFixed(2) + " \u20BD"
+                        text: (model.price / 100).toFixed(2) + " \u20BD"
                         font.pixelSize: 13
                         color: primaryColor
                         font.bold: true
@@ -121,7 +140,7 @@ ColumnLayout {
                     onClicked: {
                         invoiceBackend.selectServiceById(model.id)
                         serviceInput.text = model.name
-                        suggestionsModel.clear()
+                        servicesFilterModel.clearFilter()
                     }
                 }
             }
@@ -130,14 +149,14 @@ ColumnLayout {
 
     Connections {
         target: invoiceBackend
-        function onSuggestionsUpdated(suggestions) {
-            suggestionsModel.clear()
-            for(var i = 0; i < suggestions.length; i++) {
-                suggestionsModel.append(suggestions[i])
+
+        function onCountFound(count)
+        {
+            if(count === 0 && isValueGrowing && serviceInput.text !== "")
+            {
+                serviceDialog.name = serviceInput.text
+                serviceDialog.open()
             }
-        }
-        function onSuggestionsCleared() {
-            suggestionsModel.clear()
         }
     }
 }

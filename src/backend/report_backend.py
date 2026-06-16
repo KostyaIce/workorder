@@ -10,13 +10,16 @@ from models.clients_model import ClientModel
 from models.objects_model import ObjectModel
 
 from utils.db_storage import (
-    add_client_entry,
-    create_client_table,
     default_works_db_path,
-    load_clients,
     load_completed_works,
-    save_clients,
     save_completed_works,
+)
+from utils.clients_db import (
+    create_client_table,
+    add_client_entry,
+    load_clients,
+)
+from utils.objects_db import (
     create_object_database,
     add_object_entry,
     load_objects,
@@ -64,6 +67,7 @@ class ReportBackend(QObject):
         self._current_object_data = ObjectItem()
         self._clients = ClientModel()
         self._objects = ObjectModel()
+        
         engine.rootContext().setContextProperty(
             "clientsModel",
             self._clients

@@ -63,7 +63,7 @@ def main():
     engine = QQmlApplicationEngine()
     
     # Создаем бэкенды
-    invoice_backend = InvoiceBackend()
+    invoice_backend = InvoiceBackend(engine)
     database_backend = DatabaseBackend()
     settings_backend = SettingsBackend()
     report_backend = ReportBackend(settings_backend, engine)

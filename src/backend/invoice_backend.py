@@ -5,6 +5,9 @@ InvoicePage Backend
 """
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
+from models.services_model import ServiceModel
+from models.services_filter_model import ServicesFilterModel
+from utils.services_db import create_services_table, add_service, update_service,load_services
 
 
 def _keywords_from_name(name):
@@ -20,12 +23,12 @@ class InvoiceBackend(QObject):
     quantityChanged = pyqtSignal(int)
     totalCalculated = pyqtSignal(float)
     linesChanged = pyqtSignal()
-    currentClientChanged = pyqtSignal()
+    countFound = pyqtSignal(int)
     suggestionsUpdated = pyqtSignal(list)  # Список подсказок
     suggestionsCleared = pyqtSignal()
     invoiceCreated = pyqtSignal(int, str)  # invoice_id, invoice_number
     
-    def __init__(self, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
         
         # Текущие значения для добавления позиции
@@ -43,27 +46,29 @@ class InvoiceBackend(QObject):
         self._current_client_name = ""
         self._current_client_kind = ""
         
-        self._services_db = []
-        self._load_default_services()
+        # self._services_db = []
+
+        # Models for services
+        self._services = ServiceModel()
+        self._services_filter = ServicesFilterModel()
+        self._services_filter.setSourceModel(self._services)
+
+        create_services_table()
+        self._load_services()
+
+        engine.rootContext().setContextProperty(
+            "servicesModel",
+            self._services
+        )
+        engine.rootContext().setContextProperty(
+            "servicesFilterModel",
+            self._services_filter
+        )
     
-    def _load_default_services(self):
-        self._services_db = [
-            {"id": 1, "name": "Диагностика оборудования", "price": 500.0, "keywords": ["диагностика", "проверка"]},
-            {"id": 2, "name": "Ремонт компьютера", "price": 1500.0, "keywords": ["ремонт", "компьютер", "пк"]},
-            {"id": 3, "name": "Ремонт ноутбука", "price": 2000.0, "keywords": ["ремонт", "ноутбук", "лаптоп"]},
-            {"id": 4, "name": "Замена экрана", "price": 3500.0, "keywords": ["экран", "дисплей", "замена"]},
-            {"id": 5, "name": "Замена батареи", "price": 1200.0, "keywords": ["батарея", "аккумулятор", "замена"]},
-            {"id": 6, "name": "Установка Windows", "price": 2500.0, "keywords": ["windows", "установка", "ос"]},
-            {"id": 7, "name": "Установка программ", "price": 800.0, "keywords": ["программа", "установка", "софт"]},
-            {"id": 8, "name": "Чистка от пыли", "price": 1000.0, "keywords": ["чистка", "пыль", "обслуживание"]},
-            {"id": 9, "name": "Замена термопасты", "price": 600.0, "keywords": ["термопаста", "охлаждение", "замена"]},
-            {"id": 10, "name": "Восстановление данных", "price": 3000.0, "keywords": ["данные", "восстановление", "файл"]},
-            {"id": 11, "name": "Настройка сети", "price": 1200.0, "keywords": ["сеть", "wifi", "интернет", "настройка"]},
-            {"id": 12, "name": "Консультация", "price": 500.0, "keywords": ["консультация", "совет", "вопрос"]},
-            {"id": 13, "name": "Ремонт материнской платы", "price": 4500.0, "keywords": ["материнская плата", "ремонт", "майн"]},
-            {"id": 14, "name": "Замена клавиатуры", "price": 1800.0, "keywords": ["клавиатура", "замена", "кнопки"]},
-            {"id": 15, "name": "Ремонт блока питания", "price": 2200.0, "keywords": ["блок питания", "бп", "ремонт"]},
-        ]
+    def _load_services(self):
+
+        model = load_services()
+        self._services.updateModel(model)
     
     # === Свойства ===
     
@@ -92,130 +97,93 @@ class InvoiceBackend(QObject):
         """Количество позиций в счете"""
         return len(self._lines)
 
-    @pyqtProperty(int, notify=currentClientChanged)
-    def currentClientId(self):
-        """ID текущего заказчика или объекта"""
-        return self._current_client_id
+    # @pyqtProperty(int, notify=currentClientChanged)
+    # def currentClientId(self):
+    #     """ID текущего заказчика или объекта"""
+    #     return self._current_client_id
 
-    @pyqtProperty(str, notify=currentClientChanged)
-    def currentClientName(self):
-        """Название текущего заказчика или объекта"""
-        return self._current_client_name
-
-    @pyqtProperty(str, notify=currentClientChanged)
-    def currentClientKind(self):
-        """Тип текущего получателя: customer или object"""
-        return self._current_client_kind
-
-    @pyqtProperty(str, notify=currentClientChanged)
-    def currentClientLabel(self):
-        """Отображаемая подпись получателя счета"""
-        if not self._current_client_name:
-            return ""
-        kind_label = "Объект" if self._current_client_kind == "object" else "Заказчик"
-        return f"{kind_label}: {self._current_client_name}"
-
-    @pyqtProperty(bool, notify=currentClientChanged)
-    def hasCurrentClient(self):
-        """Выбран ли заказчик или объект"""
-        return self._current_client_id > 0
+    # @pyqtProperty(str, notify=currentClientChanged)
+    # def currentClientLabel(self):
+    #     """Отображаемая подпись получателя счета"""
+    #     if not self._current_client_name:
+    #         return ""
+    #     kind_label = "Объект" if self._current_client_kind == "object" else "Заказчик"
+    #     return f"{kind_label}: {self._current_client_name}"
+    #
+    # @pyqtProperty(bool, notify=currentClientChanged)
+    # def hasCurrentClient(self):
+    #     """Выбран ли заказчик или объект"""
+    #     return self._current_client_id > 0
     
     # === Каталог услуг ===
 
     @pyqtSlot(list)
     def setServicesCatalog(self, services):
         """Sync services catalog from database backend."""
-        self._services_db = []
-        for service in services:
-            name = service.get("name", "")
-            self._services_db.append({
-                "id": service.get("id", 0),
-                "name": name,
-                "price": float(service.get("price", 0.0)),
-                "keywords": _keywords_from_name(name),
-            })
+        # self._services_db = []
+        # for service in services:
+        #     name = service.get("name", "")
+        #     self._services_db.append({
+        #         "id": service.get("id", 0),
+        #         "name": name,
+        #         "price": float(service.get("price", 0.0)),
+        #         "keywords": _keywords_from_name(name),
+        #     })
+        return
     
-    # === Текущий заказчик / объект ===
-
-    @pyqtSlot(int, str, str)
-    def setCurrentClient(self, client_id, name, kind):
-        """Set invoice recipient customer or object."""
-        if client_id <= 0:
-            self.clearCurrentClient()
+    @pyqtSlot("QVariantMap")
+    def addService(self, data):
+        if not data:
             return
-
-        self._current_client_id = client_id
-        self._current_client_name = name.strip()
-        self._current_client_kind = kind if kind in ("customer", "object") else "customer"
-        self.currentClientChanged.emit()
-        print(f"[Invoice] Получатель счета: {self.currentClientLabel}")
-
-    @pyqtSlot(int, result=bool)
-    def setCurrentClientById(self, client_id):
-        """Set current client by id using report backend catalog."""
-        if client_id <= 0:
-            self.clearCurrentClient()
-            return True
-
-        report_backend = getattr(self, "_report_backend", None)
-        if report_backend is None:
-            return False
-
-        for client in report_backend.getAllClients():
-            if client["id"] == client_id:
-                self.setCurrentClient(client["id"], client["name"], client["kind"])
-                return True
-        return False
+        result = add_service(data)
+        self._load_services()
+        return
 
     def bind_report_backend(self, report_backend):
         """Link report backend as client catalog source."""
         self._report_backend = report_backend
 
-    @pyqtSlot()
-    def clearCurrentClient(self):
-        """Clear invoice recipient."""
-        self._current_client_id = 0
-        self._current_client_name = ""
-        self._current_client_kind = ""
-        self.currentClientChanged.emit()
     
     # === Автодополнение / Подсказки ===
     
     @pyqtSlot(str)
     def searchServices(self, query):
         """Поиск услуг по запросу."""
-        if not query or len(query.strip()) == 0:
-            self.suggestionsCleared.emit()
-            return
-        
-        query = query.lower().strip()
-        suggestions = []
-        
-        for service in self._services_db:
-            if query in service["name"].lower():
-                suggestions.append({
-                    "id": service["id"],
-                    "name": service["name"],
-                    "price": service["price"],
-                    "match_type": "name",
-                })
-                continue
-            
-            for keyword in service["keywords"]:
-                if query in keyword.lower():
-                    suggestions.append({
-                        "id": service["id"],
-                        "name": service["name"],
-                        "price": service["price"],
-                        "match_type": "keyword",
-                    })
-                    break
-        
-        suggestions.sort(key=lambda item: (item["match_type"] != "name", item["name"]))
-        suggestions = suggestions[:5]
-        
-        self.suggestionsUpdated.emit(suggestions)
-        print(f"[Invoice] Поиск '{query}': найдено {len(suggestions)} подсказок")
+        self._services_filter.setFilterText(query)
+        count = self._services_filter.rowCount()
+        self.countFound.emit(count)
+        # if not query or len(query.strip()) == 0:
+        #     self.suggestionsCleared.emit()
+        #     return
+        #
+        # query = query.lower().strip()
+        # suggestions = []
+        #
+        # for service in self._services_db:
+        #     if query in service["name"].lower():
+        #         suggestions.append({
+        #             "id": service["id"],
+        #             "name": service["name"],
+        #             "price": service["price"],
+        #             "match_type": "name",
+        #         })
+        #         continue
+        #
+        #     for keyword in service["keywords"]:
+        #         if query in keyword.lower():
+        #             suggestions.append({
+        #                 "id": service["id"],
+        #                 "name": service["name"],
+        #                 "price": service["price"],
+        #                 "match_type": "keyword",
+        #             })
+        #             break
+        #
+        # suggestions.sort(key=lambda item: (item["match_type"] != "name", item["name"]))
+        # suggestions = suggestions[:5]
+        #
+        # self.suggestionsUpdated.emit(suggestions)
+        # print(f"[Invoice] Поиск '{query}': найдено {len(suggestions)} подсказок")
     
     @pyqtSlot()
     def clearSuggestions(self):
@@ -227,23 +195,23 @@ class InvoiceBackend(QObject):
     @pyqtSlot(int, result=bool)
     def selectServiceById(self, service_id):
         """Выбрать услугу по ID"""
-        for service in self._services_db:
-            if service["id"] == service_id:
-                self._current_service_id = service_id
-                self._current_service_name = service["name"]
-                self._current_price = service["price"]
-                self.serviceSelected.emit(service_id, service["name"], service["price"])
-                self.suggestionsCleared.emit()
-                print(f"[Invoice] Выбрана услуга: {service['name']} ({service['price']} руб.)")
-                return True
+        # for service in self._services_db:
+        #     if service["id"] == service_id:
+        #         self._current_service_id = service_id
+        #         self._current_service_name = service["name"]
+        #         self._current_price = service["price"]
+        #         self.serviceSelected.emit(service_id, service["name"], service["price"])
+        #         self.suggestionsCleared.emit()
+        #         print(f"[Invoice] Выбрана услуга: {service['name']} ({service['price']} руб.)")
+        #         return True
         return False
     
     @pyqtSlot(str, result=bool)
     def selectServiceByName(self, name):
         """Выбрать услугу по названию (точное совпадение)"""
-        for service in self._services_db:
-            if service["name"].lower() == name.lower():
-                return self.selectServiceById(service["id"])
+        # for service in self._services_db:
+        #     if service["name"].lower() == name.lower():
+        #         return self.selectServiceById(service["id"])
         return False
     
     # === Количество для новой позиции ===
@@ -397,20 +365,20 @@ class InvoiceBackend(QObject):
     def getAllServices(self):
         """Получить список всех услуг"""
         return [
-            {"id": service["id"], "name": service["name"], "price": service["price"]}
-            for service in self._services_db
+            # {"id": service["id"], "name": service["name"], "price": service["price"]}
+            # for service in self._services_db
         ]
     
     @pyqtSlot(int, result=dict)
     def getServiceById(self, service_id):
         """Получить услугу по ID"""
-        for service in self._services_db:
-            if service["id"] == service_id:
-                return {
-                    "id": service["id"],
-                    "name": service["name"],
-                    "price": service["price"],
-                }
+        # for service in self._services_db:
+        #     if service["id"] == service_id:
+        #         return {
+        #             "id": service["id"],
+        #             "name": service["name"],
+        #             "price": service["price"],
+        #         }
         return {}
     
     @pyqtSlot(result=str)
