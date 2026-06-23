@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""
+SQLite storage for completed works.
+"""
+
+import sqlite3
+import uuid
+from datetime import datetime
+
+from utils.db_storage import object_db_path
+
+
+def _connect(client_name, client_id):
+    """Create connection to works database."""
+    db_path = object_db_path(client_name, client_id).resolve()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+_WORKS_COLUMNS = """
+    id, object_id, service_id, subobject_name, name, price, unit, quantity,
+    created_at, updated_at, start_order_at
+"""
+
+
+def _parse_quantity(value):
+    quantity = float(value if value is not None else 1)
+    if quantity <= 0:
+        quantity = 1.0
+    return round(quantity, 3)
+
+
+def _row_to_work(row):
+    return {
+        "id": row["id"],
+        "object_id": row["object_id"],
+        "service_id": row["service_id"],
+        "subobject_name": row["subobject_name"],
+        "name": row["name"],
+        "price": row["price"],
+        "unit": row["unit"],
+        "quantity": row["quantity"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "start_order_at": row["start_order_at"],
+    }
+
+
+def create_works_table(client_name, client_id):
+    """Create works table if not exists."""
+    with _connect(client_name, client_id) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS completed_works (
+                id TEXT PRIMARY KEY,
+                object_id TEXT NOT NULL,
+                service_id TEXT NOT NULL,
+                subobject_name TEXT NOT NULL DEFAULT '',
+                name TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                unit TEXT,
+                quantity NUMERIC(18, 3) NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                start_order_at INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        conn.commit()
+
+
+def add_work(client_name, client_id, data):
+    """Add new work entry."""
+    if not data:
+        return {}
+
+    name = data.get("name", "").strip()
+    if not name:
+        return {}
+
+    work_id = str(uuid.uuid4())
+    object_id = data.get("object_id", "")
+    service_id = data.get("service_id", "")
+    subobject_name = data.get("subobject_name", "").strip()
+    price = int(data.get("price", 0))
+    unit = data.get("unit", "").strip()
+    quantity = _parse_quantity(data.get("quantity", 1))
+    now = int(datetime.now().timestamp())
+    start_order_at = int(data.get("start_order_at", now))
+
+    create_works_table(client_name, client_id)
+
+    try:
+        with _connect(client_name, client_id) as conn:
+            conn.execute("""
+                INSERT INTO completed_works
+                (id, object_id, service_id, subobject_name, name, price, unit, quantity,
+                 created_at, updated_at, start_order_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                work_id, object_id, service_id, subobject_name, name, price, unit, quantity,
+                now, now, start_order_at,
+            ))
+            conn.commit()
+            return {
+                "id": work_id,
+                "object_id": object_id,
+                "service_id": service_id,
+                "subobject_name": subobject_name,
+                "name": name,
+                "price": price,
+                "unit": unit,
+                "quantity": quantity,
+                "created_at": now,
+                "updated_at": now,
+                "start_order_at": start_order_at,
+            }
+    except sqlite3.IntegrityError:
+        return {}
+
+
+def load_works(client_name, client_id):
+    """Load all works ordered by start_order_at desc."""
+    create_works_table(client_name, client_id)
+
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(
+            f"""SELECT {_WORKS_COLUMNS}
+               FROM completed_works
+               ORDER BY start_order_at DESC, updated_at DESC"""
+        ).fetchall()
+
+    return [_row_to_work(row) for row in rows]
+
+
+def load_works_by_object(client_name, client_id, object_id):
+    """Load works for specific object."""
+    if not object_id:
+        return []
+
+    create_works_table(client_name, client_id)
+
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(
+            f"""SELECT {_WORKS_COLUMNS}
+               FROM completed_works
+               WHERE object_id = ?
+               ORDER BY start_order_at DESC, updated_at DESC""",
+            (object_id,)
+        ).fetchall()
+
+    return [_row_to_work(row) for row in rows]
+
+
+def delete_work(client_name, client_id, work_id):
+    """Delete work by id."""
+    if not work_id:
+        return False
+
+    with _connect(client_name, client_id) as conn:
+        cursor = conn.execute(
+            "DELETE FROM completed_works WHERE id = ?",
+            (work_id,)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def update_work(client_name, client_id, data):
+    """Update work entry."""
+    if not data:
+        return False
+
+    work_id = data.get("id")
+    if not work_id:
+        return False
+
+    updates = []
+    params = []
+
+    if "object_id" in data:
+        updates.append("object_id = ?")
+        params.append(data["object_id"])
+
+    if "service_id" in data:
+        updates.append("service_id = ?")
+        params.append(data["service_id"])
+
+    if "subobject_name" in data:
+        updates.append("subobject_name = ?")
+        params.append(data["subobject_name"].strip())
+
+    if "name" in data:
+        name = data["name"].strip()
+        if name:
+            updates.append("name = ?")
+            params.append(name)
+
+    if "price" in data:
+        updates.append("price = ?")
+        params.append(int(data["price"]))
+
+    if "unit" in data:
+        updates.append("unit = ?")
+        params.append(data["unit"].strip())
+
+    if "quantity" in data:
+        updates.append("quantity = ?")
+        params.append(_parse_quantity(data["quantity"]))
+
+    if "start_order_at" in data:
+        updates.append("start_order_at = ?")
+        params.append(int(data["start_order_at"]))
+
+    if not updates:
+        return False
+
+    updates.append("updated_at = ?")
+    params.append(int(datetime.now().timestamp()))
+    params.append(work_id)
+
+    try:
+        with _connect(client_name, client_id) as conn:
+            cursor = conn.execute(f"""
+                UPDATE completed_works
+                SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+            conn.commit()
+            return cursor.rowcount > 0
+    except sqlite3.IntegrityError:
+        return False

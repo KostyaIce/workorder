@@ -10,13 +10,9 @@ from utils.db_storage import (
     create_services_database,
     create_works_database,
     default_services_db_path,
-    default_works_db_path,
     get_services_statistics as storage_services_statistics,
-    get_works_statistics as storage_works_statistics,
-    load_completed_works,
     load_services,
     repair_services_database,
-    repair_works_database,
     save_services,
 )
 
@@ -38,8 +34,8 @@ class DatabaseBackend(QObject):
         super().__init__(parent)
         
         self._services_db_path = str(default_services_db_path())
-        self._works_db_path = str(default_works_db_path())
-        self._works = []
+        # self._works_db_path = str(default_works_db_path())
+        # self._works = []
         
         # Счетчик ID
         self._next_id = 16
@@ -83,15 +79,15 @@ class DatabaseBackend(QObject):
         """Path to services SQLite database"""
         return self._services_db_path
 
-    @pyqtProperty(str, notify=worksChanged)
-    def worksDbPath(self):
-        """Path to completed works SQLite database"""
-        return self._works_db_path
+    # @pyqtProperty(str, notify=worksChanged)
+    # def worksDbPath(self):
+    #     """Path to completed works SQLite database"""
+    #     return self._works_db_path
 
     @pyqtProperty(int, notify=worksChanged)
     def workCount(self):
         """Number of loaded completed works"""
-        return len(self._works)
+        return 0 # return len(self._works)
     
     # === CRUD операции ===
     
@@ -297,8 +293,8 @@ class DatabaseBackend(QObject):
         """
         try:
             db_path, count = create_works_database(file_path)
-            self._works_db_path = db_path
-            self._works = load_completed_works(db_path)
+            # self._works_db_path = db_path
+            # self._works = load_completed_works(db_path)
             self.worksChanged.emit()
             print(f"[Database] Created works DB: {db_path} ({count} rows)")
             return True
@@ -321,7 +317,7 @@ class DatabaseBackend(QObject):
             works_report, works_path = repair_works_database(self._works_db_path)
 
             self._services_db_path = services_path
-            self._works_db_path = works_path
+            # self._works_db_path = works_path
             self._apply_services(load_services(services_path))
             self._works = load_completed_works(works_path)
             self.worksChanged.emit()
@@ -367,16 +363,16 @@ class DatabaseBackend(QObject):
     def loadWorksFromDatabase(self, file_path=""):
         """Load completed works from SQLite into memory."""
         try:
-            db_path = file_path or self._works_db_path
-            works = load_completed_works(db_path)
-            if not works:
-                self.errorOccurred.emit(f"БД работ пуста или не найдена: {db_path}")
-                return False
-
-            self._works_db_path = db_path
-            self._works = works
-            self.worksChanged.emit()
-            print(f"[Database] Loaded {len(works)} works from {db_path}")
+            # db_path = file_path or self._works_db_path
+            # works = load_completed_works(db_path)
+            # if not works:
+            #     self.errorOccurred.emit(f"БД работ пуста или не найдена: {db_path}")
+            #     return False
+            #
+            # # self._works_db_path = db_path
+            # self._works = works
+            # self.worksChanged.emit()
+            # print(f"[Database] Loaded {len(works)} works from {db_path}")
             return True
         except Exception as e:
             self.errorOccurred.emit(f"Ошибка загрузки БД работ: {str(e)}")
@@ -387,10 +383,10 @@ class DatabaseBackend(QObject):
         """Get loaded completed works list."""
         return [work.copy() for work in self._works]
 
-    @pyqtSlot(str, result=dict)
-    def getWorksStatistics(self, file_path=""):
-        """Get statistics for completed works database."""
-        return storage_works_statistics(file_path or self._works_db_path)
+    # @pyqtSlot(str, result=dict)
+    # def getWorksStatistics(self, file_path=""):
+    #     """Get statistics for completed works database."""
+    #     return storage_works_statistics(file_path or self._works_db_path)
 
     def _apply_services(self, services):
         self._services = services

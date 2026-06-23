@@ -17,6 +17,8 @@ ServiceSearchField 1.0 ServiceSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
 InvoiceClientField 1.0 InvoiceClientField.qml
 InvoiceLinesList 1.0 InvoiceLinesList.qml
+InvoiceWorksListContent 1.0 InvoiceWorksListContent.qml
+InvoiceWorksDialog 1.0 InvoiceWorksDialog.qml
 ServiceFormDialog 1.0 ServiceFormDialog.qml
 ServiceDeleteDialog 1.0 ServiceDeleteDialog.qml
 DatabaseContent 1.0 DatabaseContent.qml

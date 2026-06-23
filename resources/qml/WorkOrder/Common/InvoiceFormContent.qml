@@ -22,10 +22,10 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        height: compact ? selectedColumn.height + 24 : selectedRow.height + 24
+        height: compact ? selectedColumn.height + 24 : selectedRowLayout.height + 24
         color: backgroundColor
         radius: 8
-        visible: invoiceBackend.currentServiceName !== ""
+        visible: reportBackend.currentServiceName !== ""
 
         ColumnLayout {
             id: selectedColumn
@@ -42,8 +42,16 @@ ColumnLayout {
                 color: textSecondaryColor
             }
 
+            FormField {
+                compact: root.compact
+                label: qsTr("Субобъект")
+                placeholder: qsTr("Комната 1, Кухня")
+                text: reportBackend.currentSubObject
+                field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
+            }
+
             Label {
-                text: invoiceBackend.currentServiceName
+                text: reportBackend.currentServiceName
                 font.pixelSize: 15
                 color: textColor
                 font.bold: true
@@ -51,43 +59,77 @@ ColumnLayout {
                 elide: Text.ElideRight
             }
 
-            Label {
-                text: invoiceBackend.currentPrice.toFixed(2) + " \u20BD/ед."
-                font.pixelSize: 14
-                color: primaryColor
-                font.bold: true
+            Row {
+                spacing: 4
+                
+                EditablePriceLabel {
+                    value: reportBackend.currentPrice
+                    onPriceChanged: (newValue) => reportBackend.setCurrentServicePrice(newValue)
+                }
+                
+                Label {
+                    text: "\u20BD/ед."
+                    font.pixelSize: 14
+                    color: primaryColor
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
 
-        RowLayout {
-            id: selectedRow
+        ColumnLayout {
+            id: selectedRowLayout
             visible: !compact
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 12
-            spacing: 12
+            spacing: 8
 
-            Label {
-                text: qsTr("Выбрано:")
-                font.pixelSize: 12
-                color: textSecondaryColor
-            }
-
-            Label {
-                text: invoiceBackend.currentServiceName
-                font.pixelSize: 14
-                color: textColor
-                font.bold: true
+            RowLayout {
                 Layout.fillWidth: true
-                elide: Text.ElideRight
+                spacing: 12
+
+                Label {
+                    text: qsTr("Выбрано:")
+                    font.pixelSize: 12
+                    color: textSecondaryColor
+                }
+
+                Label {
+                    text: reportBackend.currentServiceName
+                    font.pixelSize: 14
+                    color: textColor
+                    font.bold: true
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                Row {
+                    spacing: 4
+
+                    EditablePriceLabel {
+                        value: reportBackend.currentPrice
+                        onPriceChanged: (newValue) => reportBackend.setCurrentServicePrice(newValue)
+                    }
+
+                    Label {
+                        text: "\u20BD/ед."
+                        font.pixelSize: 14
+                        color: primaryColor
+                        font.bold: true
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
             }
 
-            Label {
-                text: invoiceBackend.currentPrice.toFixed(2) + " \u20BD/ед."
-                font.pixelSize: 14
-                color: primaryColor
-                font.bold: true
+            FormField {
+                Layout.fillWidth: true
+                compact: false
+                label: qsTr("Субобъект")
+                placeholder: qsTr("Комната 1, Кухня")
+                text: reportBackend.currentSubObject
+                field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
             }
         }
     }
@@ -103,23 +145,24 @@ ColumnLayout {
             color: textSecondaryColor
         }
 
-        SpinBox {
+        QuantityField {
             Layout.fillWidth: true
-            from: 1
-            to: 999
-            value: invoiceBackend.currentQuantity
-            onValueModified: invoiceBackend.setQuantity(value)
+            value: reportBackend.currentQuantity
+            stepSize: 0.1
+            minimumValue: 0.1
+            decimals: 2
+            onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
         }
 
         PrimaryButton {
             Layout.fillWidth: true
             text: qsTr("Добавить позицию")
-            enabled: invoiceBackend.currentServiceName !== ""
+            enabled: reportBackend.currentServiceName !== ""
             onClicked: {
-                if(invoiceBackend.addLineFromSelection()) {
+                if(!reportBackend.addWork())
+                    console.log("work not created")
+                else
                     serviceInput.text = ""
-                    invoiceBackend.clearSuggestions()
-                }
             }
         }
     }
@@ -139,12 +182,13 @@ ColumnLayout {
                 color: textSecondaryColor
             }
 
-            SpinBox {
+            QuantityField {
                 Layout.fillWidth: true
-                from: 1
-                to: 999
-                value: invoiceBackend.currentQuantity
-                onValueModified: invoiceBackend.setQuantity(value)
+                value: reportBackend.currentQuantity
+                stepSize: 0.1
+                minimumValue: 0.1
+                decimals: 2
+                onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
             }
         }
 
@@ -152,12 +196,12 @@ ColumnLayout {
             Layout.preferredWidth: 180
             Layout.alignment: Qt.AlignBottom
             text: qsTr("Добавить позицию")
-            enabled: invoiceBackend.currentServiceName !== ""
+            enabled: reportBackend.currentServiceName !== ""
             onClicked: {
-                if(invoiceBackend.addLineFromSelection()) {
+                if(!reportBackend.addWork())
+                    console.log("work not created")
+                else
                     serviceInput.text = ""
-                    invoiceBackend.clearSuggestions()
-                }
             }
         }
     }
@@ -166,11 +210,11 @@ ColumnLayout {
         compact: root.compact
     }
 
-    Item {
-        Layout.fillHeight: true
-        visible: !compact
-        Layout.minimumHeight: 8
-    }
+    // Item {
+    //     Layout.fillHeight: true
+    //     visible: !compact
+    //     Layout.minimumHeight: 8
+    // }
 
     Rectangle {
         Layout.fillWidth: true
@@ -191,7 +235,7 @@ ColumnLayout {
             }
 
             Label {
-                text: invoiceBackend.currentTotal.toFixed(2) + " \u20BD"
+                text: (reportBackend.worksTotal / 100).toFixed(2) + " \u20BD"
                 font.pixelSize: 32
                 font.bold: true
                 color: primaryColor
@@ -213,7 +257,7 @@ ColumnLayout {
             Item { Layout.fillWidth: true }
 
             Label {
-                text: invoiceBackend.currentTotal.toFixed(2) + " \u20BD"
+                text: (reportBackend.worksTotal / 100 ).toFixed(2) + " \u20BD"
                 font.pixelSize: 24
                 font.bold: true
                 color: primaryColor
@@ -228,7 +272,7 @@ ColumnLayout {
 
         PrimaryButton {
             text: qsTr("Создать счет")
-            enabled: invoiceBackend.lineCount > 0 && invoiceBackend.hasCurrentClient
+            enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
             onClicked: invoiceBackend.createInvoice()
         }
 
@@ -252,7 +296,7 @@ ColumnLayout {
 
         PrimaryButton {
             text: qsTr("Создать счет")
-            enabled: invoiceBackend.lineCount > 0 && invoiceBackend.hasCurrentClient
+            enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
             onClicked: invoiceBackend.createInvoice()
         }
     }

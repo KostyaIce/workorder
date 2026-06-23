@@ -243,7 +243,7 @@ Item {
                                     spacing: 2
 
                                     Label {
-                                        text: serviceName
+                                        text: name
                                         font.bold: true
                                         color: textColor
                                         Layout.fillWidth: true
@@ -251,19 +251,20 @@ Item {
                                     }
 
                                     Label {
-                                        text: completedAt + " | " + workNumber
+                                        text: (subobject_name !== "" ? subobject_name + " | " : "")
+                                            + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm")
                                         font.pixelSize: 11
                                         color: textSecondaryColor
                                     }
                                 }
 
                                 Label {
-                                    text: quantity + " x " + unitPrice.toFixed(2)
+                                    text: quantity + " x " + price + " \u20BD"
                                     color: textSecondaryColor
                                 }
 
                                 Label {
-                                    text: totalPrice.toFixed(2) + " \u20BD"
+                                    text: (quantity * price).toFixed(2) + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
                                 }
@@ -399,20 +400,21 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     Label {
-                                        text: serviceName
+                                        text: name
                                         font.bold: true
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
                                     Label {
-                                        text: completedAt
+                                        text: (subobject_name !== "" ? subobject_name + " | " : "")
+                                            + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm")
                                         font.pixelSize: 11
                                         color: textSecondaryColor
                                     }
                                 }
 
                                 Label {
-                                    text: totalPrice.toFixed(2) + " \u20BD"
+                                    text: quantity + " x " + price + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
                                 }
@@ -425,7 +427,6 @@ Item {
     }
 
     ListModel { id: clientsModel }
-    ListModel { id: worksModel }
 
     property string selectedClientTitle: {
         if(reportBackend.selectedClientId <= 0) {
@@ -454,29 +455,10 @@ Item {
         // }
     }
 
-    function refreshWorks() {
-        worksModel.clear()
-        if(reportBackend.selectedClientId <= 0) {
-            return
-        }
-        var works = reportBackend.getClientWorks(reportBackend.selectedClientId)
-        for(var i = 0; i < works.length; i++) {
-            worksModel.append({
-                workNumber: works[i].work_number,
-                serviceName: works[i].service_name,
-                quantity: works[i].quantity,
-                unitPrice: works[i].unit_price,
-                totalPrice: works[i].total_price,
-                completedAt: works[i].completed_at
-            })
-        }
-    }
-
     Connections {
         target: reportBackend
         function onClientsChanged() { refreshClients() }
-        function onWorksChanged() { refreshWorks() }
-        function onClientSelected() { refreshWorks() }
+        function onClientSelected() { }
         function onReportGenerated(path, text) {
             reportDialog.reportPath = path
             reportDialog.reportText = text

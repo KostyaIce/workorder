@@ -17,6 +17,8 @@ ColumnLayout {
     ServiceDialog {
         id: serviceDialog
         compact: root.compact
+        parent: Overlay.overlay
+        anchors.centerIn: parent
     }
 
     Label {
@@ -45,13 +47,14 @@ ColumnLayout {
         onActiveFocusChanged: {
             if(!activeFocus) {
                 invoiceBackend.clearSuggestions()
+                servicesFilterModel.clearFilter()
             }
         }
     }
 
     Rectangle {
         Layout.fillWidth: true
-        height: suggestionsList.height + 16
+        height: suggestionsList.height > 0 ? suggestionsList.height + 16 : 0
         color: cardColor
         border.color: "#E0E0E0"
         border.width: 1
@@ -74,14 +77,14 @@ ColumnLayout {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 8
-            height: Math.min(count * (compact ? 56 : 48), compact ? 280 : 240)
+            height: Math.min(count * (compact ? 56 : 30), compact ? 280 : 240)
             clip: true
             spacing: 1
             model: servicesFilterModel
 
             delegate: Rectangle {
                 width: suggestionsList.width
-                height: compact ? 56 : 48
+                height: compact ? 56 : 30
                 color: suggestionMouse.pressed
                        ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
                        : "transparent"
@@ -138,7 +141,7 @@ ColumnLayout {
                     anchors.fill: parent
                     hoverEnabled: !compact
                     onClicked: {
-                        invoiceBackend.selectServiceById(model.id)
+                        reportBackend.selectService(model.id, model.name, model.unit, model.price)
                         serviceInput.text = model.name
                         servicesFilterModel.clearFilter()
                     }
