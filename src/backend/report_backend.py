@@ -29,8 +29,12 @@ from utils.objects_db import (
     update_object_last_order_at
 )
 from utils.report_builder import save_work_report
+from utils.qsettings_store import QSettingsStore
 
 from dataclasses import dataclass
+
+_SETTINGS_KEY_CLIENT_ID = "report/current_client_id"
+_SETTINGS_KEY_OBJECT_ID = "report/current_object_id"
 
 @dataclass
 class ClientItem:
@@ -62,7 +66,6 @@ class ReportBackend(QObject):
     objectUpdated = pyqtSignal()
     serviceSelected = pyqtSignal()
     subObjectChanged = pyqtSignal(str)
-    quantityChanged = pyqtSignal(float)
     reportGenerated = pyqtSignal(str, str)
     errorOccurred = pyqtSignal(str)
 
@@ -76,7 +79,7 @@ class ReportBackend(QObject):
         self._current_client_data = ClientItem()
         self._current_object_data = ObjectItem()
         self._current_service_data = ServiceItem()
-        self._quantity = 1.0
+        # self._quantity = 1.0
         self._clients = ClientModel()
         self._objects = ObjectModel()
         self._works = WorksModel()
@@ -147,11 +150,6 @@ class ReportBackend(QObject):
         """Sub-object name for current invoice line."""
         return self._current_service_data.sub_object
 
-    @pyqtProperty(float, notify=quantityChanged)
-    def currentQuantity(self):
-        """Quantity for new work line."""
-        return self._quantity
-
     @pyqtProperty(str, notify=reportGenerated)
     def lastReportPath(self):
         return self._last_report_path
@@ -165,6 +163,7 @@ class ReportBackend(QObject):
         """Create demo databases if they are missing."""
         try:
             self._load_clients()
+            self._restore_selection()
             return True
         except Exception as exc:
             self.errorOccurred.emit(f"Ошибка инициализации данных: {str(exc)}")
@@ -181,15 +180,14 @@ class ReportBackend(QObject):
 
     @pyqtSlot(str)
     def selectClient(self, client_id):
-        item = self._clients.itemData(client_id)
-        if item:
-            self._current_client_data = ClientItem(item["id"], item["name"])
-        create_works_table(self._current_client_data.name, self._current_client_data.id)
-        create_object_database(self._current_client_data.name, self._current_client_data.id)
-        self._load_objects()
-        self._works.clearModel()
-        # self._reload_works(self._current_client_data.name, self._current_client_data.id)
+        if not self._set_current_client(client_id):
+            return
+
+        self._save_selected_client_id(client_id)
+        self._save_selected_object_id("")
         self.clientSelected.emit()
+        self.objectSelected.emit()
+        self.objectUpdated.emit()
 
     @pyqtSlot()
     def updateLastTimeObject(self):
@@ -201,14 +199,10 @@ class ReportBackend(QObject):
 
     @pyqtSlot(str)
     def selectObject(self, object_id):
-        item = self._objects.itemData(object_id)
-        if item:
-            self._current_object_data = ObjectItem(item["id"], item["name"], item["address"], item["last_order_at"])
-        self._reload_works(
-            self._current_client_data.name,
-            self._current_client_data.id,
-            self._current_object_data.id
-        )
+        if not self._set_current_object(object_id):
+            return
+
+        self._save_selected_object_id(object_id)
         self.objectSelected.emit()
         self.objectUpdated.emit()
 
@@ -245,32 +239,12 @@ class ReportBackend(QObject):
     def clearCurrentService(self):
         """Reset selected service, sub-object and quantity."""
         self._current_service_data = ServiceItem()
-        self._quantity = 1.0
         self.serviceSelected.emit()
         self.subObjectChanged.emit("")
-        self.quantityChanged.emit(self._quantity)
 
-    @pyqtSlot(float)
-    def setQuantity(self, quantity):
-        """Set quantity for work line being added."""
-        if quantity < 0.1:
-            quantity = 0.1
-        if quantity > 999:
-            quantity = 999
 
-        self._quantity = float(quantity)
-        self.quantityChanged.emit(self._quantity)
-
-    @pyqtSlot()
-    def incrementQuantity(self):
-        self.setQuantity(self._quantity + 1)
-
-    @pyqtSlot()
-    def decrementQuantity(self):
-        self.setQuantity(self._quantity - 1)
-
-    @pyqtSlot(result=bool)
-    def addWork(self):
+    @pyqtSlot(float, result=bool)
+    def addWork(self, quantity):
         if not self._current_service_data.id:
             return False
         if self._current_client_data.id == "":
@@ -287,7 +261,7 @@ class ReportBackend(QObject):
             "name": self._current_service_data.name,
             "price": self._current_service_data.price,
             "unit": self._current_service_data.unit,
-            "quantity": self._quantity,
+            "quantity": quantity,
             "start_order_at": self._current_object_data.last_order_at
         }
 
@@ -352,53 +326,6 @@ class ReportBackend(QObject):
         self._load_objects()
         return result
 
-    # @pyqtSlot(int, str, float, int, str, result=bool)
-    # def addWorkForClient(self, client_id, service_name, unit_price, quantity, notes):
-    #     """Add completed work entry for selected client."""
-    #     client = self._find_client(client_id)
-    #     if not client:
-    #         self.errorOccurred.emit("Заказчик или объект не найден")
-    #         return False
-    #     if not service_name or not service_name.strip():
-    #         self.errorOccurred.emit("Укажите название работы")
-    #         return False
-    #     if unit_price < 0:
-    #         self.errorOccurred.emit("Цена не может быть отрицательной")
-    #         return False
-    #     if quantity < 1:
-    #         quantity = 1
-    #
-    #     work_id = self._next_work_id
-    #     self._next_work_id += 1
-    #     total_price = round(float(unit_price) * int(quantity), 2)
-    #     work = {
-    #         "id": work_id,
-    #         "work_number": f"WO-{work_id:04d}",
-    #         "service_id": 0,
-    #         "service_name": service_name.strip(),
-    #         "quantity": int(quantity),
-    #         "unit_price": float(unit_price),
-    #         "total_price": total_price,
-    #         "client_id": client_id,
-    #         "client_name": client["name"],
-    #         "completed_at": date.today().isoformat(),
-    #         "status": "completed",
-    #         "notes": notes.strip(),
-    #     }
-    #     self._works.append(work)
-    #     if self._current_client_data.id:
-    #         self._persist_work({
-    #             "object_id": self._current_object_data.id,
-    #             "service_id": "",
-    #             "subobject_name": notes.strip(),
-    #             "name": service_name.strip(),
-    #             "price": int(unit_price),
-    #             "unit": "",
-    #         })
-    #         self._reload_works(self._current_client_data.name, self._current_client_data.id)
-    #     self.worksChanged.emit()
-    #     print(f"[Report] Added work for {client['name']}: {work['service_name']}")
-    #     return True
 
     @pyqtSlot(str, result=bool)
     def generateReport(self, client_id):
@@ -433,6 +360,81 @@ class ReportBackend(QObject):
             create_client_table()
             clients_data = load_clients()
         self._clients.updateModel(clients_data)
+        self.clientsChanged.emit()
+
+    def _set_current_client(self, client_id):
+        if not client_id:
+            return False
+
+        item = self._clients.itemData(client_id)
+        if not item:
+            return False
+
+        self._current_client_data = ClientItem(item["id"], item["name"])
+        create_works_table(self._current_client_data.name, self._current_client_data.id)
+        create_object_database(self._current_client_data.name, self._current_client_data.id)
+        self._load_objects()
+        self._works.clearModel()
+        self._current_object_data = ObjectItem()
+        return True
+
+    def _set_current_object(self, object_id):
+        if not object_id:
+            return False
+
+        item = self._objects.itemData(object_id)
+        if not item:
+            return False
+
+        self._current_object_data = ObjectItem(
+            item["id"],
+            item["name"],
+            item["address"],
+            item["last_order_at"],
+        )
+        self._reload_works(
+            self._current_client_data.name,
+            self._current_client_data.id,
+            self._current_object_data.id,
+        )
+        return True
+
+    def _save_selected_client_id(self, client_id):
+        with QSettingsStore() as store:
+            store.write(_SETTINGS_KEY_CLIENT_ID, client_id or "")
+
+    def _save_selected_object_id(self, object_id):
+        with QSettingsStore() as store:
+            store.write(_SETTINGS_KEY_OBJECT_ID, object_id or "")
+
+    def _clear_persisted_selection(self):
+        with QSettingsStore() as store:
+            store.write(_SETTINGS_KEY_CLIENT_ID, "")
+            store.write(_SETTINGS_KEY_OBJECT_ID, "")
+
+    def _restore_selection(self):
+        with QSettingsStore() as store:
+            client_id = store.read(_SETTINGS_KEY_CLIENT_ID, "", value_type=str) or ""
+            object_id = store.read(_SETTINGS_KEY_OBJECT_ID, "", value_type=str) or ""
+
+        if not client_id:
+            return
+
+        if not self._set_current_client(client_id):
+            self._clear_persisted_selection()
+            return
+
+        self.clientSelected.emit()
+
+        if not object_id:
+            return
+
+        if not self._set_current_object(object_id):
+            self._save_selected_object_id("")
+            return
+
+        self.objectSelected.emit()
+        self.objectUpdated.emit()
 
     def _load_objects(self):
         objects_data = load_objects(self._current_client_data.name, self._current_client_data.id)

@@ -146,8 +146,9 @@ ColumnLayout {
         }
 
         QuantityField {
+            id: quantityCompact
             Layout.fillWidth: true
-            value: reportBackend.currentQuantity
+            value: 1.0
             stepSize: 0.1
             minimumValue: 0.1
             decimals: 2
@@ -159,7 +160,7 @@ ColumnLayout {
             text: qsTr("Добавить позицию")
             enabled: reportBackend.currentServiceName !== ""
             onClicked: {
-                if(!reportBackend.addWork())
+                if(!reportBackend.addWork(quantityCompact.displayValue))
                     console.log("work not created")
                 else
                     serviceInput.text = ""
@@ -183,8 +184,9 @@ ColumnLayout {
             }
 
             QuantityField {
+                id: quantityDesc
                 Layout.fillWidth: true
-                value: reportBackend.currentQuantity
+                value: 1.0
                 stepSize: 0.1
                 minimumValue: 0.1
                 decimals: 2
@@ -198,7 +200,7 @@ ColumnLayout {
             text: qsTr("Добавить позицию")
             enabled: reportBackend.currentServiceName !== ""
             onClicked: {
-                if(!reportBackend.addWork())
+                if(!reportBackend.addWork(quantityDesc.displayValue))
                     console.log("work not created")
                 else
                     serviceInput.text = ""
