@@ -7,6 +7,7 @@ Reports backend: customers, objects and work reports.
 from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
 from models.clients_model import ClientModel
 from models.objects_model import ObjectModel
+from models.orders_model import OrdersModel
 from models.works_model import WorksModel
 
 from utils.works_db import (
@@ -15,7 +16,9 @@ from utils.works_db import (
     add_work,
     delete_work,
     update_work,
-    create_works_table
+    create_works_table,
+    get_orders,
+    load_works_by_select_at
 )
 from utils.clients_db import (
     create_client_table,
@@ -64,6 +67,7 @@ class ReportBackend(QObject):
     clientSelected = pyqtSignal()
     objectSelected = pyqtSignal()
     objectUpdated = pyqtSignal()
+    orderSelected = pyqtSignal()
     serviceSelected = pyqtSignal()
     subObjectChanged = pyqtSignal(str)
     reportGenerated = pyqtSignal(str, str)
@@ -79,10 +83,14 @@ class ReportBackend(QObject):
         self._current_client_data = ClientItem()
         self._current_object_data = ObjectItem()
         self._current_service_data = ServiceItem()
+        self._selected_start_order_at = 0
+        self._selected_order_total_price = 0
         # self._quantity = 1.0
         self._clients = ClientModel()
         self._objects = ObjectModel()
+        self._orders = OrdersModel()
         self._works = WorksModel()
+        self._work_report = WorksModel()
         
         engine.rootContext().setContextProperty(
             "clientsModel",
@@ -93,9 +101,19 @@ class ReportBackend(QObject):
             self._objects
         )
         engine.rootContext().setContextProperty(
+            "ordersModel",
+            self._orders
+        )
+        engine.rootContext().setContextProperty(
             "worksModel",
             self._works
         )
+
+        engine.rootContext().setContextProperty(
+            "workReportModel",
+            self._work_report
+        )
+
         create_client_table()
 
     @pyqtProperty(int, notify=clientsChanged)
@@ -134,6 +152,14 @@ class ReportBackend(QObject):
         if self._current_object_data.last_order_at:
             return self._current_object_data.last_order_at
         return 0
+
+    @pyqtProperty(int, notify=orderSelected)
+    def selectedStartOrderAt(self):
+        return self._selected_start_order_at
+
+    @pyqtProperty(int, notify=orderSelected)
+    def selectedOrderTotalPrice(self):
+        return self._selected_order_total_price
 
     @pyqtProperty(str, notify=serviceSelected)
     def currentServiceName(self):
@@ -205,6 +231,20 @@ class ReportBackend(QObject):
         self._save_selected_object_id(object_id)
         self.objectSelected.emit()
         self.objectUpdated.emit()
+
+    @pyqtSlot(int)
+    def selectOrder(self, start_order_at):
+        """Select invoice period by start_order_at timestamp."""
+        value = int(start_order_at)
+        if self._selected_start_order_at == value:
+            return
+        self._selected_start_order_at = value
+        order = self._orders.itemData(value)
+        self._selected_order_total_price = int(order.get("total_price", 0)) if order else 0
+        self.orderSelected.emit()
+        items = load_works_by_select_at(self._current_client_data.name, self._current_client_data.id, self._current_object_data.id ,self._selected_start_order_at)
+        self._work_report.updateModel(items)
+
 
     @pyqtSlot()
     def clearWorks(self):
@@ -354,6 +394,11 @@ class ReportBackend(QObject):
             return []
         return self._works.items()
 
+    @pyqtSlot()
+    def refreshOrders(self):
+        """Reload orders list for current client object."""
+        self._load_orders()
+
     def _load_clients(self):
         clients_data = load_clients()
         if not clients_data:
@@ -376,6 +421,7 @@ class ReportBackend(QObject):
         self._load_objects()
         self._works.clearModel()
         self._current_object_data = ObjectItem()
+        self._load_orders()
         return True
 
     def _set_current_object(self, object_id):
@@ -397,6 +443,7 @@ class ReportBackend(QObject):
             self._current_client_data.id,
             self._current_object_data.id,
         )
+        self._load_orders()
         return True
 
     def _save_selected_client_id(self, client_id):
@@ -442,6 +489,27 @@ class ReportBackend(QObject):
             create_object_database(self._current_client_data.name, self._current_client_data.id)
             objects_data = load_objects(self._current_client_data.name, self._current_client_data.id)
         self._objects.updateModel(objects_data)
+
+    def _load_orders(self):
+        self._clear_selected_order()
+
+        if self._current_client_data.id == "" or self._current_object_data.id == "":
+            self._orders.updateModel([])
+            return
+
+        orders_data = get_orders(
+            self._current_client_data.name,
+            self._current_client_data.id,
+            self._current_object_data.id,
+        )
+        self._orders.updateModel(orders_data)
+
+    def _clear_selected_order(self):
+        if self._selected_start_order_at == 0:
+            return
+        self._selected_start_order_at = 0
+        self._selected_order_total_price = 0
+        self.orderSelected.emit()
 
     def _reload_works(self, client_name, client_id, object_id=""):
         if object_id:

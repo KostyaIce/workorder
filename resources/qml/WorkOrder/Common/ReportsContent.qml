@@ -7,6 +7,7 @@ Item {
 
     property string layoutStyle: "desktop"
     readonly property bool compact: layoutStyle === "mobile"
+    readonly property int compactHorizontalMargin: 16
 
     ClientFormDialog {
         id: clientDialog
@@ -43,24 +44,32 @@ Item {
                 color: textColor
             }
 
-            Label {
-                text: "(" + reportBackend.clientCount + " " + qsTr("шт.") + ")"
-                font.pixelSize: 14
-                color: textSecondaryColor
-            }
-
             Item { Layout.fillWidth: true }
 
-            PrimaryButton {
-                text: qsTr("+ Заказчик / объект")
-                onClicked: clientDialog.open()
+            ComboBox {
+                id: clientBox
+                Layout.fillWidth: true
+                model: clientsModel
+                textRole: "name"
+                valueRole: "id"
+                displayText: reportBackend.selectedClientName === "" ? qsTr("Выберите заказчика") : reportBackend.selectedClientName
+
+                onActivated: {
+                    reportBackend.selectClient(currentValue)
+                }
+
+                popup.onVisibleChanged: {
+                    if(popup.visible && clientsModel.count === 0)
+                        clientDialog.open()
+                }
             }
 
             PrimaryButton {
-                // Layout.fillWidth: true
-                // Layout.margins: 16
-                text: qsTr("+ Объект")
-                onClicked: objectDialog.open()
+                Layout.fillWidth: true
+                text: qsTr("Добавить заказчика")
+                onClicked: {
+                    clientDialog.open()
+                }
             }
         }
 
@@ -80,54 +89,64 @@ Item {
                     anchors.fill: parent
                     spacing: 8
 
-                    Label {
-                        visible: compact
-                        text: qsTr("Заказчики и объекты")
-                        font.bold: true
-                        color: textColor
+                    ComboBox {
+                        id: objectBox
                         Layout.fillWidth: true
+                        model: objectsModel
+                        textRole: "name"
+                        valueRole: "id"
+                        displayText: reportBackend.selectedObjectName === "" ? qsTr("Выберите объект заказчика") : reportBackend.selectedObjectName
+
+                        onActivated: {
+                            reportBackend.selectObject(currentValue)
+                        }
+
+                        popup.onVisibleChanged: {
+                            if(popup.visible)
+                            {
+                                if(objectsModel.count === 0)
+                                {
+                                    objectDialog.open()
+                                }
+                            }
+                        }
                     }
 
                     PrimaryButton {
-                        visible: compact
                         Layout.fillWidth: true
-                        text: qsTr("+ Заказчик / объект")
-                        onClicked: clientDialog.open()
-                    }
-
-                    PrimaryButton {
-                        Layout.fillWidth: true
-                        // Layout.margins: 16
-                        text: qsTr("+ Объект")
-                        onClicked: objectDialog.open()
+                        text: qsTr("Добавить объект")
+                        enabled: reportBackend.selectedClientName !== ""
+                        onClicked: {
+                            objectDialog.open()
+                        }
                     }
 
                     ListView {
-                        id: clientsList
+                        id: ordersList
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
                         spacing: 4
-                        model: clientsModel
+                        model: ordersModel
 
                         delegate: Rectangle {
-                            width: clientsList.width
-                            height: 72
+                            width: ordersList.width
+                            height: 50
                             radius: 8
-                            color: reportBackend.selectedClientId === clientId
+                            color: reportBackend.selectedStartOrderAt === start_order_at
                                    ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
                                    : (index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02))
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
+                                anchors.margins: 5
                                 spacing: 4
 
                                 RowLayout {
                                     Layout.fillWidth: true
 
                                     Label {
-                                        text: kindLabel
+                                        text: qsTr("Счет на ") + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm" )
                                         font.pixelSize: 11
                                         color: primaryColor
                                         font.bold: true
@@ -135,34 +154,25 @@ Item {
 
                                     Item { Layout.fillWidth: true }
 
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    Item { Layout.fillWidth: true }
+
                                     Label {
-                                        text: "ID: " + clientId
-                                        font.pixelSize: 11
-                                        color: textSecondaryColor
+                                        text: (total_price / 100).toFixed(2) + " \u20BD"
+                                        font.pixelSize: 15
+                                        font.bold: true
+                                        color: textColor
+                                        elide: Text.ElideRight
                                     }
-                                }
-
-                                Label {
-                                    text: name
-                                    font.pixelSize: 15
-                                    font.bold: true
-                                    color: textColor
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                }
-
-                                Label {
-                                    text: contactInfo || address || qsTr("Без контактов")
-                                    font.pixelSize: 12
-                                    color: textSecondaryColor
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
                                 }
                             }
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: reportBackend.selectClient(clientId)
+                                onClicked: reportBackend.selectOrder(start_order_at)
                             }
                         }
                     }
@@ -173,24 +183,15 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 compact: root.compact
-                visible: reportBackend.selectedClientId > 0 || !compact
+                visible: reportBackend.selectedStartOrderAt !== 0 || !compact
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 12
-
-                    Label {
-                        text: selectedClientTitle
-                        font.pixelSize: compact ? 16 : 18
-                        font.bold: true
-                        color: textColor
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
+                    spacing: 10
 
                     RowLayout {
                         Layout.fillWidth: true
-                        visible: reportBackend.selectedClientId > 0
+                        visible: reportBackend.selectedStartOrderAt !== 0
 
                         PrimaryButton {
                             text: qsTr("+ Работа")
@@ -205,17 +206,9 @@ Item {
 
                         PrimaryButton {
                             text: qsTr("Сформировать отчёт")
-                            enabled: reportBackend.selectedClientId > 0
+                            enabled: reportBackend.selectedClientId !== ""
                             onClicked: reportBackend.generateReport(reportBackend.selectedClientId)
                         }
-                    }
-
-                    Label {
-                        text: qsTr("Выберите заказчика или объект слева")
-                        color: textSecondaryColor
-                        visible: reportBackend.selectedClientId === 0
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 40
                     }
 
                     ListView {
@@ -224,8 +217,8 @@ Item {
                         Layout.fillHeight: true
                         clip: true
                         spacing: 4
-                        visible: reportBackend.selectedClientId > 0
-                        model: worksModel
+                        visible: reportBackend.selectedStartOrderAt !== 0
+                        model: workReportModel
 
                         delegate: Rectangle {
                             width: worksList.width
@@ -252,19 +245,19 @@ Item {
 
                                     Label {
                                         text: (subobject_name !== "" ? subobject_name + " | " : "")
-                                            + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm")
+                                              + Qt.formatDateTime(new Date(updated_at * 1000), "dd.MM.yyyy hh:mm")
                                         font.pixelSize: 11
                                         color: textSecondaryColor
                                     }
                                 }
 
                                 Label {
-                                    text: quantity + " x " + price + " \u20BD"
+                                    text: quantity + " x " + (price/100).toFixed(2) + " \u20BD"
                                     color: textSecondaryColor
                                 }
 
                                 Label {
-                                    text: (quantity * price).toFixed(2) + " \u20BD"
+                                    text: ((quantity * price)/100).toFixed(2) + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
                                 }
@@ -278,88 +271,199 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.alignment: Qt.AlignTop
             spacing: 12
             visible: compact
 
-            PrimaryButton {
+            ComboBox {
                 Layout.fillWidth: true
-                Layout.margins: 16
-                text: qsTr("+ Заказчик / объект")
-                onClicked: clientDialog.open()
-            }
-
-            PrimaryButton {
-                Layout.fillWidth: true
-                Layout.margins: 16
-                text: qsTr("+ Объект")
-                onClicked: objectDialog.open()
-            }
-
-            ListView {
-                id: mobileClientsList
-                Layout.fillWidth: true
-                Layout.preferredHeight: 220
-                Layout.margins: 16
-                Layout.topMargin: 0
-                clip: true
-                spacing: 4
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
                 model: clientsModel
+                textRole: "name"
+                valueRole: "id"
+                displayText: reportBackend.selectedClientName === "" ? qsTr("Выберите заказчика") : reportBackend.selectedClientName
 
-                delegate: Rectangle {
-                    width: mobileClientsList.width
-                    height: 72
-                    radius: 8
-                    color: reportBackend.selectedClientId === clientId
-                           ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
-                           : cardColor
+                onActivated: {
+                    reportBackend.selectClient(currentValue)
+                }
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 4
+                popup.onVisibleChanged: {
+                    if(popup.visible && clientsModel.count === 0)
+                        clientDialog.open()
+                }
+            }
+
+            PrimaryButton {
+                Layout.fillWidth: true
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
+                text: qsTr("Добавить заказчика")
+                onClicked: {
+                    clientDialog.open()
+                }
+            }
+
+            ComboBox {
+                Layout.fillWidth: true
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
+                model: objectsModel
+                textRole: "name"
+                valueRole: "id"
+                displayText: reportBackend.selectedObjectName === "" ? qsTr("Выберите объект заказчика") : reportBackend.selectedObjectName
+
+                onActivated: {
+                    reportBackend.selectObject(currentValue)
+                }
+
+                popup.onVisibleChanged: {
+                    if(popup.visible)
+                    {
+                        if(objectsModel.count === 0)
+                        {
+                            objectDialog.open()
+                        }
+                    }
+                }
+            }
+
+            PrimaryButton {
+                Layout.fillWidth: true
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
+                text: qsTr("Добавить объект")
+                enabled: reportBackend.selectedClientName !== ""
+                onClicked: {
+                    objectDialog.open()
+                }
+            }
+
+            ComboBox {
+                id: orderBox
+                Layout.fillWidth: true
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
+                Layout.preferredHeight: 50
+                model: ordersModel
+                valueRole: "start_order_at"
+
+                contentItem: ColumnLayout {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 4
+
+                    Label {
+                        visible: reportBackend.selectedStartOrderAt === 0
+                        text: qsTr("Выберите счёт")
+                        color: textSecondaryColor
+                        font.pixelSize: 14
+                        Layout.fillWidth: true
+                    }
+
+                    RowLayout {
+                        visible: reportBackend.selectedStartOrderAt !== 0
+                        Layout.fillWidth: true
 
                         Label {
-                            text: kindLabel + ": " + name
+                            text: qsTr("Счет на ") + Qt.formatDateTime(
+                                new Date(reportBackend.selectedStartOrderAt * 1000), "dd.MM.yyyy hh:mm")
+                            font.pixelSize: 11
+                            color: primaryColor
+                            font.bold: true
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    RowLayout {
+                        visible: reportBackend.selectedStartOrderAt !== 0
+                        Layout.fillWidth: true
+
+                        Item { Layout.fillWidth: true }
+
+                        Label {
+                            text: (reportBackend.selectedOrderTotalPrice / 100).toFixed(2) + " \u20BD"
+                            font.pixelSize: 15
                             font.bold: true
                             color: textColor
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            text: contactInfo || address || qsTr("Без контактов")
-                            font.pixelSize: 12
-                            color: textSecondaryColor
-                            Layout.fillWidth: true
                             elide: Text.ElideRight
                         }
                     }
+                }
 
-                    MouseArea {
+                delegate: ItemDelegate {
+                    id: orderDelegate
+                    width: orderBox.width
+                    height: 50
+
+                    contentItem: ColumnLayout {
                         anchors.fill: parent
-                        onClicked: reportBackend.selectClient(clientId)
+                        anchors.margins: 5
+                        spacing: 4
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: qsTr("Счет на ") + Qt.formatDateTime(
+                                    new Date(model.start_order_at * 1000), "dd.MM.yyyy hh:mm")
+                                font.pixelSize: 11
+                                color: primaryColor
+                                font.bold: true
+                            }
+
+                            Item { Layout.fillWidth: true }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Item { Layout.fillWidth: true }
+
+                            Label {
+                                text: (model.total_price / 100).toFixed(2) + " \u20BD"
+                                font.pixelSize: 15
+                                font.bold: true
+                                color: textColor
+                                elide: Text.ElideRight
+                            }
+                        }
                     }
+
+                    background: Rectangle {
+                        radius: 8
+                        color: orderDelegate.highlighted
+                               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                               : (index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02))
+                    }
+                }
+
+                onActivated: reportBackend.selectOrder(currentValue)
+
+                popup.onVisibleChanged: {
+                    if(popup.visible && ordersModel.count === 0)
+                        objectDialog.open()
                 }
             }
 
             Card {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.margins: 16
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
                 Layout.topMargin: 0
+                Layout.minimumHeight: 200
                 compact: true
-                visible: reportBackend.selectedClientId > 0
+                fillVertical: true
+                visible: reportBackend.selectedStartOrderAt !== 0
 
                 ColumnLayout {
-                    width: parent.width
-                    spacing: 12
-
-                    Label {
-                        text: selectedClientTitle
-                        font.bold: true
-                        color: textColor
-                        Layout.fillWidth: true
-                    }
+                    anchors.fill: parent
+                    spacing: 10
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -377,44 +481,57 @@ Item {
 
                         PrimaryButton {
                             text: qsTr("Отчёт")
+                            enabled: reportBackend.selectedClientId !== ""
                             onClicked: reportBackend.generateReport(reportBackend.selectedClientId)
                         }
                     }
 
                     ListView {
+                        id: mobileWorksList
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 240
+                        Layout.fillHeight: true
                         clip: true
                         spacing: 4
-                        model: worksModel
+                        model: workReportModel
 
                         delegate: Rectangle {
-                            width: ListView.view.width
+                            width: mobileWorksList.width
                             height: 64
+                            radius: 6
                             color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: 8
+                                anchors.margins: 12
+                                spacing: 8
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    spacing: 2
+
                                     Label {
                                         text: name
                                         font.bold: true
-                                        elide: Text.ElideRight
+                                        color: textColor
                                         Layout.fillWidth: true
+                                        elide: Text.ElideRight
                                     }
+
                                     Label {
                                         text: (subobject_name !== "" ? subobject_name + " | " : "")
-                                            + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm")
+                                              + Qt.formatDateTime(new Date(updated_at * 1000), "dd.MM.yyyy hh:mm")
                                         font.pixelSize: 11
                                         color: textSecondaryColor
                                     }
                                 }
 
                                 Label {
-                                    text: quantity + " x " + price + " \u20BD"
+                                    text: quantity + " x " + (price / 100).toFixed(2) + " \u20BD"
+                                    color: textSecondaryColor
+                                }
+
+                                Label {
+                                    text: ((quantity * price) / 100).toFixed(2) + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
                                 }
@@ -423,42 +540,17 @@ Item {
                     }
                 }
             }
-        }
-    }
 
-    ListModel { id: clientsModel }
-
-    property string selectedClientTitle: {
-        if(reportBackend.selectedClientId <= 0) {
-            return qsTr("Работы")
-        }
-        for(var i = 0; i < clientsModel.count; i++) {
-            if(clientsModel.get(i).clientId === reportBackend.selectedClientId) {
-                return clientsModel.get(i).name
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: reportBackend.selectedStartOrderAt === 0
             }
         }
-        return qsTr("Работы")
-    }
-
-    function refreshClients() {
-        // clientsModel.clear()
-        // var clients = reportBackend.getAllClients()
-        // for(var i = 0; i < clients.length; i++) {
-        //     clientsModel.append({
-        //         clientId: clients[i].id,
-        //         kind: clients[i].kind,
-        //         kindLabel: clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик"),
-        //         name: clients[i].name,
-        //         contactInfo: clients[i].contact_info,
-        //         address: clients[i].address
-        //     })
-        // }
     }
 
     Connections {
         target: reportBackend
-        function onClientsChanged() { refreshClients() }
-        function onClientSelected() { }
         function onReportGenerated(path, text) {
             reportDialog.reportPath = path
             reportDialog.reportText = text
@@ -467,7 +559,5 @@ Item {
         function onErrorOccurred(error) { console.log("Report error:", error) }
     }
 
-    Component.onCompleted: {
-        refreshClients()
-    }
+    Component.onCompleted: reportBackend.refreshOrders()
 }

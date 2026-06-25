@@ -151,6 +151,23 @@ def load_works_by_object(client_name, client_id, object_id):
 
     return [_row_to_work(row) for row in rows]
 
+def load_works_by_select_at(client_name, client_id, object_id, start_order_at):
+    """Load works for specific object."""
+    if not object_id or not start_order_at:
+        return []
+
+    create_works_table(client_name, client_id)
+
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(
+            f"""SELECT {_WORKS_COLUMNS}
+               FROM completed_works
+               WHERE object_id = ? AND start_order_at = ?
+               ORDER BY updated_at DESC""",
+            (object_id, start_order_at)
+        ).fetchall()
+
+    return [_row_to_work(row) for row in rows]
 
 def delete_work(client_name, client_id, work_id):
     """Delete work by id."""
@@ -230,3 +247,21 @@ def update_work(client_name, client_id, data):
             return cursor.rowcount > 0
     except sqlite3.IntegrityError:
         return False
+
+def get_orders(client_name, client_id, object_id):
+    
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(f"""
+            SELECT start_order_at,
+            SUM(quantity * price) AS total_price
+            FROM completed_works
+            WHERE object_id = ?
+            GROUP BY start_order_at
+        """, (object_id,)).fetchall()
+        return [
+            {
+                "start_order_at": row["start_order_at"],
+                "total_price": row["total_price"]
+            }
+                for row in rows
+        ]
