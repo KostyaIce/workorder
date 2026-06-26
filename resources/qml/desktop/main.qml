@@ -7,7 +7,7 @@ ApplicationWindow {
     id: root
     visible: true
     width: 1024
-    height: 768
+    height: 668
     title: "WorkOrder - Desktop"
     minimumWidth: 800
     minimumHeight: 600
@@ -30,7 +30,7 @@ ApplicationWindow {
         // Боковое меню
         Rectangle {
             id: sidebar
-            width: 250
+            width: 210
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom

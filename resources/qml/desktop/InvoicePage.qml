@@ -3,26 +3,25 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import WorkOrder.Common 1.0
 
-Rectangle {
+Rectangle
+{
     color: "transparent"
 
-    ColumnLayout {
+    ColumnLayout
+    {
         anchors.fill: parent
         spacing: 16
 
-        PageHeader {
+        PageHeader
+        {
             title: qsTr("Создание счета")
         }
 
-        Card {
+        InvoiceFormContent
+        {
             Layout.fillWidth: true
             Layout.fillHeight: true
             compact: false
-
-            InvoiceFormContent {
-                anchors.fill: parent
-                compact: false
-            }
         }
     }
 }

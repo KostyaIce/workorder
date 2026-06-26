@@ -4,6 +4,7 @@ PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
 PrimaryButton 1.0 PrimaryButton.qml
 FormField 1.0 FormField.qml
+FormFieldRow 1.0 FormFieldRow.qml
 SettingsSection 1.0 SettingsSection.qml
 SettingsListItem 1.0 SettingsListItem.qml
 SettingsToggleRow 1.0 SettingsToggleRow.qml
@@ -17,6 +18,8 @@ ServiceSearchField 1.0 ServiceSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
 InvoiceClientField 1.0 InvoiceClientField.qml
 InvoiceLinesList 1.0 InvoiceLinesList.qml
+SelectedServicePanel 1.0 SelectedServicePanel.qml
+TotalPanel 1.0 TotalPanel.qml
 InvoiceWorksListContent 1.0 InvoiceWorksListContent.qml
 InvoiceWorksDialog 1.0 InvoiceWorksDialog.qml
 ServiceFormDialog 1.0 ServiceFormDialog.qml

@@ -2,315 +2,341 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ColumnLayout {
+Item
+{
     id: root
 
     property bool compact: true
-    property alias serviceInput: searchField.serviceInput
+    property int desktopTopCardHeight: 270
 
-    spacing: compact ? 20 : 16
     Layout.fillWidth: true
+    Layout.fillHeight: !compact
 
-    InvoiceClientField {
-        compact: root.compact
-    }
-
-    ServiceSearchField {
-        id: searchField
-        compact: root.compact
-    }
-
-    Rectangle {
+    component SectionTitle: Label
+    {
+        font.pixelSize: 16
+        font.bold: true
+        color: textColor
         Layout.fillWidth: true
-        height: compact ? selectedColumn.height + 24 : selectedRowLayout.height + 24
-        color: backgroundColor
-        radius: 8
-        visible: reportBackend.currentServiceName !== ""
+    }
 
-        ColumnLayout {
-            id: selectedColumn
-            visible: compact
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 12
-            spacing: 4
+    Flickable
+    {
+        id: mobileScroll
+        visible: compact
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: mobileColumn.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
 
-            Label {
-                text: qsTr("Выбрано:")
-                font.pixelSize: 11
-                color: textSecondaryColor
-            }
-
-            FormField {
-                compact: root.compact
-                label: qsTr("Субобъект")
-                placeholder: qsTr("Комната 1, Кухня")
-                text: reportBackend.currentSubObject
-                field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
-            }
-
-            Label {
-                text: reportBackend.currentServiceName
-                font.pixelSize: 15
-                color: textColor
-                font.bold: true
-                Layout.fillWidth: true
-                elide: Text.ElideRight
-            }
-
-            Row {
-                spacing: 4
-                
-                EditablePriceLabel {
-                    value: reportBackend.currentPrice
-                    onPriceChanged: (newValue) => reportBackend.setCurrentServicePrice(newValue)
-                }
-                
-                Label {
-                    text: "\u20BD/ед."
-                    font.pixelSize: 14
-                    color: primaryColor
-                    font.bold: true
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
+        ScrollBar.vertical: ScrollBar
+        {
+            policy: ScrollBar.AsNeeded
         }
 
-        ColumnLayout {
-            id: selectedRowLayout
-            visible: !compact
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 12
-            spacing: 8
+        ColumnLayout
+        {
+            id: mobileColumn
+            width: mobileScroll.width - 32
+            x: 16
+            spacing: 16
 
-            RowLayout {
+            Card
+            {
                 Layout.fillWidth: true
-                spacing: 12
+                compact: true
 
-                Label {
-                    text: qsTr("Выбрано:")
-                    font.pixelSize: 12
-                    color: textSecondaryColor
-                }
+                ColumnLayout
+                {
+                    width: parent.width
+                    spacing: 12
 
-                Label {
-                    text: reportBackend.currentServiceName
-                    font.pixelSize: 14
-                    color: textColor
-                    font.bold: true
-                    Layout.fillWidth: true
-                    elide: Text.ElideRight
-                }
-
-                Row {
-                    spacing: 4
-
-                    EditablePriceLabel {
-                        value: reportBackend.currentPrice
-                        onPriceChanged: (newValue) => reportBackend.setCurrentServicePrice(newValue)
+                    SectionTitle
+                    {
+                        text: qsTr("Клиент")
                     }
 
-                    Label {
-                        text: "\u20BD/ед."
+                    InvoiceClientField
+                    {
+                        compact: true
+                        showInvoiceDate: false
+                        showStartReport: true
+                    }
+                }
+            }
+
+            Card
+            {
+                Layout.fillWidth: true
+                compact: true
+
+                ColumnLayout
+                {
+                    width: parent.width
+                    spacing: 8
+
+                    SectionTitle
+                    {
+                        text: qsTr("Добавить работу")
+                    }
+
+                    ServiceSearchField
+                    {
+                        id: searchFieldMobile
+                        compact: true
+                    }
+
+                    SelectedServicePanel
+                    {
+                        compact: true
+                    }
+
+                    Label
+                    {
+                        text: qsTr("Количество")
                         font.pixelSize: 14
-                        color: primaryColor
-                        font.bold: true
-                        anchors.verticalCenter: parent.verticalCenter
+                        color: textSecondaryColor
+                    }
+
+                    QuantityField
+                    {
+                        id: quantityMobile
+                        Layout.fillWidth: true
+                        value: 1.0
+                        stepSize: 0.1
+                        minimumValue: 0.1
+                        decimals: 2
+                        onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
+                    }
+
+                    PrimaryButton
+                    {
+                        Layout.fillWidth: true
+                        text: qsTr("+ Добавить в счет")
+                        enabled: reportBackend.currentServiceName !== ""
+                        onClicked:
+                        {
+                            if(!reportBackend.addWork(quantityMobile.displayValue))
+                                console.log("work not created")
+                            else
+                                searchFieldMobile.serviceInput.text = ""
+                        }
                     }
                 }
             }
 
-            FormField {
+            Card
+            {
                 Layout.fillWidth: true
+                compact: true
+
+                InvoiceLinesList
+                {
+                    width: parent.width
+                    compact: true
+                    fillHeight: false
+                }
+            }
+
+            Card
+            {
+                Layout.fillWidth: true
+                compact: true
+
+                TotalPanel
+                {
+                    width: parent.width
+                    compact: true
+                    onClearRequested: root.clearForm()
+                }
+            }
+
+            Item { Layout.preferredHeight: 20 }
+        }
+    }
+
+    ColumnLayout
+    {
+        id: desktopLayout
+        anchors.fill: parent
+        visible: !compact
+        spacing: 16
+
+        RowLayout
+        {
+            id: topRow
+            Layout.fillWidth: true
+            Layout.preferredHeight: desktopTopCardHeight
+
+            Card
+            {
+                id: clientCard
+                Layout.fillWidth: true
+                Layout.preferredWidth: 2
+                Layout.preferredHeight: desktopTopCardHeight
+                Layout.minimumHeight: desktopTopCardHeight
+                Layout.maximumHeight: desktopTopCardHeight
                 compact: false
-                label: qsTr("Субобъект")
-                placeholder: qsTr("Комната 1, Кухня")
-                text: reportBackend.currentSubObject
-                field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
-            }
-        }
-    }
+                sideMargin: 0
+                verticalPadding: 16
+                horizontalPadding: 16
 
-    ColumnLayout {
-        visible: compact
-        Layout.fillWidth: true
-        spacing: 8
+                ColumnLayout
+                {
+                    anchors.fill: parent
+                    spacing: 8
 
-        Label {
-            text: qsTr("Количество")
-            font.pixelSize: 14
-            color: textSecondaryColor
-        }
+                    SectionTitle
+                    {
+                        text: qsTr("Клиент")
+                    }
 
-        QuantityField {
-            id: quantityCompact
-            Layout.fillWidth: true
-            value: 1.0
-            stepSize: 0.1
-            minimumValue: 0.1
-            decimals: 2
-            onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
-        }
+                    InvoiceClientField
+                    {
+                        compact: false
+                        showInvoiceDate: false
+                        showStartReport: true
+                        layoutSpacing: 8
+                        actionButtonSize: 38
+                    }
 
-        PrimaryButton {
-            Layout.fillWidth: true
-            text: qsTr("Добавить позицию")
-            enabled: reportBackend.currentServiceName !== ""
-            onClicked: {
-                if(!reportBackend.addWork(quantityCompact.displayValue))
-                    console.log("work not created")
-                else
-                    serviceInput.text = ""
-            }
-        }
-    }
-
-    RowLayout {
-        visible: !compact
-        Layout.fillWidth: true
-        spacing: 12
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Label {
-                text: qsTr("Количество")
-                font.pixelSize: 14
-                color: textSecondaryColor
+                    Item { Layout.fillHeight: true }
+                }
             }
 
-            QuantityField {
-                id: quantityDesc
+            Card
+            {
+                id: addWorkCard
                 Layout.fillWidth: true
-                value: 1.0
-                stepSize: 0.1
-                minimumValue: 0.1
-                decimals: 2
-                onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
+                Layout.preferredWidth: 3
+                Layout.preferredHeight: desktopTopCardHeight
+                Layout.minimumHeight: desktopTopCardHeight
+                Layout.maximumHeight: desktopTopCardHeight
+                compact: false
+                sideMargin: 0
+                verticalPadding: 16
+                horizontalPadding: 16
+
+                ColumnLayout
+                {
+                    anchors.fill: parent
+                    spacing: 8
+
+                    SectionTitle
+                    {
+                        text: qsTr("Добавить работу")
+                    }
+
+                    ServiceSearchField
+                    {
+                        id: searchFieldDesktop
+                        compact: false
+                        layoutSpacing: 6
+                        maxSuggestionsHeight: 96
+                    }
+
+                    SelectedServicePanel
+                    {
+                        compact: false
+                    }
+
+                    RowLayout
+                    {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        QuantityField
+                        {
+                            id: quantityDesktop
+                            Layout.fillWidth: true
+                            label: qsTr("Количество")
+                            value: 1.0
+                            stepSize: 0.1
+                            minimumValue: 0.1
+                            decimals: 2
+                            onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
+                        }
+
+                        PrimaryButton
+                        {
+                            Layout.preferredWidth: 200
+                            Layout.fillWidth: false
+                            text: qsTr("+ Добавить в счет")
+                            enabled: reportBackend.currentServiceName !== ""
+                            onClicked:
+                            {
+                                if(!reportBackend.addWork(quantityDesktop.displayValue))
+                                    console.log("work not created")
+                                else
+                                    searchFieldDesktop.serviceInput.text = ""
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+                }
             }
         }
 
-        PrimaryButton {
-            Layout.preferredWidth: 180
-            Layout.alignment: Qt.AlignBottom
-            text: qsTr("Добавить позицию")
-            enabled: reportBackend.currentServiceName !== ""
-            onClicked: {
-                if(!reportBackend.addWork(quantityDesc.displayValue))
-                    console.log("work not created")
-                else
-                    serviceInput.text = ""
+        RowLayout
+        {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 16
+
+            Card
+            {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 3
+                Layout.fillHeight: true
+                compact: false
+                sideMargin: 0
+
+                ColumnLayout
+                {
+                    anchors.fill: parent
+
+                    InvoiceLinesList
+                    {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        compact: false
+                        fillHeight: true
+                    }
+                }
+            }
+
+            Card
+            {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 2
+                Layout.fillHeight: true
+                compact: false
+                sideMargin: 0
+
+                TotalPanel
+                {
+                    anchors.fill: parent
+                    compact: false
+                    onClearRequested: root.clearForm()
+                }
             }
         }
     }
 
-    InvoiceLinesList {
-        compact: root.compact
-    }
-
-    // Item {
-    //     Layout.fillHeight: true
-    //     visible: !compact
-    //     Layout.minimumHeight: 8
-    // }
-
-    Rectangle {
-        Layout.fillWidth: true
-        height: compact ? 100 : 80
-        color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
-        radius: 8
-
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 4
-            visible: compact
-
-            Label {
-                text: qsTr("Итого")
-                font.pixelSize: 14
-                color: textSecondaryColor
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Label {
-                text: (reportBackend.worksTotal / 100).toFixed(2) + " \u20BD"
-                font.pixelSize: 32
-                font.bold: true
-                color: primaryColor
-                Layout.alignment: Qt.AlignHCenter
-            }
-        }
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            visible: !compact
-
-            Label {
-                text: qsTr("Итого:")
-                font.pixelSize: 18
-                color: textColor
-            }
-
-            Item { Layout.fillWidth: true }
-
-            Label {
-                text: (reportBackend.worksTotal / 100 ).toFixed(2) + " \u20BD"
-                font.pixelSize: 24
-                font.bold: true
-                color: primaryColor
-            }
-        }
-    }
-
-    ColumnLayout {
-        visible: compact
-        Layout.fillWidth: true
-        spacing: 12
-
-        PrimaryButton {
-            text: qsTr("Создать счет")
-            enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
-            onClicked: invoiceBackend.createInvoice()
-        }
-
-        PrimaryButton {
-            text: qsTr("Очистить")
-            filled: false
-            onClicked: root.clearForm()
-        }
-    }
-
-    RowLayout {
-        visible: !compact
-        Layout.fillWidth: true
-        spacing: 12
-
-        PrimaryButton {
-            text: qsTr("Очистить")
-            filled: false
-            onClicked: root.clearForm()
-        }
-
-        PrimaryButton {
-            text: qsTr("Создать счет")
-            enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
-            onClicked: invoiceBackend.createInvoice()
-        }
-    }
-
-    function clearForm() {
+    function clearForm()
+    {
         invoiceBackend.clearForm()
-        serviceInput.text = ""
+        searchFieldMobile.serviceInput.text = ""
+        searchFieldDesktop.serviceInput.text = ""
     }
 
-    Connections {
+    Connections
+    {
         target: invoiceBackend
-        function onInvoiceCreated(invoiceId, invoiceNumber) {
+        function onInvoiceCreated(invoiceId, invoiceNumber)
+        {
             console.log("Счет создан:", invoiceNumber)
         }
     }

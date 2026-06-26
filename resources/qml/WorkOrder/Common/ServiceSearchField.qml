@@ -2,36 +2,42 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ColumnLayout {
+ColumnLayout
+{
     id: root
 
     property bool compact: true
     property alias serviceInput: serviceInput
     property int countField: 0
     property bool isValueGrowing: false
+    property int layoutSpacing: 8
+    property int maxSuggestionsHeight: compact ? 280 : 240
 
-    spacing: 8
+    spacing: layoutSpacing
     Layout.fillWidth: true
     z: 100
 
-    ServiceDialog {
+    ServiceDialog
+    {
         id: serviceDialog
         compact: root.compact
         parent: Overlay.overlay
         anchors.centerIn: parent
     }
 
-    Label {
+    Label
+    {
         text: qsTr("Услуга")
         font.pixelSize: 14
         color: textSecondaryColor
     }
 
-    TextField {
+    TextField
+    {
         id: serviceInput
         Layout.fillWidth: true
         placeholderText: qsTr("Введите название услуги...")
-        onTextChanged: 
+        onTextChanged:
         {
             invoiceBackend.searchServices(text)
             if(countField < text.length)
@@ -44,15 +50,18 @@ ColumnLayout {
             }
             countField = text.length
         }
-        onActiveFocusChanged: {
-            if(!activeFocus) {
+        onActiveFocusChanged:
+        {
+            if(!activeFocus)
+            {
                 invoiceBackend.clearSuggestions()
                 servicesFilterModel.clearFilter()
             }
         }
     }
 
-    Rectangle {
+    Rectangle
+    {
         Layout.fillWidth: true
         height: suggestionsList.height > 0 ? suggestionsList.height + 16 : 0
         color: cardColor
@@ -62,7 +71,8 @@ ColumnLayout {
         visible: suggestionsList.rowCount() > 0
         clip: true
 
-        Rectangle {
+        Rectangle
+        {
             z: -1
             anchors.fill: parent
             anchors.margins: -2
@@ -71,18 +81,20 @@ ColumnLayout {
             visible: !root.compact
         }
 
-        ListView {
+        ListView
+        {
             id: suggestionsList
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 8
-            height: Math.min(count * (compact ? 56 : 30), compact ? 280 : 240)
+            height: Math.min(count * (compact ? 56 : 30), maxSuggestionsHeight)
             clip: true
             spacing: 1
             model: servicesFilterModel
 
-            delegate: Rectangle {
+            delegate: Rectangle
+            {
                 width: suggestionsList.width
                 height: compact ? 56 : 30
                 color: suggestionMouse.pressed
@@ -90,14 +102,16 @@ ColumnLayout {
                        : "transparent"
                 radius: 4
 
-                RowLayout {
+                RowLayout
+                {
                     anchors.fill: parent
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
                     spacing: 8
                     visible: !compact
 
-                    Label {
+                    Label
+                    {
                         text: model.name
                         font.pixelSize: 14
                         color: textColor
@@ -105,7 +119,8 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
 
-                    Label {
+                    Label
+                    {
                         text: (model.price / 100).toFixed(2) + " \u20BD"
                         font.pixelSize: 12
                         color: primaryColor
@@ -113,14 +128,16 @@ ColumnLayout {
                     }
                 }
 
-                ColumnLayout {
+                ColumnLayout
+                {
                     anchors.fill: parent
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
                     spacing: 2
                     visible: compact
 
-                    Label {
+                    Label
+                    {
                         text: model.name
                         font.pixelSize: 15
                         color: textColor
@@ -128,7 +145,8 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
 
-                    Label {
+                    Label
+                    {
                         text: (model.price / 100).toFixed(2) + " \u20BD"
                         font.pixelSize: 13
                         color: primaryColor
@@ -136,11 +154,13 @@ ColumnLayout {
                     }
                 }
 
-                MouseArea {
+                MouseArea
+                {
                     id: suggestionMouse
                     anchors.fill: parent
                     hoverEnabled: !compact
-                    onClicked: {
+                    onClicked:
+                    {
                         reportBackend.selectService(model.id, model.name, model.unit, model.price)
                         serviceInput.text = model.name
                         servicesFilterModel.clearFilter()
@@ -150,7 +170,8 @@ ColumnLayout {
         }
     }
 
-    Connections {
+    Connections
+    {
         target: invoiceBackend
 
         function onCountFound(count)

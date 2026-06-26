@@ -2,203 +2,176 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ColumnLayout {
+ColumnLayout
+{
     id: root
 
     property bool compact: true
+    property bool showInvoiceDate: true
+    property bool showStartReport: true
+    property int layoutSpacing: 12
+    property int actionButtonSize: 44
 
-    spacing: 8
+    spacing: layoutSpacing
     Layout.fillWidth: true
 
-    ClientFormDialog {
+    ClientFormDialog
+    {
         id: clientDialog
         compact: root.compact
     }
 
-    ObjectDialog {
+    ObjectDialog
+    {
         id: objectDialog
         compact: root.compact
     }
 
-    Label {
+    Label
+    {
         text: qsTr("Заказчик")
         font.pixelSize: 14
         color: textSecondaryColor
     }
 
-    ComboBox {
-        id: clientBox
+    RowLayout
+    {
         Layout.fillWidth: true
-        model: clientsModel
-        textRole: "name"
-        valueRole: "id"
-        displayText: reportBackend.selectedClientName === "" ? qsTr("Выберите заказчика") : reportBackend.selectedClientName
+        spacing: 8
 
-        onActivated: {
-            reportBackend.selectClient(currentValue)
-        }
-    
-        popup.onVisibleChanged: {
-            if(popup.visible) 
+        ComboBox
+        {
+            id: clientBox
+            Layout.fillWidth: true
+            model: clientsModel
+            textRole: "name"
+            valueRole: "id"
+            displayText: reportBackend.selectedClientName === "" ? qsTr("Выберите заказчика") : reportBackend.selectedClientName
+
+            onActivated:
             {
-                if(clientsModel.count === 0)
-                {
+                reportBackend.selectClient(currentValue)
+            }
+
+            popup.onVisibleChanged:
+            {
+                if(popup.visible && clientsModel.count === 0)
                     clientDialog.open()
-                }
+            }
+        }
+
+        Rectangle
+        {
+            Layout.preferredWidth: actionButtonSize
+            Layout.preferredHeight: actionButtonSize
+            radius: 8
+            color: clientAddMouse.pressed ? Qt.darker(primaryColor, 1.15) : primaryColor
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: "+"
+                font.pixelSize: actionButtonSize > 40 ? 22 : 20
+                font.bold: true
+                color: "white"
+            }
+
+            MouseArea
+            {
+                id: clientAddMouse
+                anchors.fill: parent
+                onClicked: clientDialog.open()
             }
         }
     }
 
-    PrimaryButton {
-        Layout.fillWidth: true
-        text: qsTr("Добавить заказчика")
-        onClicked: {
-            clientDialog.open()
-        }
-    }
-
-    Label {
+    Label
+    {
         text: qsTr("Объект")
         font.pixelSize: 14
         color: textSecondaryColor
     }
 
-    ComboBox {
-        id: objectBox
+    RowLayout
+    {
         Layout.fillWidth: true
-        model: objectsModel
-        textRole: "name"
-        valueRole: "id"
-        displayText: reportBackend.selectedObjectName === "" ? qsTr("Выберите объект заказчика") : reportBackend.selectedObjectName
+        spacing: 8
 
-        onActivated: {
-            reportBackend.selectObject(currentValue)
+        ComboBox
+        {
+            id: objectBox
+            Layout.fillWidth: true
+            model: objectsModel
+            textRole: "name"
+            valueRole: "id"
+            displayText: reportBackend.selectedObjectName === "" ? qsTr("Выберите объект заказчика") : reportBackend.selectedObjectName
+
+            onActivated:
+            {
+                reportBackend.selectObject(currentValue)
+            }
+
+            popup.onVisibleChanged:
+            {
+                if(popup.visible && objectsModel.count === 0)
+                    objectDialog.open()
+            }
         }
 
-        popup.onVisibleChanged: {
-            if(popup.visible) 
+        Rectangle
+        {
+            Layout.preferredWidth: actionButtonSize
+            Layout.preferredHeight: actionButtonSize
+            radius: 8
+            color: objectAddMouse.pressed ? Qt.darker(primaryColor, 1.15) : primaryColor
+
+            Label
             {
-                if(objectsModel.count === 0)
-                {
-                    objectDialog.open()
-                }
+                anchors.centerIn: parent
+                text: "+"
+                font.pixelSize: actionButtonSize > 40 ? 22 : 20
+                font.bold: true
+                color: "white"
+            }
+
+            MouseArea
+            {
+                id: objectAddMouse
+                anchors.fill: parent
+                onClicked: objectDialog.open()
             }
         }
     }
 
-    PrimaryButton {
-        Layout.fillWidth: true
-        text: qsTr("Добавить объект")
-        enabled: reportBackend.selectedClientName !== ""
-        onClicked: {
-            objectDialog.open()
-        }
-    }
-
-    PrimaryButton {
+    PrimaryButton
+    {
+        visible: showStartReport
         Layout.fillWidth: true
         text: qsTr("Начать новый отчет")
+        filled: false
         enabled: reportBackend.selectedObjectName !== ""
-        onClicked: {
-            reportBackend.updateLastTimeObject()
-        }
+        onClicked: reportBackend.updateLastTimeObject()
     }
 
-    RowLayout {
+    RowLayout
+    {
+        visible: showInvoiceDate
         Layout.fillWidth: true
 
-        Label {
+        Label
+        {
             text: qsTr("Счет на: ")
             font.pixelSize: compact ? 12 : 13
             color: textSecondaryColor
         }
 
-        Label {
-            text: Qt.formatDateTime(new Date(reportBackend.selectedObjectLastOrder * 1000), "dd.MM.yyyy hh:mm" )
+        Label
+        {
+            text: Qt.formatDateTime(new Date(reportBackend.selectedObjectLastOrder * 1000), "dd.MM.yyyy hh:mm")
             font.pixelSize: compact ? 12 : 13
             color: textSecondaryColor
             Layout.fillWidth: true
             elide: Text.ElideLeft
         }
     }
-
-    // Rectangle {
-    //     Layout.fillWidth: true
-    //     height: recipientRow.height + 16
-    //     radius: 8
-    //     color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
-    //     visible: invoiceBackend.hasCurrentClient
-
-    //     RowLayout {
-    //         id: recipientRow
-    //         anchors.fill: parent
-    //         anchors.margins: 12
-    //         spacing: 8
-
-    //         Label {
-    //             text: qsTr("Счёт для:")
-    //             font.pixelSize: compact ? 12 : 13
-    //             color: textSecondaryColor
-    //         }
-
-    //         // Label {
-    //         //     text: invoiceBackend.currentClientLabel
-    //         //     font.pixelSize: compact ? 15 : 16
-    //         //     font.bold: true
-    //         //     color: textColor
-    //         //     Layout.fillWidth: true
-    //         //     elide: Text.ElideRight
-    //         // }
-
-    //         ToolButton {
-    //             text: "\u2715"
-    //             visible: compact
-    //             onClicked: {
-    //                 clientBox.currentIndex = 0
-    //                 // invoiceBackend.clearCurrentClient()
-    //             }
-    //         }
-    //     }
-    // }
-
-    // ListModel { id: clientOptionsModel }
-
-    // function refreshClients() {
-    //     var selectedId = invoiceBackend.currentClientId
-    //     clientOptionsModel.clear()
-    //     clientOptionsModel.append({
-    //         clientId: 0,
-    //         name: "",
-    //         kind: "",
-    //         label: qsTr("Не выбран")
-    //     })
-
-        // var clients = reportBackend.getAllClients()
-        // var selectedIndex = 0
-        // for(var i = 0; i < clients.length; i++) {
-        //     var kindLabel = clients[i].kind === "object" ? qsTr("Объект") : qsTr("Заказчик")
-        //     clientOptionsModel.append({
-        //         clientId: clients[i].id,
-        //         name: clients[i].name,
-        //         kind: clients[i].kind,
-        //         label: kindLabel + ": " + clients[i].name
-        //     })
-        //     if(clients[i].id === selectedId) {
-        //         selectedIndex = i + 1
-        //     }
-        // }
-        // clientBox.currentIndex = selectedIndex
-    // }
-
-    // Connections {
-    //     target: reportBackend
-    //     function onClientsChanged() { root.refreshClients() }
-    // }
-
-    // Connections {
-    //     target: invoiceBackend
-    //     function onCurrentClientChanged() { root.refreshClients() }
-    // }
-
-    // Component.onCompleted: refreshClients()
 }
