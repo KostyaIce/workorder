@@ -549,15 +549,23 @@ Item {
         }
     }
 
-    Connections {
+    Connections
+    {
         target: reportBackend
-        function onReportGenerated(path, text) {
+        function onReportGenerated(path, text)
+        {
             reportDialog.reportPath = path
             reportDialog.reportText = text
             reportDialog.open()
         }
         function onErrorOccurred(error) { console.log("Report error:", error) }
+        function onObjectSelected() { reportBackend.refreshOrders() }
     }
 
-    Component.onCompleted: reportBackend.refreshOrders()
+    function activate()
+    {
+        reportBackend.refreshOrders()
+    }
+
+    Component.onCompleted: activate()
 }

@@ -12,10 +12,9 @@ Dialog {
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 460
-    height: 500
+    height: 410
 
     onOpened: {
-        kindBox.currentIndex = 0
         nameField.text = ""
         contactField.text = ""
         addressField.text = ""
@@ -25,18 +24,6 @@ Dialog {
     ColumnLayout {
         width: parent.width
         spacing: 12
-
-        Label {
-            text: qsTr("Тип")
-            font.pixelSize: 14
-            color: textSecondaryColor
-        }
-
-        ComboBox {
-            id: kindBox
-            Layout.fillWidth: true
-            model: [qsTr("Заказчик"), qsTr("Объект")]
-        }
 
         FormField {
             label: qsTr("Название")
@@ -68,7 +55,7 @@ Dialog {
     }
 
     onAccepted: {
-        var kind = kindBox.currentIndex === 1 ? "object" : "customer"
+        var kind = "customer"
         var data = {
             "kind": kind,
             "name": nameField.text,

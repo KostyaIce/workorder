@@ -2,4 +2,5 @@ module WorkOrder.Desktop
 main 254.0 main.qml
 InvoicePage 1.0 InvoicePage.qml
 DatabasePage 1.0 DatabasePage.qml
+ReportsPage 1.0 ReportsPage.qml
 SettingsPage 1.0 SettingsPage.qml

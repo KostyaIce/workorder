@@ -1,10 +1,12 @@
 import QtQuick
 import WorkOrder.Common 1.0
 
-Rectangle {
+Rectangle
+{
     color: "transparent"
 
-    DatabaseContent {
+    DatabaseContent
+    {
         anchors.fill: parent
         layoutStyle: "mobile"
     }

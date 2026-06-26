@@ -3,7 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 
-ApplicationWindow {
+ApplicationWindow
+{
     id: root
     visible: true
     width: 375
@@ -12,7 +13,6 @@ ApplicationWindow {
     minimumWidth: 320
     minimumHeight: 568
 
-    // Цветовая схема
     property color primaryColor: "#2196F3"
     property color secondaryColor: "#1976D2"
     property color backgroundColor: "#F5F5F5"
@@ -20,22 +20,23 @@ ApplicationWindow {
     property color textColor: "#212121"
     property color textSecondaryColor: "#757575"
 
-    // Текущая страница
     property int currentPage: 0
 
-    Rectangle {
+    Rectangle
+    {
         anchors.fill: parent
         color: backgroundColor
 
-        // Заголовок
-        Rectangle {
+        Rectangle
+        {
             id: header
             width: parent.width
             height: 56
             color: primaryColor
             z: 10
 
-            Label {
+            Label
+            {
                 anchors.centerIn: parent
                 text: ["Счет", "Услуги", "Отчёты", "Настройки"][currentPage]
                 font.pixelSize: 18
@@ -44,80 +45,93 @@ ApplicationWindow {
             }
         }
 
-        // Основной контент
-        StackLayout {
+        Item
+        {
             anchors.top: header.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: tabBar.top
-            currentIndex: currentPage
 
-            // Страница создания счета
-            InvoicePage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            Loader
+            {
+                active: currentPage === 0
+                anchors.fill: parent
+                asynchronous: false
+                sourceComponent: invoicePageComponent
             }
 
-            // Страница базы данных
-            DatabasePage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            Loader
+            {
+                active: currentPage === 1
+                anchors.fill: parent
+                asynchronous: false
+                sourceComponent: databasePageComponent
             }
 
-            // Страница отчётов
-            ReportsPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            Loader
+            {
+                active: currentPage === 2
+                anchors.fill: parent
+                asynchronous: false
+                sourceComponent: reportsPageComponent
             }
 
-            // Страница настроек
-            SettingsPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            Loader
+            {
+                active: currentPage === 3
+                anchors.fill: parent
+                asynchronous: false
+                sourceComponent: settingsPageComponent
             }
         }
 
-        // Нижняя навигация
-        Rectangle {
+        Rectangle
+        {
             id: tabBar
             width: parent.width
             height: 64
             anchors.bottom: parent.bottom
             color: cardColor
 
-            Rectangle {
+            Rectangle
+            {
                 anchors.top: parent.top
                 width: parent.width
                 height: 1
                 color: "#E0E0E0"
             }
 
-            RowLayout {
+            RowLayout
+            {
                 anchors.fill: parent
                 anchors.topMargin: 8
 
-                TabButton {
+                TabButton
+                {
                     text: "Счет"
                     iconText: "\u270F"
                     active: currentPage === 0
                     onClicked: currentPage = 0
                 }
 
-                TabButton {
+                TabButton
+                {
                     text: "Услуги"
                     iconText: "\u2630"
                     active: currentPage === 1
                     onClicked: currentPage = 1
                 }
 
-                TabButton {
+                TabButton
+                {
                     text: "Отчёты"
                     iconText: "\u2637"
                     active: currentPage === 2
                     onClicked: currentPage = 2
                 }
 
-                TabButton {
+                TabButton
+                {
                     text: "Настройки"
                     iconText: "\u2699"
                     active: currentPage === 3
@@ -127,8 +141,44 @@ ApplicationWindow {
         }
     }
 
-    // Компонент кнопки таба
-    component TabButton: Rectangle {
+    Component
+    {
+        id: invoicePageComponent
+        InvoicePage
+        {
+            anchors.fill: parent
+        }
+    }
+
+    Component
+    {
+        id: databasePageComponent
+        DatabasePage
+        {
+            anchors.fill: parent
+        }
+    }
+
+    Component
+    {
+        id: reportsPageComponent
+        ReportsPage
+        {
+            anchors.fill: parent
+        }
+    }
+
+    Component
+    {
+        id: settingsPageComponent
+        SettingsPage
+        {
+            anchors.fill: parent
+        }
+    }
+
+    component TabButton: Rectangle
+    {
         property string text: ""
         property string iconText: ""
         property bool active: false
@@ -138,18 +188,21 @@ ApplicationWindow {
         Layout.fillHeight: true
         color: "transparent"
 
-        ColumnLayout {
+        ColumnLayout
+        {
             anchors.centerIn: parent
             spacing: 4
 
-            Label {
+            Label
+            {
                 text: iconText
                 font.pixelSize: 20
                 color: active ? primaryColor : textSecondaryColor
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            Label {
+            Label
+            {
                 text: parent.parent.text
                 font.pixelSize: 12
                 color: active ? primaryColor : textSecondaryColor
@@ -157,7 +210,8 @@ ApplicationWindow {
             }
         }
 
-        MouseArea {
+        MouseArea
+        {
             anchors.fill: parent
             onClicked: parent.clicked()
         }

@@ -18,7 +18,8 @@ from utils.works_db import (
     update_work,
     create_works_table,
     get_orders,
-    load_works_by_select_at
+    load_works_by_select_at,
+    load_works_by_start_order
 )
 from utils.clients_db import (
     create_client_table,
@@ -421,7 +422,7 @@ class ReportBackend(QObject):
         self._load_objects()
         self._works.clearModel()
         self._current_object_data = ObjectItem()
-        self._load_orders()
+        # self._load_orders()
         return True
 
     def _set_current_object(self, object_id):
@@ -438,12 +439,8 @@ class ReportBackend(QObject):
             item["address"],
             item["last_order_at"],
         )
-        self._reload_works(
-            self._current_client_data.name,
-            self._current_client_data.id,
-            self._current_object_data.id,
-        )
-        self._load_orders()
+        self._reload_works()
+        # self._load_orders()
         return True
 
     def _save_selected_client_id(self, client_id):
@@ -511,11 +508,9 @@ class ReportBackend(QObject):
         self._selected_order_total_price = 0
         self.orderSelected.emit()
 
-    def _reload_works(self, client_name, client_id, object_id=""):
-        if object_id:
-            works_data = load_works_by_object(client_name, client_id, object_id)
-        else:
-            works_data = load_works(client_name, client_id)
+    def _reload_works(self):
+        works_data = load_works_by_start_order(self._current_client_data.name, self._current_client_data.id,
+                                               self._current_object_data.id, self._current_object_data.last_order_at)
         self._works.updateModel(works_data)
         self.worksChanged.emit()
 

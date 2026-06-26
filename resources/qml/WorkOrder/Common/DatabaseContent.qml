@@ -370,5 +370,10 @@ ListView {
         function onDatabaseRepaired(summary) { console.log("БД исправлена:", summary) }
     }
 
-    Component.onCompleted: refreshServicesList()
+    function activate()
+    {
+        refreshServicesList()
+    }
+
+    Component.onCompleted: activate()
 }

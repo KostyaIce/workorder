@@ -151,6 +151,24 @@ def load_works_by_object(client_name, client_id, object_id):
 
     return [_row_to_work(row) for row in rows]
 
+def load_works_by_start_order(client_name, client_id, object_id, start_order_at):
+    """Load works for specific object."""
+    if not object_id or not start_order_at:
+        return []
+
+    create_works_table(client_name, client_id)
+
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(
+            f"""SELECT {_WORKS_COLUMNS}
+               FROM completed_works
+               WHERE object_id = ? AND start_order_at = ?
+               ORDER BY start_order_at DESC, updated_at DESC""",
+            (object_id, start_order_at)
+        ).fetchall()
+
+    return [_row_to_work(row) for row in rows]
+
 def load_works_by_select_at(client_name, client_id, object_id, start_order_at):
     """Load works for specific object."""
     if not object_id or not start_order_at:

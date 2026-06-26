@@ -1,10 +1,12 @@
 import QtQuick
 import WorkOrder.Common 1.0
 
-Rectangle {
+Rectangle
+{
     color: "transparent"
 
-    ReportsContent {
+    ReportsContent
+    {
         anchors.fill: parent
         layoutStyle: "desktop"
     }
