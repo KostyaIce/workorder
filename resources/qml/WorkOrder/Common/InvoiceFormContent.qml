@@ -233,7 +233,6 @@ Item
                         id: searchFieldDesktop
                         compact: false
                         layoutSpacing: 6
-                        maxSuggestionsHeight: 96
                     }
 
                     SelectedServicePanel

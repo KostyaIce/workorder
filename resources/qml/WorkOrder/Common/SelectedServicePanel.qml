@@ -24,24 +24,25 @@ Rectangle
         anchors.margins: 8
         spacing: 4
 
-        RowLayout {
+        RowLayout
+        {
             spacing: 4
 
-            Label {
+            Label
+            {
                 text: qsTr("Выбрано:")
                 font.pixelSize: 11
                 color: textSecondaryColor
-
                 Layout.alignment: Qt.AlignBottom
             }
 
-            Label {
+            Label
+            {
                 text: reportBackend.currentServiceName
                 font.pixelSize: 15
                 color: textColor
                 font.bold: true
                 elide: Text.ElideRight
-
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignBottom
             }
@@ -67,13 +68,9 @@ Rectangle
             }
         }
 
-        FormField
+        SubobjectSearchField
         {
             compact: root.compact
-            label: qsTr("Субобъект")
-            placeholder: qsTr("Комната 1, Кухня")
-            text: reportBackend.currentSubObject
-            field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
         }
     }
 
@@ -128,14 +125,11 @@ Rectangle
             }
         }
 
-        FormFieldRow
+        SubobjectSearchField
         {
             Layout.fillWidth: true
             compact: false
-            label: qsTr("Субобъект")
-            placeholder: qsTr("Комната 1, Кухня")
-            text: reportBackend.currentSubObject
-            field.onTextChanged: reportBackend.setCurrentSubObject(field.text)
+            useRowLayout: true
         }
     }
 }

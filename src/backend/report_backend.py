@@ -9,6 +9,8 @@ from models.clients_model import ClientModel
 from models.objects_model import ObjectModel
 from models.orders_model import OrdersModel
 from models.works_model import WorksModel
+from models.subobjects_model import SubobjectsModel
+from models.subobjects_filter_model import SubobjectsFilterModel
 
 from utils.works_db import (
     load_works,
@@ -18,6 +20,7 @@ from utils.works_db import (
     update_work,
     create_works_table,
     get_orders,
+    load_subobject_names,
     load_works_by_select_at,
     load_works_by_start_order
 )
@@ -92,6 +95,9 @@ class ReportBackend(QObject):
         self._orders = OrdersModel()
         self._works = WorksModel()
         self._work_report = WorksModel()
+        self._subobjects = SubobjectsModel()
+        self._subobjects_filter = SubobjectsFilterModel()
+        self._subobjects_filter.setSourceModel(self._subobjects)
         
         engine.rootContext().setContextProperty(
             "clientsModel",
@@ -113,6 +119,14 @@ class ReportBackend(QObject):
         engine.rootContext().setContextProperty(
             "workReportModel",
             self._work_report
+        )
+        engine.rootContext().setContextProperty(
+            "subobjectsModel",
+            self._subobjects
+        )
+        engine.rootContext().setContextProperty(
+            "subobjectsFilterModel",
+            self._subobjects_filter
         )
 
         create_client_table()
@@ -212,6 +226,7 @@ class ReportBackend(QObject):
 
         self._save_selected_client_id(client_id)
         self._save_selected_object_id("")
+        # self._load_subobjects(self._current_object_data.id)
         self.clientSelected.emit()
         self.objectSelected.emit()
         self.objectUpdated.emit()
@@ -230,6 +245,7 @@ class ReportBackend(QObject):
             return
 
         self._save_selected_object_id(object_id)
+        self.refreshSubobject(self._current_object_data.id)
         self.objectSelected.emit()
         self.objectUpdated.emit()
 
@@ -276,10 +292,21 @@ class ReportBackend(QObject):
         self._current_service_data.sub_object = value
         self.subObjectChanged.emit(value)
 
+    @pyqtSlot(str)
+    def searchSubObjects(self, query):
+        """Filter subobject suggestions by entered text."""
+        self._subobjects_filter.setFilterText(query.strip() if query else "")
+
+    @pyqtSlot()
+    def clearSubObjectSuggestions(self):
+        """Hide subobject suggestions."""
+        self._subobjects_filter.clearFilter()
+
     @pyqtSlot()
     def clearCurrentService(self):
         """Reset selected service, sub-object and quantity."""
         self._current_service_data = ServiceItem()
+        self._subobjects_filter.clearFilter()
         self.serviceSelected.emit()
         self.subObjectChanged.emit("")
 
@@ -312,6 +339,7 @@ class ReportBackend(QObject):
             return False
 
         self._works.addItem(result)
+        self._subobjects.addItem(self._current_service_data.sub_object)
         self.worksChanged.emit()
         self.clearCurrentService()
         return True
@@ -328,6 +356,10 @@ class ReportBackend(QObject):
         if not update_work(self._current_client_data.name, self._current_client_data.id, data):
             self.errorOccurred.emit("Не удалось обновить работу")
             return False
+
+        subobject_name = data.get("subobject_name", "")
+        if subobject_name:
+            self._subobjects.addItem(subobject_name)
 
         self._works.updateItem(data)
         self.worksChanged.emit()
@@ -399,6 +431,23 @@ class ReportBackend(QObject):
     def refreshOrders(self):
         """Reload orders list for current client object."""
         self._load_orders()
+
+    @pyqtSlot(str)
+    def refreshSubobject(self, object_id):
+        self._load_subobjects(object_id)
+
+    def _load_subobjects(self, object_id):
+        if self._current_client_data.id == "" or self._current_object_data.id == "":
+            self._subobjects.updateModel([])
+            self._subobjects_filter.clearFilter()
+            return
+
+        names = load_subobject_names(
+            self._current_client_data.name,
+            self._current_client_data.id,
+            object_id,
+        )
+        self._subobjects.updateModel(names)
 
     def _load_clients(self):
         clients_data = load_clients()
@@ -477,6 +526,7 @@ class ReportBackend(QObject):
             self._save_selected_object_id("")
             return
 
+        self.refreshSubobject(object_id)
         self.objectSelected.emit()
         self.objectUpdated.emit()
 

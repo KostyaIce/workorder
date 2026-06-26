@@ -187,6 +187,28 @@ def load_works_by_select_at(client_name, client_id, object_id, start_order_at):
 
     return [_row_to_work(row) for row in rows]
 
+
+def load_subobject_names(client_name, client_id, object_id):
+    """Load distinct subobject names for object."""
+    if not object_id:
+        return []
+
+    create_works_table(client_name, client_id)
+
+    with _connect(client_name, client_id) as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT subobject_name
+            FROM completed_works
+            WHERE object_id = ? AND subobject_name != ''
+            ORDER BY subobject_name
+            """,
+            (object_id,),
+        ).fetchall()
+
+    return [row["subobject_name"] for row in rows]
+
+
 def delete_work(client_name, client_id, work_id):
     """Delete work by id."""
     if not work_id:

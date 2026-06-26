@@ -11,11 +11,30 @@ ColumnLayout
     property int countField: 0
     property bool isValueGrowing: false
     property int layoutSpacing: 8
-    property int maxSuggestionsHeight: compact ? 280 : 240
+
+    readonly property int suggestionRowHeight: compact ? 56 : 30
 
     spacing: layoutSpacing
     Layout.fillWidth: true
-    z: 100
+
+    function updateSuggestions()
+    {
+        if(serviceInput.activeFocus && servicesFilterModel.count > 0)
+        {
+            closeSuggestionsTimer.stop()
+            suggestionsPopup.syncOpen()
+        }
+        else
+        {
+            suggestionsPopup.close()
+
+            if(!serviceInput.activeFocus)
+            {
+                invoiceBackend.clearSuggestions()
+                servicesFilterModel.clearFilter()
+            }
+        }
+    }
 
     ServiceDialog
     {
@@ -41,132 +60,127 @@ ColumnLayout
         {
             invoiceBackend.searchServices(text)
             if(countField < text.length)
-            {
-                isValueGrowing = true;
-            }
+                isValueGrowing = true
             else
-            {
-                isValueGrowing = false;
-            }
+                isValueGrowing = false
             countField = text.length
+            updateSuggestions()
         }
         onActiveFocusChanged:
         {
-            if(!activeFocus)
+            if(activeFocus)
+                updateSuggestions()
+            else
+                closeSuggestionsTimer.start()
+        }
+    }
+
+    OverlaySearchSuggestions
+    {
+        id: suggestionsPopup
+        anchorItem: serviceInput
+        model: servicesFilterModel
+        rowHeight: suggestionRowHeight
+        maxRows: 4
+        showShadow: !root.compact
+
+        delegate: Rectangle
+        {
+            width: ListView.view ? ListView.view.width : 0
+            height: suggestionRowHeight
+            color: suggestionMouse.pressed
+                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+                   : "transparent"
+            radius: 4
+
+            RowLayout
             {
-                invoiceBackend.clearSuggestions()
-                servicesFilterModel.clearFilter()
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                spacing: 8
+                visible: !compact
+
+                Label
+                {
+                    text: model.name
+                    font.pixelSize: 14
+                    color: textColor
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                Label
+                {
+                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    font.pixelSize: 12
+                    color: primaryColor
+                    font.bold: true
+                }
+            }
+
+            ColumnLayout
+            {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                spacing: 2
+                visible: compact
+
+                Label
+                {
+                    text: model.name
+                    font.pixelSize: 15
+                    color: textColor
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                Label
+                {
+                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    font.pixelSize: 13
+                    color: primaryColor
+                    font.bold: true
+                }
+            }
+
+            MouseArea
+            {
+                id: suggestionMouse
+                anchors.fill: parent
+                hoverEnabled: !compact
+                onClicked:
+                {
+                    closeSuggestionsTimer.stop()
+                    reportBackend.selectService(model.id, model.name, model.unit, model.price)
+                    serviceInput.text = model.name
+                    servicesFilterModel.clearFilter()
+                    suggestionsPopup.close()
+                }
             }
         }
     }
 
-    Rectangle
+    Timer
     {
-        Layout.fillWidth: true
-        height: suggestionsList.height > 0 ? suggestionsList.height + 16 : 0
-        color: cardColor
-        border.color: "#E0E0E0"
-        border.width: 1
-        radius: 8
-        visible: suggestionsList.rowCount() > 0
-        clip: true
-
-        Rectangle
+        id: closeSuggestionsTimer
+        interval: 150
+        onTriggered:
         {
-            z: -1
-            anchors.fill: parent
-            anchors.margins: -2
-            color: Qt.rgba(0, 0, 0, 0.1)
-            radius: parent.radius + 2
-            visible: !root.compact
+            suggestionsPopup.close()
+            invoiceBackend.clearSuggestions()
+            servicesFilterModel.clearFilter()
         }
+    }
 
-        ListView
+    Connections
+    {
+        target: servicesFilterModel
+        function onFilterTextChanged()
         {
-            id: suggestionsList
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 8
-            height: Math.min(count * (compact ? 56 : 30), maxSuggestionsHeight)
-            clip: true
-            spacing: 1
-            model: servicesFilterModel
-
-            delegate: Rectangle
-            {
-                width: suggestionsList.width
-                height: compact ? 56 : 30
-                color: suggestionMouse.pressed
-                       ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
-                       : "transparent"
-                radius: 4
-
-                RowLayout
-                {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 8
-                    visible: !compact
-
-                    Label
-                    {
-                        text: model.name
-                        font.pixelSize: 14
-                        color: textColor
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
-
-                    Label
-                    {
-                        text: (model.price / 100).toFixed(2) + " \u20BD"
-                        font.pixelSize: 12
-                        color: primaryColor
-                        font.bold: true
-                    }
-                }
-
-                ColumnLayout
-                {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 2
-                    visible: compact
-
-                    Label
-                    {
-                        text: model.name
-                        font.pixelSize: 15
-                        color: textColor
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
-
-                    Label
-                    {
-                        text: (model.price / 100).toFixed(2) + " \u20BD"
-                        font.pixelSize: 13
-                        color: primaryColor
-                        font.bold: true
-                    }
-                }
-
-                MouseArea
-                {
-                    id: suggestionMouse
-                    anchors.fill: parent
-                    hoverEnabled: !compact
-                    onClicked:
-                    {
-                        reportBackend.selectService(model.id, model.name, model.unit, model.price)
-                        serviceInput.text = model.name
-                        servicesFilterModel.clearFilter()
-                    }
-                }
-            }
+            if(serviceInput.activeFocus)
+                updateSuggestions()
         }
     }
 
