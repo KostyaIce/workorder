@@ -35,7 +35,7 @@ from utils.objects_db import (
     load_objects,
     update_object_last_order_at
 )
-from utils.report_builder import save_work_report
+from utils.report_builder import build_work_report, save_work_report
 from utils.qsettings_store import QSettingsStore
 
 from dataclasses import dataclass
@@ -77,9 +77,10 @@ class ReportBackend(QObject):
     reportGenerated = pyqtSignal(str, str)
     errorOccurred = pyqtSignal(str)
 
-    def __init__(self, settings_backend, engine,  parent=None):
+    def __init__(self, settings_backend, report_options_backend, engine, parent=None):
         super().__init__(parent)
         self._settings_backend = settings_backend
+        self._report_options_backend = report_options_backend
         self._next_client_id = 1
         self._next_work_id = 1
         self._last_report_path = ""
@@ -226,7 +227,6 @@ class ReportBackend(QObject):
 
         self._save_selected_client_id(client_id)
         self._save_selected_object_id("")
-        # self._load_subobjects(self._current_object_data.id)
         self.clientSelected.emit()
         self.objectSelected.emit()
         self.objectUpdated.emit()
@@ -402,24 +402,101 @@ class ReportBackend(QObject):
 
     @pyqtSlot(str, result=bool)
     def generateReport(self, client_id):
-        """Generate text report for client works."""
-        works = self.getClientWorks()
+        """Generate text report for selected orders and save to file."""
+        return self._generate_report(client_id, save_to_file=True)
+
+    @pyqtSlot(str, result=bool)
+    def previewReport(self, client_id):
+        """Build report preview without saving to file."""
+        return self._generate_report(client_id, save_to_file=False)
+
+    def _generate_report(self, client_id, save_to_file):
         client = self._clients.itemData(client_id)
         if not client:
             self.errorOccurred.emit("Выберите заказчика или объект")
             return False
 
+        if self._current_object_data.id == "":
+            self.errorOccurred.emit("Выберите объект заказчика")
+            return False
+
+        selected_orders = self._report_options_backend.selectedOrderTimestamps()
+        if not selected_orders:
+            self.errorOccurred.emit("Выберите хотя бы один счёт")
+            return False
+
+        works = []
+        for start_order_at in selected_orders:
+            items = load_works_by_select_at(
+                self._current_client_data.name,
+                self._current_client_data.id,
+                self._current_object_data.id,
+                start_order_at,
+            )
+            works.extend(items)
+
+        if not works:
+            self.errorOccurred.emit("Нет работ для выбранных счетов")
+            return False
+
         personal_info = self._settings_backend.personalInfo
+        object_data = {
+            "name": self._current_object_data.name,
+            "address": self._current_object_data.address,
+        }
+        options = self._report_options_backend.as_dict()
+
         try:
-            report_path, report_text = save_work_report(personal_info, client, works)
+            if save_to_file:
+                report_path, report_text = save_work_report(
+                    personal_info,
+                    client,
+                    object_data,
+                    works,
+                    options,
+                )
+            else:
+                report_path = ""
+                report_text = build_work_report(
+                    personal_info,
+                    client,
+                    object_data,
+                    works,
+                    options,
+                )
+
             self._last_report_path = report_path
             self._last_report_text = report_text
             self.reportGenerated.emit(report_path, report_text)
-            print(f"[Report] Generated report: {report_path}")
+            if save_to_file:
+                print(f"[Report] Generated report: {report_path}")
             return True
         except Exception as exc:
             self.errorOccurred.emit(f"Ошибка формирования отчёта: {str(exc)}")
             return False
+
+    @pyqtSlot(result=list)
+    def getOrderStartTimes(self):
+        """Return start_order_at values for current object orders."""
+        return [
+            item["start_order_at"]
+            for item in self._orders_items()
+            if item.get("start_order_at")
+        ]
+
+    def _orders_items(self):
+        items = []
+        for row in range(self._orders.rowCount()):
+            index = self._orders.index(row, 0)
+            start_order_at = self._orders.data(index, self._orders.StartOrderAtRole)
+            total_price = self._orders.data(index, self._orders.TotalPriceRole)
+            items.append(
+                {
+                    "start_order_at": start_order_at,
+                    "total_price": total_price,
+                }
+            )
+        return items
 
     @pyqtSlot(result=list)
     def getClientWorks(self):

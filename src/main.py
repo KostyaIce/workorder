@@ -28,6 +28,7 @@ from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext
 
 from backend.invoice_backend import InvoiceBackend
 from backend.database_backend import DatabaseBackend
+from backend.report_options_backend import ReportOptionsBackend
 from backend.settings_backend import SettingsBackend
 from backend.report_backend import ReportBackend
 
@@ -66,7 +67,8 @@ def main():
     invoice_backend = InvoiceBackend(engine)
     database_backend = DatabaseBackend()
     settings_backend = SettingsBackend()
-    report_backend = ReportBackend(settings_backend, engine)
+    report_options_backend = ReportOptionsBackend()
+    report_backend = ReportBackend(settings_backend, report_options_backend, engine)
     report_backend.initializeData()
     invoice_backend.bind_report_backend(report_backend)
 
@@ -79,6 +81,7 @@ def main():
     context.setContextProperty("invoiceBackend", invoice_backend)
     context.setContextProperty("databaseBackend", database_backend)
     context.setContextProperty("settingsBackend", settings_backend)
+    context.setContextProperty("reportOptionsBackend", report_options_backend)
     context.setContextProperty("reportBackend", report_backend)
     
     # Устанавливаем тип приложения как свойство

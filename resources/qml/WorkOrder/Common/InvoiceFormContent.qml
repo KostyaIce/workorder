@@ -149,6 +149,7 @@ Item
                     width: parent.width
                     compact: true
                     onClearRequested: root.clearForm()
+                    onReportOptionsRequested: reportOptionsDialog.open()
                 }
             }
 
@@ -319,6 +320,7 @@ Item
                     anchors.fill: parent
                     compact: false
                     onClearRequested: root.clearForm()
+                    onReportOptionsRequested: reportOptionsDialog.open()
                 }
             }
         }
@@ -329,6 +331,29 @@ Item
         invoiceBackend.clearForm()
         searchFieldMobile.serviceInput.text = ""
         searchFieldDesktop.serviceInput.text = ""
+    }
+
+    ReportOptionsDialog
+    {
+        id: reportOptionsDialog
+        compact: root.compact
+    }
+
+    ReportResultDialog
+    {
+        id: reportResultDialog
+        compact: root.compact
+    }
+
+    Connections
+    {
+        target: reportBackend
+        function onReportGenerated(path, text)
+        {
+            reportResultDialog.reportPath = path
+            reportResultDialog.reportText = text
+            reportResultDialog.open()
+        }
     }
 
     Connections

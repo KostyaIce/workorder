@@ -9,7 +9,7 @@ Dialog {
     property string reportPath: ""
     property string reportText: ""
 
-    title: qsTr("Отчёт сформирован")
+    title: root.reportPath === "" ? qsTr("Превью отчёта") : qsTr("Отчёт сформирован")
     standardButtons: Dialog.Close
     modal: true
     anchors.centerIn: parent
@@ -21,10 +21,19 @@ Dialog {
         spacing: 12
 
         Label {
+            visible: root.reportPath !== ""
             text: qsTr("Файл:") + " " + root.reportPath
             font.pixelSize: 12
             color: textSecondaryColor
             wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        Label {
+            visible: root.reportPath === ""
+            text: qsTr("Превью (файл не сохранён)")
+            font.pixelSize: 12
+            color: textSecondaryColor
             Layout.fillWidth: true
         }
 

@@ -41,6 +41,7 @@ set(PYTHON_SOURCES
     src/backend/database_backend.py
     src/backend/settings_backend.py
     src/backend/report_backend.py
+    src/backend/report_options_backend.py
     src/models/__init__.py
     src/utils/__init__.py
     src/utils/db_storage.py

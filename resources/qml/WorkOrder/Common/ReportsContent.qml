@@ -29,6 +29,11 @@ Item {
         compact: root.compact
     }
 
+    ReportOptionsDialog {
+        id: reportOptionsDialog
+        compact: root.compact
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: compact ? 0 : 16
@@ -207,7 +212,7 @@ Item {
                         PrimaryButton {
                             text: qsTr("Сформировать отчёт")
                             enabled: reportBackend.selectedClientId !== ""
-                            onClicked: reportBackend.generateReport(reportBackend.selectedClientId)
+                            onClicked: reportOptionsDialog.open()
                         }
                     }
 
@@ -482,7 +487,7 @@ Item {
                         PrimaryButton {
                             text: qsTr("Отчёт")
                             enabled: reportBackend.selectedClientId !== ""
-                            onClicked: reportBackend.generateReport(reportBackend.selectedClientId)
+                            onClicked: reportOptionsDialog.open()
                         }
                     }
 

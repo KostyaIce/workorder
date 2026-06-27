@@ -4,6 +4,7 @@ PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
 PrimaryButton 1.0 PrimaryButton.qml
 FormField 1.0 FormField.qml
+FormTextArea 1.0 FormTextArea.qml
 FormFieldRow 1.0 FormFieldRow.qml
 SettingsSection 1.0 SettingsSection.qml
 SettingsListItem 1.0 SettingsListItem.qml
@@ -30,4 +31,6 @@ DatabaseContent 1.0 DatabaseContent.qml
 ReportsContent 1.0 ReportsContent.qml
 ClientFormDialog 1.0 ClientFormDialog.qml
 WorkFormDialog 1.0 WorkFormDialog.qml
+ReportOptionsDialog 1.0 ReportOptionsDialog.qml
+ReportOptionCheckRow 1.0 ReportOptionCheckRow.qml
 ReportResultDialog 1.0 ReportResultDialog.qml

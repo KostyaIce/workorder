@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from backend.report_backend import ReportBackend
+from backend.report_options_backend import ReportOptionsBackend
 from backend.settings_backend import SettingsBackend
 from utils.db_storage import create_clients_database, create_works_database
 from utils.report_builder import build_work_report, save_work_report
@@ -23,17 +24,18 @@ class ReportBuilderTest(unittest.TestCase):
             "address": "Москва",
             "notes": "",
         }
+        object_data = {
+            "name": "Квартира",
+            "address": "Москва",
+        }
         works = [{
-            "work_number": "WO-0001",
-            "service_name": "Диагностика",
+            "name": "Диагностика",
             "quantity": 1,
-            "unit_price": 500.0,
-            "total_price": 500.0,
-            "completed_at": "2026-01-01",
-            "status": "completed",
-            "notes": "OK",
+            "price": 50000,
+            "unit": "шт",
+            "subobject_name": "Кухня",
         }]
-        text = build_work_report("Исполнитель: Петров", client, works)
+        text = build_work_report("Исполнитель: Петров", client, object_data, works)
         self.assertIn("Исполнитель: Петров", text)
         self.assertIn("Иванов И.И.", text)
         self.assertIn("Диагностика", text)
@@ -44,8 +46,9 @@ class ReportBuilderTest(unittest.TestCase):
             path, content = save_work_report(
                 "Profile",
                 {"kind": "object", "name": "Склад", "contact_info": "", "address": "", "notes": ""},
+                {"name": "Склад", "address": ""},
                 [],
-                str(target),
+                file_path=str(target),
             )
             self.assertTrue(Path(path).exists())
             self.assertIn("Склад", content)
@@ -58,7 +61,8 @@ class ReportBackendTest(unittest.TestCase):
         self.works_path = str(Path(self.temp_dir.name) / "works.db")
         self.settings = SettingsBackend()
         self.settings.personalInfo = "ООО Ремонт\n+7 999"
-        self.backend = ReportBackend(self.settings)
+        self.report_options = ReportOptionsBackend()
+        self.backend = ReportBackend(self.settings, self.report_options)
         self.backend._clients_db_path = self.clients_path
         self.backend._works_db_path = self.works_path
 

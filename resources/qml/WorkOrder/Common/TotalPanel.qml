@@ -9,6 +9,7 @@ ColumnLayout
     property bool compact: true
 
     signal clearRequested()
+    signal reportOptionsRequested()
 
     spacing: 12
 
@@ -70,7 +71,7 @@ ColumnLayout
         Layout.fillWidth: true
         text: qsTr("Создать счет \u2192")
         enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
-        onClicked: invoiceBackend.createInvoice()
+        onClicked: root.reportOptionsRequested()
     }
 
     PrimaryButton
