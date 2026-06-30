@@ -1,12 +1,14 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 Dialog
 {
     id: root
 
     property bool compact: true
+    property bool ordersListReady: false
 
     parent: Overlay.overlay
     anchors.centerIn: parent
@@ -17,10 +19,66 @@ Dialog
     height: compact ? parent.height * 0.85 : 560
     padding: 16
 
+    FileDialog
+    {
+        id: saveReportDialog
+        title: qsTr("Сохранить отчёт")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("PDF файлы (*.pdf)")]
+        defaultSuffix: "pdf"
+
+        onAccepted:
+        {
+            reportOptionsBackend.saveSettings()
+            if(reportBackend.saveReportToFile(reportBackend.selectedClientId, selectedFile))
+                root.close()
+        }
+    }
+
+    function openSaveReportDialog()
+    {
+        saveReportDialog.currentFolder = reportBackend.defaultReportSaveFolderUrl()
+        saveReportDialog.currentFile = reportBackend.defaultReportSaveUrl(reportBackend.selectedClientId)
+        saveReportDialog.open()
+    }
+
+    function resetOrdersList()
+    {
+        ordersListReady = false
+        Qt.callLater(function()
+        {
+            ordersListReady = true
+        })
+    }
+
     onOpened:
     {
+        reportOptionsBackend.clearOrderSelection()
         reportBackend.refreshOrders()
-        reportOptionsBackend.prepareOrderSelection(reportBackend.getOrderStartTimes())
+        resetOrdersList()
+    }
+
+    component OrderCheckDelegate: CheckDelegate
+    {
+        required property int start_order_at
+        required property int total_price
+
+        text: qsTr("Счет на %1 — %2 \u20BD")
+                .arg(
+                    Qt.formatDateTime(
+                        new Date(start_order_at * 1000),
+                        "dd.MM.yyyy hh:mm"
+                    )
+                )
+                .arg((total_price / 100).toFixed(2))
+        checked: reportBackend.selectedObjectLastOrder === start_order_at
+
+        Component.onCompleted:
+        {
+            reportOptionsBackend.setOrderSelected(start_order_at, checked)
+        }
+
+        onToggled: reportOptionsBackend.setOrderSelected(start_order_at, checked)
     }
 
     contentItem: ColumnLayout
@@ -59,22 +117,11 @@ Dialog
                         id: ordersCheckList
                         width: parent.width
                         spacing: 4
-                        model: ordersModel
+                        model: ordersListReady && !compact ? ordersModel : null
 
-                        delegate: CheckDelegate
+                        delegate: OrderCheckDelegate
                         {
                             width: ordersCheckList.width
-                            
-                            text: qsTr("Счет на %1 — %2 \u20BD")
-                                    .arg(
-                                        Qt.formatDateTime(
-                                            new Date(start_order_at * 1000),
-                                            "dd.MM.yyyy hh:mm"
-                                        )
-                                    )
-                                    .arg((total_price / 100).toFixed(2))
-                            checked:  reportBackend.selectedObjectLastOrder === start_order_at//reportOptionsBackend.orderSelected(start_order_at)
-                            onToggled: reportOptionsBackend.setOrderSelected(start_order_at, checked)
                         }
                     }
                 }
@@ -221,21 +268,11 @@ Dialog
                     id: mobileOrdersCheckList
                     width: parent.width
                     spacing: 4
-                    model: ordersModel
+                    model: ordersListReady && compact ? ordersModel : null
 
-                    delegate: CheckDelegate
+                    delegate: OrderCheckDelegate
                     {
                         width: mobileOrdersCheckList.width
-                        text: qsTr("Счет на %1 — %2 \u20BD")
-                                    .arg(
-                                        Qt.formatDateTime(
-                                            new Date(start_order_at * 1000),
-                                            "dd.MM.yyyy hh:mm"
-                                        )
-                                    )
-                                    .arg((total_price / 100).toFixed(2))
-                        checked: reportOptionsBackend.orderSelected(start_order_at)
-                        onToggled: reportOptionsBackend.setOrderSelected(start_order_at, checked)
                     }
                 }
             }
@@ -345,11 +382,9 @@ Dialog
             {
                 Layout.fillWidth: false
                 text: qsTr("Сохранить")
-                onClicked:
-                {
-                    reportOptionsBackend.saveSettings()
-                    root.close()
-                }
+                enabled: reportBackend.selectedClientId !== ""
+                         && reportBackend.selectedObjectName !== ""
+                onClicked: root.openSaveReportDialog()
             }
 
             PrimaryButton
@@ -387,11 +422,9 @@ Dialog
                 PrimaryButton
                 {
                     text: qsTr("Сохранить")
-                    onClicked:
-                    {
-                        reportOptionsBackend.saveSettings()
-                        root.close()
-                    }
+                    enabled: reportBackend.selectedClientId !== ""
+                             && reportBackend.selectedObjectName !== ""
+                    onClicked: root.openSaveReportDialog()
                 }
             }
 

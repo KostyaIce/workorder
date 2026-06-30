@@ -162,13 +162,12 @@ class ReportOptionsBackend(QObject):
         self._persist_settings()
         return True
 
-    @pyqtSlot(list)
-    def prepareOrderSelection(self, order_timestamps):
-        """Reset order selection for dialog; all known orders are selected."""
-        timestamps = sorted(
-            {int(value) for value in (order_timestamps or []) if int(value) > 0}
-        )
-        self._selected_orders = set(timestamps)
+    @pyqtSlot()
+    def clearOrderSelection(self):
+        """Drop all selected orders (before report options dialog opens)."""
+        if not self._selected_orders:
+            return
+        self._selected_orders.clear()
         self.orderSelectionChanged.emit()
 
     @pyqtSlot(int, result=bool)
@@ -190,4 +189,4 @@ class ReportOptionsBackend(QObject):
 
     @pyqtSlot(result=list)
     def selectedOrderTimestamps(self):
-        return sorted(self._selected_orders)
+        return self._selected_orders

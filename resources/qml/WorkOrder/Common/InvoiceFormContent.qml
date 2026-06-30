@@ -348,10 +348,10 @@ Item
     Connections
     {
         target: reportBackend
-        function onReportGenerated(path, text)
+        function onReportGenerated(path, url)
         {
             reportResultDialog.reportPath = path
-            reportResultDialog.reportText = text
+            reportResultDialog.reportUrl = url
             reportResultDialog.open()
         }
     }

@@ -22,6 +22,8 @@ os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 # Добавляем путь к src для импортов
 sys.path.insert(0, str(Path(__file__).parent))
 
+import PyQt6
+
 from PyQt6.QtCore import QUrl, Qt
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext
@@ -62,7 +64,10 @@ def main():
     app.setOrganizationName("WorkOrderApp")
     
     engine = QQmlApplicationEngine()
-    
+
+    qt_qml_path = Path(PyQt6.__file__).resolve().parent / "Qt6" / "qml"
+    engine.addImportPath(str(qt_qml_path))
+
     # Создаем бэкенды
     invoice_backend = InvoiceBackend(engine)
     database_backend = DatabaseBackend()

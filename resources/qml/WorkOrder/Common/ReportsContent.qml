@@ -557,10 +557,10 @@ Item {
     Connections
     {
         target: reportBackend
-        function onReportGenerated(path, text)
+        function onReportGenerated(path, url)
         {
             reportDialog.reportPath = path
-            reportDialog.reportText = text
+            reportDialog.reportUrl = url
             reportDialog.open()
         }
         function onErrorOccurred(error) { console.log("Report error:", error) }

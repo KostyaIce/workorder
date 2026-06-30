@@ -6,6 +6,7 @@ SQLite storage for completed works.
 import sqlite3
 import uuid
 from datetime import datetime
+from os.path import join
 
 from utils.db_storage import object_db_path
 
@@ -305,3 +306,41 @@ def get_orders(client_name, client_id, object_id):
             }
                 for row in rows
         ]
+
+def get_result_works(client_name, client_id, object_ids, orders_at):
+    if not orders_at or not object_ids:
+        return []
+    with _connect(client_name, client_id) as conn:
+        place_hold_objects = ",".join("?" * len(object_ids))
+        place_hold_orders = ",".join("?" * len(orders_at))
+        sql = f"""
+        SELECT
+            subobject_name,
+            name,
+            price,
+            unit,
+            quantity,
+            start_order_at
+        FROM completed_works
+        WHERE object_id IN ({place_hold_objects})
+          AND start_order_at IN ({place_hold_orders})
+        ORDER BY subobject_name
+        """
+
+        rows = conn.execute(
+            sql,
+            tuple(object_ids) + tuple(orders_at),
+        ).fetchall()
+
+    return [_row_to_result(row) for row in rows]
+
+
+def _row_to_result(row):
+    return {
+        "subobject_name": row["subobject_name"],
+        "name": row["name"],
+        "price": row["price"],
+        "unit": row["unit"],
+        "quantity": row["quantity"],
+        "start_order_at": row["start_order_at"],
+    }

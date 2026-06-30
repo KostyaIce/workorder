@@ -46,6 +46,7 @@ set(PYTHON_SOURCES
     src/utils/__init__.py
     src/utils/db_storage.py
     src/utils/report_builder.py
+    src/utils/pdf_report_builder.py
     src/ui/__init__.py
 )
 

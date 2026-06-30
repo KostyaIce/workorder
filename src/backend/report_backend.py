@@ -4,7 +4,11 @@ Reports backend: customers, objects and work reports.
 """
 
 
-from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+import os
+import tempfile
+from datetime import datetime
+
+from PyQt6.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
 from models.clients_model import ClientModel
 from models.objects_model import ObjectModel
 from models.orders_model import OrdersModel
@@ -22,7 +26,8 @@ from utils.works_db import (
     get_orders,
     load_subobject_names,
     load_works_by_select_at,
-    load_works_by_start_order
+    load_works_by_start_order,
+    get_result_works
 )
 from utils.clients_db import (
     create_client_table,
@@ -35,7 +40,8 @@ from utils.objects_db import (
     load_objects,
     update_object_last_order_at
 )
-from utils.report_builder import build_work_report, save_work_report
+from utils.pdf_report_builder import save_work_report_pdf
+from utils.db_storage import default_reports_dir
 from utils.qsettings_store import QSettingsStore
 
 from dataclasses import dataclass
@@ -84,7 +90,8 @@ class ReportBackend(QObject):
         self._next_client_id = 1
         self._next_work_id = 1
         self._last_report_path = ""
-        self._last_report_text = ""
+        self._last_report_url = ""
+        self._preview_temp_path = ""
         self._current_client_data = ClientItem()
         self._current_object_data = ObjectItem()
         self._current_service_data = ServiceItem()
@@ -197,8 +204,8 @@ class ReportBackend(QObject):
         return self._last_report_path
 
     @pyqtProperty(str, notify=reportGenerated)
-    def lastReportText(self):
-        return self._last_report_text
+    def lastReportUrl(self):
+        return self._last_report_url
 
     @pyqtSlot(result=bool)
     def initializeData(self):
@@ -401,17 +408,64 @@ class ReportBackend(QObject):
 
 
     @pyqtSlot(str, result=bool)
-    def generateReport(self, client_id):
-        """Generate text report for selected orders and save to file."""
-        return self._generate_report(client_id, save_to_file=True)
+    def generateReport(self):
+        """Generate PDF report for selected orders and save to file."""
+        return self._generate_report(save_to_file=True)
+
+    @pyqtSlot(str, str, result=bool)
+    def saveReportToFile(self, file_url):
+        """Generate PDF report and save it to the user-selected path."""
+        file_path = self._resolve_local_file_path(file_url)
+        if not file_path:
+            self.errorOccurred.emit("Не выбран файл для сохранения")
+            return False
+        return self._generate_report(save_to_file=True, file_path=file_path)
+
+    @pyqtSlot(str, result=str)
+    def defaultReportSaveUrl(self, client_id):
+        """Return default file URL for the save dialog."""
+        client = self._clients.itemData(client_id)
+        if not client:
+            return ""
+
+        reports_dir = default_reports_dir()
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = "".join(
+            ch if ch.isalnum() else "_" for ch in client.get("name", "client")
+        )
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        target = reports_dir / f"report_{safe_name}_{stamp}.pdf"
+        return QUrl.fromLocalFile(str(target)).toString()
+
+    @pyqtSlot(result=str)
+    def defaultReportSaveFolderUrl(self):
+        """Return default folder URL for the save dialog."""
+        reports_dir = default_reports_dir()
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        return QUrl.fromLocalFile(str(reports_dir)).toString()
 
     @pyqtSlot(str, result=bool)
-    def previewReport(self, client_id):
-        """Build report preview without saving to file."""
-        return self._generate_report(client_id, save_to_file=False)
+    def previewReport(self):
+        """Build PDF report preview in a temporary file."""
+        return self._generate_report(save_to_file=False)
 
-    def _generate_report(self, client_id, save_to_file):
-        client = self._clients.itemData(client_id)
+    @staticmethod
+    def _resolve_local_file_path(file_url):
+        value = (file_url or "").strip()
+        if not value:
+            return ""
+
+        if value.startswith("file:"):
+            path = QUrl(value).toLocalFile()
+        else:
+            path = value
+
+        if not path.lower().endswith(".pdf"):
+            path += ".pdf"
+        return path
+
+    def _generate_report(self, save_to_file, file_path=""):
+        client = self._clients.itemData(self._current_client_data.id)
         if not client:
             self.errorOccurred.emit("Выберите заказчика или объект")
             return False
@@ -425,15 +479,7 @@ class ReportBackend(QObject):
             self.errorOccurred.emit("Выберите хотя бы один счёт")
             return False
 
-        works = []
-        for start_order_at in selected_orders:
-            items = load_works_by_select_at(
-                self._current_client_data.name,
-                self._current_client_data.id,
-                self._current_object_data.id,
-                start_order_at,
-            )
-            works.extend(items)
+        works = get_result_works(self._current_client_data.name, self._current_client_data.id, [self._current_object_data.id], selected_orders)
 
         if not works:
             self.errorOccurred.emit("Нет работ для выбранных счетов")
@@ -446,34 +492,40 @@ class ReportBackend(QObject):
         }
         options = self._report_options_backend.as_dict()
 
-        try:
-            if save_to_file:
-                report_path, report_text = save_work_report(
-                    personal_info,
-                    client,
-                    object_data,
-                    works,
-                    options,
-                )
-            else:
-                report_path = ""
-                report_text = build_work_report(
-                    personal_info,
-                    client,
-                    object_data,
-                    works,
-                    options,
-                )
+        # try:
+        preview_path = ""
+        target_path = ""
+        if save_to_file:
+            target_path = file_path
+        else:
+            if self._preview_temp_path and os.path.isfile(self._preview_temp_path):
+                try:
+                    os.remove(self._preview_temp_path)
+                except OSError:
+                    pass
+            fd, preview_path = tempfile.mkstemp(suffix=".pdf", prefix="report_preview_")
+            os.close(fd)
+            target_path = preview_path
+            self._preview_temp_path = preview_path
 
-            self._last_report_path = report_path
-            self._last_report_text = report_text
-            self.reportGenerated.emit(report_path, report_text)
-            if save_to_file:
-                print(f"[Report] Generated report: {report_path}")
-            return True
-        except Exception as exc:
-            self.errorOccurred.emit(f"Ошибка формирования отчёта: {str(exc)}")
-            return False
+        report_path, _pdf_bytes = save_work_report_pdf(
+            personal_info,
+            client,
+            object_data,
+            works,
+            options,
+            file_path=target_path,
+        )
+
+        self._last_report_path = report_path if save_to_file else ""
+        self._last_report_url = QUrl.fromLocalFile(report_path).toString()
+        self.reportGenerated.emit(self._last_report_path, self._last_report_url)
+        if save_to_file:
+            print(f"[Report] Generated report: {report_path}")
+        return True
+        # except Exception as exc:
+        #     self.errorOccurred.emit(f"Ошибка формирования отчёта: {str(exc)}")
+        #     return False
 
     @pyqtSlot(result=list)
     def getOrderStartTimes(self):

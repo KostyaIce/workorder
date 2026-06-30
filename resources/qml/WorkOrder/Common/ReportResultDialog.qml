@@ -1,26 +1,39 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Pdf
 
-Dialog {
+Dialog
+{
     id: root
 
     property bool compact: true
     property string reportPath: ""
-    property string reportText: ""
+    property string reportUrl: ""
 
+    parent: Overlay.overlay
     title: root.reportPath === "" ? qsTr("Превью отчёта") : qsTr("Отчёт сформирован")
     standardButtons: Dialog.Close
     modal: true
+    clip: true
     anchors.centerIn: parent
-    width: compact ? parent.width - 32 : 640
-    height: compact ? parent.height * 0.7 : 480
+    width: compact ? parent.width - 32 : 720
+    height: compact ? parent.height * 0.7 : 560
 
-    ColumnLayout {
+    onClosed:
+    {
+        reportPath = ""
+        reportUrl = ""
+    }
+
+    ColumnLayout
+    {
         anchors.fill: parent
+        anchors.margins: 8
         spacing: 12
 
-        Label {
+        Label
+        {
             visible: root.reportPath !== ""
             text: qsTr("Файл:") + " " + root.reportPath
             font.pixelSize: 12
@@ -29,26 +42,75 @@ Dialog {
             Layout.fillWidth: true
         }
 
-        Label {
-            visible: root.reportPath === ""
+        Label
+        {
+            visible: root.reportPath === "" && root.reportUrl !== ""
             text: qsTr("Превью (файл не сохранён)")
             font.pixelSize: 12
             color: textSecondaryColor
             Layout.fillWidth: true
         }
 
-        ScrollView {
+        Loader
+        {
+            id: pdfLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
+            active: root.opened && root.reportUrl !== ""
+            sourceComponent: pdfViewerComponent
+        }
 
-            TextArea {
-                readOnly: true
-                text: root.reportText
-                wrapMode: TextArea.Wrap
-                font.family: "Menlo, Monaco, monospace"
-                font.pixelSize: 12
-                selectByMouse: true
+        Label
+        {
+            visible: root.reportUrl === ""
+            text: qsTr("PDF-отчёт недоступен")
+            font.pixelSize: 12
+            color: textSecondaryColor
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
+        }
+    }
+
+    Component
+    {
+        id: pdfViewerComponent
+
+        Item
+        {
+            anchors.fill: parent
+
+            PdfDocument
+            {
+                id: pdfDocument
+                source: root.reportUrl
+
+                onStatusChanged:
+                {
+                    if(status === PdfDocument.Ready)
+                        fitTimer.restart()
+                }
+            }
+
+            PdfMultiPageView
+            {
+                id: pdfView
+                anchors.fill: parent
+                document: pdfDocument
+            }
+
+            Timer
+            {
+                id: fitTimer
+                interval: 50
+                repeat: false
+                onTriggered:
+                {
+                    if(pdfDocument.status !== PdfDocument.Ready)
+                        return
+                    if(pdfView.width <= 0 || pdfView.height <= 0)
+                        return
+                    pdfView.scaleToWidth(pdfView.width, pdfView.height)
+                }
             }
         }
     }
