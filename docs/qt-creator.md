@@ -27,7 +27,11 @@
 | Кнопка / target | Назначение |
 |-----------------|------------|
 | **build** (Build) | Проверка конфигурации, без линковки C++ |
-| **run** (Run) | Запуск приложения |
+| **run** (Run) | Запуск приложения (на macOS через `WorkOrder.app`) |
+| **app-bundle** (macOS) | Сборка `build/WorkOrder.app` с иконкой для Finder/Dock |
+
+На macOS target **run** запускает `build/WorkOrder.app` — иконка видна в Finder и Dock.
+Для ярлыка в Dock перетащите `build/WorkOrder.app` в Dock или в `/Applications`.
 
 В **Projects → Run** выбрать CMake target **`run`**.
 

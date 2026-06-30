@@ -192,6 +192,7 @@ ColumnLayout
         {
             if(count === 0 && isValueGrowing && serviceInput.text !== "")
             {
+                console.log("[TEST] servise add")
                 serviceDialog.name = serviceInput.text
                 serviceDialog.open()
             }

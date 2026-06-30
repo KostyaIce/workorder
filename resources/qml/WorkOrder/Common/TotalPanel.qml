@@ -48,15 +48,6 @@ ColumnLayout
 
         Label
         {
-            text: qsTr("Работ: %1").arg(reportBackend.workCount)
-            font.pixelSize: 13
-            color: textSecondaryColor
-        }
-
-        Item { Layout.preferredWidth: compact ? 16 : 24 }
-
-        Label
-        {
             text: qsTr("Счет на: %1").arg(
                 Qt.formatDateTime(new Date(reportBackend.selectedObjectLastOrder * 1000), "dd.MM.yyyy hh:mm"))
             font.pixelSize: 13

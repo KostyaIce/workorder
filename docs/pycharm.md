@@ -56,6 +56,9 @@ python3 -m pip install -r requirements.txt
 
 Переменная `QT_QUICK_CONTROLS_STYLE=Basic` задаётся в `main.py`; в Run Configuration добавлять не обязательно.
 
+На macOS иконка в Dock устанавливается автоматически при запуске через PyCharm.
+Для иконки в Finder (когда приложение не запущено) используйте `build/WorkOrder.app` — см. [qt-creator.md](qt-creator.md).
+
 ## Запуск из терминала PyCharm
 
 ```bash

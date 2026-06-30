@@ -1,7 +1,8 @@
 from PyQt6.QtCore import (
     Qt,
     QAbstractListModel,
-    QModelIndex
+    QModelIndex,
+    pyqtProperty
 )
 
 class ClientModel(QAbstractListModel):
@@ -25,6 +26,10 @@ class ClientModel(QAbstractListModel):
 
 
     def rowCount(self, parent=QModelIndex()):
+        return len(self._items)
+
+    @pyqtProperty(int)
+    def count(self):
         return len(self._items)
 
     def data(self, index, role):

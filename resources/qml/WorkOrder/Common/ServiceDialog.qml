@@ -7,12 +7,12 @@ Dialog {
 
     property bool compact: true
     property string name: ""
-    property string id: ""
+    property string service_id: ""
     property int price: 0
     property string unit: ""
     property string keywords: ""
 
-    title: id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
+    title: service_id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
     standardButtons: Dialog.Save | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
@@ -63,7 +63,7 @@ Dialog {
     }
 
     onAccepted: {
-        if(id === "")
+        if(service_id === "")
         {
             var data = {
                 "name": nameField.text,
@@ -89,7 +89,7 @@ Dialog {
 
     function clearInfo()
     {
-        id = ""
+        service_id = ""
         name = ""
         price = 0.00
         unit = ""

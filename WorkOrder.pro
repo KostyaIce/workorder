@@ -20,6 +20,10 @@ DISTFILES += \
     requirements.txt \
     README.md \
     src/main.py \
+    src/app_paths.py \
+    resources/icons/appIcons/icon_macos.icns \
+    resources/icons/appIcons/icon_win32.ico \
+    resources/icons/appIcons/icon_linux.png \
     src/backend/__init__.py \
     src/backend/invoice_backend.py \
     src/backend/database_backend.py \
@@ -43,8 +47,8 @@ DISTFILES += \
 # Helper target for Qt Creator (no C++ compilation)
 all: force
 	@echo "WorkOrder: Python/PyQt6 project"
-	@echo "Configure: cmake --preset desktop  or  cmake --preset mobile"
-	@echo "Run:       cmake --build build/desktop --target run"
+	@echo "Configure: cmake --preset workorder"
+	@echo "Run:       cmake --build build --target run"
 	@echo "Or:        python src/main.py --type $$BUILD_TYPE"
 
 force:

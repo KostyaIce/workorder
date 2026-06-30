@@ -4,11 +4,15 @@ InvoicePage Backend
 Бэкенд для окна создания счета с автодополнением
 """
 
+import logging
+
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from models.services_model import ServiceModel
 from models.services_filter_model import ServicesFilterModel
-from utils.services_db import create_services_table, add_service, update_service,load_services, delete_service
+from utils.services_db import create_services_table, add_service, update_service, load_services, delete_service
+
+logger = logging.getLogger("workorder")
 
 def _keywords_from_name(name):
     words = [word.lower() for word in name.split() if len(word) > 2]
@@ -30,8 +34,6 @@ class InvoiceBackend(QObject):
         # Текущие значения для добавления позиции
         self._report_backend = None
         self._invoice_counter = 0
-        
-        # self._services_db = []
 
         # Models for services
         self._services = ServiceModel()
@@ -57,29 +59,47 @@ class InvoiceBackend(QObject):
 
     # === Каталог услуг ===
     
-    @pyqtSlot("QVariantMap")
+    @pyqtSlot("QVariantMap", result=bool)
     def addService(self, data):
         if not data:
-            return
-        result = add_service(data)
-        self._load_services()
-        return
+            return False
+        try:
+            if not add_service(data):
+                logger.warning("Failed to add service: %s", data.get("name"))
+                return False
+            self._load_services()
+            return True
+        except Exception:
+            logger.exception("Failed to add service: %s", data.get("name"))
+            return False
 
-    @pyqtSlot("QVariantMap")
+    @pyqtSlot("QVariantMap", result=bool)
     def updateService(self, data):
         if not data:
-            return
-        update_service(data)
-        self._load_services()
-        return
+            return False
+        try:
+            if not update_service(data):
+                logger.warning("Failed to update service: %s", data.get("id"))
+                return False
+            self._load_services()
+            return True
+        except Exception:
+            logger.exception("Failed to update service: %s", data.get("id"))
+            return False
 
-    @pyqtSlot(str)
-    def deleteService(self, id):
-        if not id:
-            return
-        delete_service(id)
-        self._load_services()
-        return
+    @pyqtSlot(str, result=bool)
+    def deleteService(self, service_id):
+        if not service_id:
+            return False
+        try:
+            if not delete_service(service_id):
+                logger.warning("Failed to delete service: %s", service_id)
+                return False
+            self._load_services()
+            return True
+        except Exception:
+            logger.exception("Failed to delete service: %s", service_id)
+            return False
 
     def bind_report_backend(self, report_backend):
         """Link report backend as client catalog source."""

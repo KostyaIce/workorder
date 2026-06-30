@@ -74,6 +74,7 @@ ColumnLayout {
             spacing: 16
 
             SettingsSection {
+                visible: false
                 title: compact ? qsTr("Общие") : qsTr("Общие настройки")
                 compact: root.compact
 
@@ -137,6 +138,7 @@ ColumnLayout {
             }
 
             SettingsSection {
+                visible: false
                 title: compact ? qsTr("Счета") : qsTr("Настройки счетов")
                 compact: root.compact
 
@@ -195,6 +197,7 @@ ColumnLayout {
             }
 
             SettingsSection {
+                visible: false
                 title: qsTr("База данных")
                 compact: root.compact
 
@@ -346,7 +349,7 @@ ColumnLayout {
     }
 
     RowLayout {
-        visible: !compact
+        visible: false
         Layout.fillWidth: true
 
         Item { Layout.fillWidth: true }

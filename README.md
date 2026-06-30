@@ -14,7 +14,9 @@ workorder/
 ├── src/
 │   ├── main.py              # Точка входа
 │   └── backend/             # Python-логика (заглушки)
-├── resources/qml/
+├── resources/
+│   ├── icons/appIcons/      # icon_macos.icns, icon_win32.ico, icon_linux.png
+│   └── qml/
 │   ├── desktop/             # QML для десктопа
 │   └── mobile/              # QML для мобильных
 ├── tests/                   # Unit-тесты бэкенда
@@ -62,6 +64,22 @@ cmake --build build --target run
 ```
 
 При сборке через CMake тип UI фиксируется в `build/*/workorder_config.py` и имеет приоритет над `--type`.
+
+### macOS: иконка приложения
+
+```bash
+cmake --build build --target app-bundle
+```
+
+Создаёт `build/WorkOrder.app` с иконкой в Finder. Запуск:
+
+```bash
+open build/WorkOrder.app
+# или
+cmake --build build --target run
+```
+
+Для постоянного ярлыка перетащите `WorkOrder.app` в Dock или `/Applications`.
 
 ## PyCharm
 

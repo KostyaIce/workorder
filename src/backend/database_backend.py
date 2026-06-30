@@ -6,14 +6,11 @@ DatabasePage Backend
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
 
-from utils.db_storage import (
-    create_services_database,
-    create_works_database,
+from utils.db_storage import create_works_database
+from utils.services_db import (
+    create_services_table,
     default_services_db_path,
-    get_services_statistics as storage_services_statistics,
     load_services,
-    repair_services_database,
-    save_services,
 )
 
 
@@ -267,17 +264,11 @@ class DatabaseBackend(QObject):
 
     @pyqtSlot(str, result=bool)
     def createServicesDatabase(self, file_path=""):
-        """
-        Create SQLite database with sample services catalog.
-
-        Args:
-            file_path: Optional path. Empty string uses ./data/services.db
-        """
+        """Create services SQLite table."""
         try:
-            db_path, count = create_services_database(file_path)
-            self._services_db_path = db_path
-            self._apply_services(load_services(db_path))
-            print(f"[Database] Created services DB: {db_path} ({count} rows)")
+            create_services_table()
+            self._services_db_path = str(default_services_db_path())
+            print(f"[Database] Created services DB: {self._services_db_path}")
             return True
         except Exception as e:
             self.errorOccurred.emit(f"Ошибка создания БД услуг: {str(e)}")
@@ -304,56 +295,35 @@ class DatabaseBackend(QObject):
 
     @pyqtSlot(str, result=bool)
     def repairDatabase(self, file_path=""):
-        """
-        Repair services and works SQLite databases.
-
-        Args:
-            file_path: Optional services DB path. Works DB uses default pair path.
-        """
+        """Ensure services table exists."""
         try:
-            services_report, services_path = repair_services_database(
-                file_path or self._services_db_path
-            )
-            works_report, works_path = repair_works_database(self._works_db_path)
-
-            self._services_db_path = services_path
-            # self._works_db_path = works_path
-            self._apply_services(load_services(services_path))
-            self._works = load_completed_works(works_path)
-            self.worksChanged.emit()
-
-            summary = (
-                f"Services: kept {services_report['kept']}, "
-                f"removed {services_report['removed']}; "
-                f"Works: kept {works_report['kept']}, "
-                f"removed {works_report['removed']}"
-            )
-            self.databaseRepaired.emit(summary)
-            print(f"[Database] Repair completed: {summary}")
+            create_services_table()
+            self._services_db_path = str(default_services_db_path())
+            self.databaseRepaired.emit("Services table checked")
+            print("[Database] Repair completed: services table checked")
             return True
         except Exception as e:
             self.errorOccurred.emit(f"Ошибка исправления БД: {str(e)}")
             return False
 
     def _persist_services(self):
-        try:
-            save_services(self._services_db_path, self._services)
-        except Exception as e:
-            self.errorOccurred.emit(f"Ошибка сохранения БД услуг: {str(e)}")
+        pass
 
     @pyqtSlot(str, result=bool)
     def loadServicesFromDatabase(self, file_path=""):
         """Load services list from SQLite into memory."""
         try:
-            db_path = file_path or self._services_db_path
-            services = load_services(db_path)
+            create_services_table()
+            services = load_services()
             if not services:
-                self.errorOccurred.emit(f"БД услуг пуста или не найдена: {db_path}")
+                self.errorOccurred.emit(
+                    f"БД услуг пуста или не найдена: {default_services_db_path()}"
+                )
                 return False
 
-            self._services_db_path = db_path
+            self._services_db_path = str(default_services_db_path())
             self._apply_services(services)
-            print(f"[Database] Loaded {len(services)} services from {db_path}")
+            print(f"[Database] Loaded {len(services)} services from {self._services_db_path}")
             return True
         except Exception as e:
             self.errorOccurred.emit(f"Ошибка загрузки БД услуг: {str(e)}")
@@ -451,7 +421,13 @@ class DatabaseBackend(QObject):
     def getStatistics(self):
         """Получить статистику по услугам"""
         if not self._services:
-            return storage_services_statistics(self._services_db_path)
+            return {
+                "count": 0,
+                "min_price": 0,
+                "max_price": 0,
+                "avg_price": 0,
+                "total_value": 0,
+            }
 
         prices = [s["price"] for s in self._services]
         return {

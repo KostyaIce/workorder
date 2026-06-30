@@ -34,8 +34,16 @@ endif()
 
 set(QML_DIR "${CMAKE_SOURCE_DIR}/resources/qml/${Type}")
 
+set(APP_ICON_SOURCES
+    resources/icons/appIcons/icon_macos.icns
+    resources/icons/appIcons/icon_win32.ico
+    resources/icons/appIcons/icon_linux.png
+)
+
 set(PYTHON_SOURCES
     src/main.py
+    src/app_paths.py
+    src/macos_icon.py
     src/backend/__init__.py
     src/backend/invoice_backend.py
     src/backend/database_backend.py
@@ -55,6 +63,7 @@ file(GLOB QML_SOURCES "${QML_DIR}/*.qml")
 set(ALL_SOURCES
     ${PYTHON_SOURCES}
     ${QML_SOURCES}
+    ${APP_ICON_SOURCES}
     requirements.txt
     README.md
 )
@@ -80,18 +89,52 @@ configure_file(
     @ONLY
 )
 
-add_custom_target(run
-    COMMAND ${CMAKE_COMMAND} -E env
-        "PYTHONPATH=${CMAKE_BINARY_DIR}:${CMAKE_SOURCE_DIR}/src"
-        "QML_IMPORT_PATH=${CMAKE_SOURCE_DIR}/resources/qml:${QML_DIR}"
-        ${WORKORDER_PYTHON}
-        "${CMAKE_SOURCE_DIR}/src/main.py"
-        --type ${Type}
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    DEPENDS ${ALL_SOURCES}
-    COMMENT "Run WorkOrder (${Type})"
-    VERBATIM
-)
+if(APPLE)
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/macos")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/cmake/macos/Info.plist.in"
+        "${CMAKE_BINARY_DIR}/macos/Info.plist"
+        @ONLY
+    )
+
+    set(WORKORDER_APP_BUNDLE "${CMAKE_BINARY_DIR}/WorkOrder.app")
+    set(WORKORDER_APP_LAUNCHER "${WORKORDER_APP_BUNDLE}/Contents/MacOS/WorkOrder")
+
+    add_custom_target(app-bundle
+        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
+        COMMAND "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
+            "${CMAKE_SOURCE_DIR}"
+            "${CMAKE_BINARY_DIR}"
+            "${Type}"
+            "${WORKORDER_PYTHON}"
+        DEPENDS ${ALL_SOURCES} "${CMAKE_BINARY_DIR}/macos/Info.plist"
+        COMMENT "Create WorkOrder.app bundle for macOS"
+        VERBATIM
+    )
+endif()
+
+if(APPLE)
+    add_custom_target(run
+        COMMAND "${WORKORDER_APP_LAUNCHER}"
+        DEPENDS app-bundle
+        COMMENT "Run WorkOrder (${Type}) via WorkOrder.app"
+        VERBATIM
+    )
+else()
+    add_custom_target(run
+        COMMAND ${CMAKE_COMMAND} -E env
+            "WORKORDER_BUILD_DIR=${CMAKE_BINARY_DIR}"
+            "PYTHONPATH=${CMAKE_BINARY_DIR}:${CMAKE_SOURCE_DIR}/src"
+            "QML_IMPORT_PATH=${CMAKE_SOURCE_DIR}/resources/qml:${QML_DIR}"
+            ${WORKORDER_PYTHON}
+            "${CMAKE_SOURCE_DIR}/src/main.py"
+            --type ${Type}
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        DEPENDS ${ALL_SOURCES}
+        COMMENT "Run WorkOrder (${Type})"
+        VERBATIM
+    )
+endif()
 
 add_custom_target(install-deps
     COMMAND ${Python3_EXECUTABLE} -m pip install -r "${CMAKE_SOURCE_DIR}/requirements.txt"

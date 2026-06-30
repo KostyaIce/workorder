@@ -24,7 +24,13 @@ compile_commands.json
 *.autosave
 
 # IDE
-.idea/
+.idea
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/**
+!.idea/workorder.iml
+!.idea/modules.xml
+!.idea/misc.xml
 .vscode/
 *.swp
 *~
