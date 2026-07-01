@@ -43,3 +43,8 @@ Thumbs.db
 data/
 *.db
 *.sqlite
+
+# Production build artifacts
+prod_build/dist/
+prod_build/work/
+prod_build/dmg_staging/
