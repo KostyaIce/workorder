@@ -16,7 +16,9 @@ ConfirmDialog 1.0 ConfirmDialog.qml
 SettingsAboutSection 1.0 SettingsAboutSection.qml
 SettingsContent 1.0 SettingsContent.qml
 ServiceSearchField 1.0 ServiceSearchField.qml
+CoefficientSearchField 1.0 CoefficientSearchField.qml
 OverlaySearchSuggestions 1.0 OverlaySearchSuggestions.qml
+ServiceNameText 1.0 ServiceNameText.qml
 SubobjectSearchField 1.0 SubobjectSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
 InvoiceClientField 1.0 InvoiceClientField.qml

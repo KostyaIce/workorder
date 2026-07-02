@@ -7,20 +7,21 @@ ColumnLayout
     id: root
 
     property bool compact: true
-    property alias serviceInput: serviceInput
+    property bool useRowLayout: false
+
     property int countField: 0
-    property bool isValueGrowing: false
     property int layoutSpacing: 8
 
+    readonly property Item activeInput: useRowLayout ? coefficientInputRow : coefficientInput
     readonly property int suggestionRowHeight: compact ? 56 : 36
     readonly property int suggestionMaxRowHeight: compact ? 56 : 48
 
-    spacing: layoutSpacing
+    spacing: useRowLayout ? 0 : layoutSpacing
     Layout.fillWidth: true
 
     function updateSuggestions()
     {
-        if(serviceInput.activeFocus && servicesFilterModel.count > 0)
+        if(activeInput.activeFocus && coefficientsFilterModel.count > 0)
         {
             closeSuggestionsTimer.stop()
             suggestionsPopup.syncOpen()
@@ -29,41 +30,65 @@ ColumnLayout
         {
             suggestionsPopup.close()
 
-            if(!serviceInput.activeFocus)
+            if(!activeInput.activeFocus)
             {
-                invoiceBackend.clearSuggestions()
-                servicesFilterModel.clearFilter()
+                invoiceBackend.clearCoefficientSuggestions()
+                coefficientsFilterModel.clearFilter()
             }
         }
     }
 
-    ServiceDialog
-    {
-        id: serviceDialog
-        compact: root.compact
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-    }
-
     Label
     {
-        text: qsTr("Услуга")
+        visible: !useRowLayout
+        text: qsTr("Коэффициенты")
         font.pixelSize: 14
         color: textSecondaryColor
     }
 
+    RowLayout
+    {
+        visible: useRowLayout
+        Layout.fillWidth: true
+        spacing: 8
+
+        Label
+        {
+            text: qsTr("Коэффициенты")
+            font.pixelSize: 12
+            color: textSecondaryColor
+        }
+
+        TextField
+        {
+            id: coefficientInputRow
+            Layout.fillWidth: true
+            placeholderText: qsTr("Введите название коэффициента...")
+            onTextChanged:
+            {
+                invoiceBackend.searchCoefficients(text)
+                countField = text.length
+                updateSuggestions()
+            }
+            onActiveFocusChanged:
+            {
+                if(activeFocus)
+                    updateSuggestions()
+                else
+                    closeSuggestionsTimer.start()
+            }
+        }
+    }
+
     TextField
     {
-        id: serviceInput
+        id: coefficientInput
+        visible: !useRowLayout
         Layout.fillWidth: true
-        placeholderText: qsTr("Введите название услуги...")
+        placeholderText: qsTr("Введите название коэффициента...")
         onTextChanged:
         {
-            invoiceBackend.searchServices(text)
-            if(countField < text.length)
-                isValueGrowing = true
-            else
-                isValueGrowing = false
+            invoiceBackend.searchCoefficients(text)
             countField = text.length
             updateSuggestions()
         }
@@ -79,8 +104,8 @@ ColumnLayout
     OverlaySearchSuggestions
     {
         id: suggestionsPopup
-        anchorItem: serviceInput
-        model: servicesFilterModel
+        anchorItem: activeInput
+        model: coefficientsFilterModel
         rowHeight: suggestionRowHeight
         maxRowHeight: suggestionMaxRowHeight
         maxRows: 4
@@ -118,7 +143,7 @@ ColumnLayout
 
                 Label
                 {
-                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    text: (model.price / 100).toFixed(0) + " %"
                     font.pixelSize: 12
                     color: primaryColor
                     font.bold: true
@@ -145,7 +170,7 @@ ColumnLayout
 
                 Label
                 {
-                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    text: (model.price / 100).toFixed(0) + " %"
                     font.pixelSize: 13
                     color: primaryColor
                     font.bold: true
@@ -160,9 +185,11 @@ ColumnLayout
                 onClicked:
                 {
                     closeSuggestionsTimer.stop()
-                    reportBackend.selectService(model.id, model.name, model.unit, model.price)
-                    serviceInput.text = model.name
-                    servicesFilterModel.clearFilter()
+                    reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
+                    coefficientInput.text = reportBackend.currentCoefficients
+                    coefficientInputRow.text = reportBackend.currentCoefficients
+                    invoiceBackend.clearCoefficientSuggestions()
+                    coefficientsFilterModel.clearFilter()
                     suggestionsPopup.close()
                 }
             }
@@ -176,32 +203,31 @@ ColumnLayout
         onTriggered:
         {
             suggestionsPopup.close()
-            invoiceBackend.clearSuggestions()
-            servicesFilterModel.clearFilter()
+            invoiceBackend.clearCoefficientSuggestions()
+            coefficientsFilterModel.clearFilter()
         }
     }
 
     Connections
     {
-        target: servicesFilterModel
+        target: coefficientsFilterModel
         function onFilterTextChanged()
         {
-            if(serviceInput.activeFocus)
+            if(activeInput.activeFocus)
                 updateSuggestions()
         }
     }
 
     Connections
     {
-        target: invoiceBackend
-
-        function onCountFound(count)
+        target: reportBackend
+        function onServiceSelected()
         {
-            if(count === 0 && isValueGrowing && serviceInput.text !== "")
+            if(reportBackend.currentServiceName === "")
             {
-                console.log("[TEST] servise add")
-                serviceDialog.name = serviceInput.text
-                serviceDialog.open()
+                coefficientInput.text = ""
+                coefficientInputRow.text = ""
+                invoiceBackend.clearCoefficientSuggestions()
             }
         }
     }

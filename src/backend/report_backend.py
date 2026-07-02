@@ -68,6 +68,8 @@ class ServiceItem:
     unit: str = ""
     price: int = 0
     sub_object: str = ""
+    coefficients: str = ""
+    percent_sum: int = 100
 
 class ReportBackend(QObject):
     """Backend for customers/objects and work reports."""
@@ -194,6 +196,16 @@ class ReportBackend(QObject):
         """Selected service price for invoice line."""
         return self._current_service_data.price
 
+    @pyqtProperty(str, notify=serviceSelected)
+    def currentCoefficients(self):
+        """Comma-separated coefficient names for current line."""
+        return self._current_service_data.coefficients
+
+    @pyqtProperty(int, notify=serviceSelected)
+    def currentPercentSum(self):
+        """Percent sum where 100 is base work plus added coefficients."""
+        return self._current_service_data.percent_sum
+
     @pyqtProperty(str, notify=subObjectChanged)
     def currentSubObject(self):
         """Sub-object name for current invoice line."""
@@ -275,19 +287,51 @@ class ReportBackend(QObject):
         self._works.clearModel()
         self.worksChanged.emit()
 
+    @staticmethod
+    def _coefficient_percent_points(price):
+        return (int(price) // 100) - 100
+
+    @staticmethod
+    def _parse_coefficient_names(value):
+        return [name.strip() for name in str(value or "").split(",") if name.strip()]
+
     @pyqtSlot(str, str, str, int)
     def selectService(self, service_id, name, unit, price):
         """Select service for invoice line."""
         if service_id == "" or name == "" or price == "":
             return
 
-        self._current_service_data = ServiceItem(service_id, name, unit, price)
+        self._current_service_data = ServiceItem(
+            id=service_id,
+            name=name,
+            unit=unit,
+            price=price,
+            sub_object="",
+            coefficients="",
+            percent_sum=100,
+        )
         self.serviceSelected.emit()
         self.subObjectChanged.emit("")
 
     @pyqtSlot(int)
     def setCurrentServicePrice(self, price):
         self._current_service_data.price = price
+        self.serviceSelected.emit()
+
+    @pyqtSlot(str, str, str, int)
+    def addCoefficient(self, service_id, name, unit, price):
+        """Add coefficient to current service line and update percent sum."""
+        if not self._current_service_data.id or not name:
+            return
+
+        names = self._parse_coefficient_names(self._current_service_data.coefficients)
+        normalized_name = name.strip()
+        if any(existing.casefold() == normalized_name.casefold() for existing in names):
+            return
+
+        names.append(normalized_name)
+        self._current_service_data.coefficients = ", ".join(names)
+        self._current_service_data.percent_sum += self._coefficient_percent_points(price)
         self.serviceSelected.emit()
 
     @pyqtSlot(str)
@@ -311,7 +355,7 @@ class ReportBackend(QObject):
 
     @pyqtSlot()
     def clearCurrentService(self):
-        """Reset selected service, sub-object and quantity."""
+        """Reset selected service, coefficients, sub-object and quantity."""
         self._current_service_data = ServiceItem()
         self._subobjects_filter.clearFilter()
         self.serviceSelected.emit()

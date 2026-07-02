@@ -24,27 +24,25 @@ Rectangle
         anchors.margins: 8
         spacing: 4
 
-        RowLayout
+        ColumnLayout
         {
-            spacing: 4
+            spacing: 2
+            Layout.fillWidth: true
 
             Label
             {
                 text: qsTr("Выбрано:")
                 font.pixelSize: 11
                 color: textSecondaryColor
-                Layout.alignment: Qt.AlignBottom
             }
 
-            Label
+            ServiceNameText
             {
                 text: reportBackend.currentServiceName
-                font.pixelSize: 15
-                color: textColor
+                baseFontSize: 15
+                compactFontSize: 13
                 font.bold: true
-                elide: Text.ElideRight
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignBottom
             }
         }
 
@@ -66,9 +64,24 @@ Rectangle
                 font.bold: true
                 anchors.verticalCenter: parent.verticalCenter
             }
+
+            Label
+            {
+                visible: reportBackend.currentPercentSum !== 100
+                text: " (" + reportBackend.currentPercentSum + "%)"
+                font.pixelSize: 9
+                color: secondaryColor
+                font.bold: true
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
 
         SubobjectSearchField
+        {
+            compact: root.compact
+        }
+
+        CoefficientSearchField
         {
             compact: root.compact
         }
@@ -92,16 +105,17 @@ Rectangle
                 text: qsTr("Выбрано:")
                 font.pixelSize: 12
                 color: textSecondaryColor
+                Layout.alignment: Qt.AlignTop
             }
 
-            Label
+            ServiceNameText
             {
                 text: reportBackend.currentServiceName
-                font.pixelSize: 14
-                color: textColor
+                baseFontSize: 14
+                compactFontSize: 12
                 font.bold: true
                 Layout.fillWidth: true
-                elide: Text.ElideRight
+                Layout.alignment: Qt.AlignVCenter
             }
 
             Row
@@ -122,10 +136,27 @@ Rectangle
                     font.bold: true
                     anchors.verticalCenter: parent.verticalCenter
                 }
+
+                Label
+                {
+                    visible: reportBackend.currentPercentSum !== 100
+                    text: " (" + reportBackend.currentPercentSum + "%)"
+                    font.pixelSize: 9
+                    color: secondaryColor
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
 
         SubobjectSearchField
+        {
+            Layout.fillWidth: true
+            compact: false
+            useRowLayout: true
+        }
+
+        CoefficientSearchField
         {
             Layout.fillWidth: true
             compact: false

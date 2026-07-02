@@ -9,11 +9,13 @@ class ServiceModel(QAbstractListModel):
 
     IdRole = Qt.ItemDataRole.UserRole + 1
     NameRole = Qt.ItemDataRole.UserRole + 2
-    PriceRole = Qt.ItemDataRole.UserRole + 3
-    UnitRole = Qt.ItemDataRole.UserRole + 4
-    KeywordsRole = Qt.ItemDataRole.UserRole + 5
-    CreatedAtRole = Qt.ItemDataRole.UserRole + 6
-    UpdatedAtRole = Qt.ItemDataRole.UserRole + 7
+    NoteRole = Qt.ItemDataRole.UserRole + 3
+    ParagraphRole = Qt.ItemDataRole.UserRole + 4
+    PriceRole = Qt.ItemDataRole.UserRole + 5
+    UnitRole = Qt.ItemDataRole.UserRole + 6
+    KeywordsRole = Qt.ItemDataRole.UserRole + 7
+    CreatedAtRole = Qt.ItemDataRole.UserRole + 8
+    UpdatedAtRole = Qt.ItemDataRole.UserRole + 9
 
     def __init__(self):
         super().__init__()
@@ -62,6 +64,12 @@ class ServiceModel(QAbstractListModel):
         if role == self.NameRole:
             return item["name"]
 
+        if role == self.NoteRole:
+            return item.get("note", "")
+
+        if role == self.ParagraphRole:
+            return item.get("paragraph", "")
+
         if role == self.PriceRole:
             return item["price"]
 
@@ -83,6 +91,8 @@ class ServiceModel(QAbstractListModel):
         return {
             self.IdRole: b"id",
             self.NameRole: b"name",
+            self.NoteRole: b"note",
+            self.ParagraphRole: b"paragraph",
             self.PriceRole: b"price",
             self.UnitRole: b"unit",
             self.KeywordsRole: b"keywords",

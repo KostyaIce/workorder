@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 Item {
     id: root
@@ -30,6 +31,35 @@ Item {
         compact: root.compact
     }
 
+    FileDialog
+    {
+        id: importServicesDialog
+        title: qsTr("Импорт услуг")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Excel файлы (*.xlsx)")]
+
+        onAccepted:
+        {
+            if(!invoiceBackend.importServicesFromFile(selectedFile))
+                console.log("Не удалось импортировать услуги из файла")
+        }
+    }
+
+    FileDialog
+    {
+        id: exportServicesDialog
+        title: qsTr("Экспорт услуг")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("Excel файлы (*.xlsx)")]
+        defaultSuffix: "xlsx"
+
+        onAccepted:
+        {
+            if(!invoiceBackend.exportServicesToFile(selectedFile))
+                console.log("Не удалось экспортировать услуги в файл")
+        }
+    }
+
     Menu {
         id: contextMenu
         property string _id: ""
@@ -37,14 +67,18 @@ Item {
         property int _price: 0
         property string _keywords: ""
         property string _unit: ""
+        property string _note: ""
+        property string _paragraph: ""
         MenuItem {
             text: qsTr("Редактировать")
             onTriggered: {
-                serviceDialog.id =contextMenu._id
+                serviceDialog.service_id = contextMenu._id
                 serviceDialog.name = contextMenu._name
                 serviceDialog.price = contextMenu._price
                 serviceDialog.keywords = contextMenu._keywords
                 serviceDialog.unit = contextMenu._unit
+                serviceDialog.note = contextMenu._note
+                serviceDialog.paragraph = contextMenu._paragraph
                 serviceDialog.open()
             }
         }
@@ -83,7 +117,24 @@ Item {
             Item { Layout.fillWidth: true }
 
             PrimaryButton {
+                text: qsTr("Импорт")
+                filled: false
+                Layout.fillWidth: false
+                Layout.preferredWidth: implicitWidth
+                onClicked: importServicesDialog.open()
+            }
+
+            PrimaryButton {
+                text: qsTr("Экспорт")
+                filled: false
+                Layout.fillWidth: false
+                Layout.preferredWidth: implicitWidth
+                onClicked: exportServicesDialog.open()
+            }
+
+            PrimaryButton {
                 text: qsTr("+ Добавить услугу")
+                Layout.fillWidth: false
                 Layout.preferredWidth: implicitWidth
                 onClicked: 
                 {
@@ -149,7 +200,7 @@ Item {
 
                     delegate: Rectangle {
                         width: desktopList.width
-                        height: 56
+                        height: Math.max(56, serviceNameText.contentHeight + 16)
                         color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
 
                         RowLayout {
@@ -157,9 +208,13 @@ Item {
                             anchors.leftMargin: 16
                             anchors.rightMargin: 16
 
-                            Label {
+                            ServiceNameText {
+                                id: serviceNameText
                                 text: name
+                                baseFontSize: 14
+                                compactFontSize: 12
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
                             }
 
                             Label {
@@ -183,11 +238,13 @@ Item {
                                     text: "\u270F"
                                     onClicked: 
                                     {
-                                        serviceDialog.id = id
+                                        serviceDialog.service_id = id
                                         serviceDialog.name = name
                                         serviceDialog.price = price
                                         serviceDialog.keywords = keywords
                                         serviceDialog.unit = unit
+                                        serviceDialog.note = note
+                                        serviceDialog.paragraph = paragraph
                                         serviceDialog.open()
                                     }
                                 }
@@ -276,7 +333,7 @@ ListView {
 
     delegate: Rectangle {
         width: mobileList.width
-        height: 60
+        height: Math.max(60, serviceNameText.contentHeight + priceRow.implicitHeight + 14)
         color: cardColor
 
         RowLayout {
@@ -292,17 +349,16 @@ ListView {
                 Layout.fillWidth: true
                 spacing: 4
 
-                Text {
+                ServiceNameText {
+                    id: serviceNameText
                     text: name
+                    baseFontSize: 15
+                    compactFontSize: 13
                     Layout.fillWidth: true
-                    font.pixelSize: 15
-                    color: textColor
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    wrapMode: Text.NoWrap
                 }
 
                 RowLayout {
+                    id: priceRow
                     Layout.fillWidth: true
                     spacing: 6
 
@@ -334,6 +390,8 @@ ListView {
                     contextMenu._price = price
                     contextMenu._keywords = keywords
                     contextMenu._unit = unit
+                    contextMenu._note = note
+                    contextMenu._paragraph = paragraph
                     contextMenu.popup()
                 }
             }

@@ -11,16 +11,20 @@ Dialog {
     property int price: 0
     property string unit: ""
     property string keywords: ""
+    property string note: ""
+    property string paragraph: ""
 
     title: service_id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
     standardButtons: Dialog.Save | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
-    height: 420
+    height: compact ? parent.height * 0.85 : 520
 
     onOpened: {
         nameField.text = name
+        noteField.text = note
+        paragraphField.text = paragraph
         priceField.text = (price/100).toFixed(2)
         keywordsField.text = keywords
         unitField.text = unit
@@ -35,6 +39,20 @@ Dialog {
             placeholder: qsTr("Например: Диагностика оборудования")
             compact: root.compact
             id: nameField
+        }
+
+        FormField {
+            label: qsTr("Примечание")
+            placeholder: qsTr("Дополнительное описание услуги")
+            compact: root.compact
+            id: noteField
+        }
+
+        FormField {
+            label: qsTr("Параграф")
+            placeholder: qsTr("Раздел каталога")
+            compact: root.compact
+            id: paragraphField
         }
 
         FormField {
@@ -67,6 +85,8 @@ Dialog {
         {
             var data = {
                 "name": nameField.text,
+                "note": noteField.text,
+                "paragraph": paragraphField.text,
                 "price": priceField.text,
                 "unit": unitField.text,
                 "keywords": keywordsField.text
@@ -77,8 +97,10 @@ Dialog {
         else
         {
             var data = {
-                "id": id,
+                "id": service_id,
                 "name": nameField.text,
+                "note": noteField.text,
+                "paragraph": paragraphField.text,
                 "price": priceField.text,
                 "unit": unitField.text,
                 "keywords": keywordsField.text
@@ -94,5 +116,7 @@ Dialog {
         price = 0.00
         unit = ""
         keywords = ""
+        note = ""
+        paragraph = ""
     }
 }

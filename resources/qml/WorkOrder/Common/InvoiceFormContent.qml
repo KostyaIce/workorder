@@ -7,7 +7,7 @@ Item
     id: root
 
     property bool compact: true
-    property int desktopTopCardHeight: 270
+    property int desktopTopCardHeight: 320
 
     Layout.fillWidth: true
     Layout.fillHeight: !compact
@@ -18,6 +18,52 @@ Item
         font.bold: true
         color: textColor
         Layout.fillWidth: true
+    }
+
+    component ClearServiceButton: Rectangle
+    {
+        id: clearServiceButton
+
+        property int buttonSize: 44
+
+        visible: reportBackend.currentServiceName !== ""
+        Layout.preferredWidth: buttonSize
+        Layout.preferredHeight: buttonSize
+        radius: 8
+        color: clearServiceMouse.pressed
+               ? Qt.darker(textSecondaryColor, 1.15)
+               : textSecondaryColor
+
+        Label
+        {
+            anchors.centerIn: parent
+            text: "\u2715"
+            font.pixelSize: clearServiceButton.buttonSize > 40 ? 18 : 16
+            font.bold: true
+            color: "white"
+        }
+
+        MouseArea
+        {
+            id: clearServiceMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: root.clearCurrentServiceSelection()
+        }
+
+        ToolTip
+        {
+            visible: clearServiceMouse.containsMouse
+            text: qsTr("Очистить выбранную услугу")
+        }
+    }
+
+    function clearCurrentServiceSelection()
+    {
+        reportBackend.clearCurrentService()
+        searchFieldMobile.serviceInput.text = ""
+        searchFieldDesktop.serviceInput.text = ""
+        invoiceBackend.clearSuggestions()
     }
 
     Flickable
@@ -110,17 +156,28 @@ Item
                         onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
                     }
 
-                    PrimaryButton
+                    RowLayout
                     {
                         Layout.fillWidth: true
-                        text: qsTr("+ Добавить в счет")
-                        enabled: reportBackend.currentServiceName !== ""
-                        onClicked:
+                        spacing: 8
+
+                        PrimaryButton
                         {
-                            if(!reportBackend.addWork(quantityMobile.displayValue))
-                                console.log("work not created")
-                            else
-                                searchFieldMobile.serviceInput.text = ""
+                            Layout.fillWidth: true
+                            text: qsTr("+ Добавить в счет")
+                            enabled: reportBackend.currentServiceName !== ""
+                            onClicked:
+                            {
+                                if(!reportBackend.addWork(quantityMobile.displayValue))
+                                    console.log("work not created")
+                                else
+                                    searchFieldMobile.serviceInput.text = ""
+                            }
+                        }
+
+                        ClearServiceButton
+                        {
+                            buttonSize: 44
                         }
                     }
                 }
@@ -271,6 +328,11 @@ Item
                                 else
                                     searchFieldDesktop.serviceInput.text = ""
                             }
+                        }
+
+                        ClearServiceButton
+                        {
+                            buttonSize: 38
                         }
                     }
 

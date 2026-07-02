@@ -22,21 +22,25 @@ WORK_DIR.mkdir(parents=True, exist_ok=True)
 block_cipher = None
 
 pyqt6_datas, pyqt6_binaries, pyqt6_hiddenimports = collect_all("PyQt6")
+openpyxl_datas, openpyxl_binaries, openpyxl_hiddenimports = collect_all("openpyxl")
 
 a = Analysis(
     [str(PROJECT_ROOT / "src" / "main.py")],
     pathex=[str(PROJECT_ROOT / "src"), str(WORK_DIR)],
-    binaries=pyqt6_binaries,
+    binaries=[*pyqt6_binaries, *openpyxl_binaries],
     datas=[
         (str(PROJECT_ROOT / "resources"), "resources"),
         *pyqt6_datas,
+        *openpyxl_datas,
     ],
     hiddenimports=[
         *pyqt6_hiddenimports,
+        *openpyxl_hiddenimports,
         "reportlab",
         "reportlab.lib",
         "reportlab.pdfgen",
         "reportlab.platypus",
+        "openpyxl",
     ],
     hookspath=[],
     hooksconfig={},

@@ -9,12 +9,15 @@ Popup
     property alias model: suggestionsList.model
     property alias delegate: suggestionsList.delegate
     property int rowHeight: 32
+    property int maxRowHeight: 48
     property int maxRows: 4
     property bool showShadow: false
 
     readonly property int listHeight: Math.min(
-        suggestionsList.count * rowHeight,
-        rowHeight * maxRows
+        suggestionsList.contentHeight > 0
+                ? suggestionsList.contentHeight
+                : suggestionsList.count * rowHeight,
+        maxRowHeight * maxRows
     )
 
     parent: Overlay.overlay

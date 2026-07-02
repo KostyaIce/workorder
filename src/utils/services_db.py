@@ -16,13 +16,15 @@ from utils.db_storage import project_data_dir
 logger = logging.getLogger("workorder")
 
 _SERVICES_COLUMNS = frozenset({
-    "id", "name", "price", "unit", "keywords", "created_at", "updated_at",
+    "id", "name", "note", "paragraph", "price", "unit", "keywords", "created_at", "updated_at",
 })
 
 _CREATE_SERVICES_SQL = """
     CREATE TABLE IF NOT EXISTS services (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
+        note TEXT,
+        paragraph TEXT,
         price INTEGER NOT NULL,
         unit TEXT,
         keywords TEXT,
@@ -88,6 +90,8 @@ def add_service(data):
 
     service_id = str(uuid.uuid4())
     price = _parse_price_cents(data.get("price", "0"))
+    note = str(data.get("note", "")).strip()
+    paragraph = str(data.get("paragraph", "")).strip()
     unit = str(data.get("unit", "")).strip()
     keywords = str(data.get("keywords", "")).strip()
     if not keywords:
@@ -100,10 +104,12 @@ def add_service(data):
         with _connect() as conn:
             conn.execute(
                 """
-                INSERT INTO services (id, name, price, unit, keywords, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO services (
+                    id, name, note, paragraph, price, unit, keywords, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (service_id, name, price, unit, keywords, now, now),
+                (service_id, name, note, paragraph, price, unit, keywords, now, now),
             )
             conn.commit()
         return True
@@ -127,7 +133,7 @@ def delete_service(service_id):
 
 
 def update_service(data):
-    """Update service name, price, unit and/or keywords."""
+    """Update service fields."""
     if not data:
         return False
 
@@ -140,6 +146,8 @@ def update_service(data):
         return False
 
     price = _parse_price_cents(data.get("price", "0"))
+    note = str(data.get("note", "")).strip()
+    paragraph = str(data.get("paragraph", "")).strip()
     unit = str(data.get("unit", "")).strip()
     keywords = str(data.get("keywords", "")).strip()
     if not keywords:
@@ -152,10 +160,10 @@ def update_service(data):
             cursor = conn.execute(
                 """
                 UPDATE services
-                SET name = ?, price = ?, unit = ?, keywords = ?, updated_at = ?
+                SET name = ?, note = ?, paragraph = ?, price = ?, unit = ?, keywords = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (name, price, unit, keywords, now, service_id),
+                (name, note, paragraph, price, unit, keywords, now, service_id),
             )
             conn.commit()
             return cursor.rowcount > 0
@@ -170,7 +178,7 @@ def load_services():
 
     with _connect() as conn:
         rows = conn.execute(
-            """SELECT id, name, price, unit, keywords, created_at, updated_at
+            """SELECT id, name, note, paragraph, price, unit, keywords, created_at, updated_at
                FROM services
                ORDER BY name"""
         ).fetchall()
@@ -179,6 +187,8 @@ def load_services():
         {
             "id": row["id"],
             "name": row["name"],
+            "note": row["note"],
+            "paragraph": row["paragraph"],
             "price": row["price"],
             "unit": row["unit"],
             "keywords": row["keywords"],
@@ -193,7 +203,7 @@ def get_service_by_id(service_id):
     """Get single service by id."""
     with _connect() as conn:
         row = conn.execute(
-            """SELECT id, name, price, unit, keywords, created_at, updated_at
+            """SELECT id, name, note, paragraph, price, unit, keywords, created_at, updated_at
                FROM services
                WHERE id = ?""",
             (service_id,),
@@ -203,6 +213,8 @@ def get_service_by_id(service_id):
         return {
             "id": row["id"],
             "name": row["name"],
+            "note": row["note"],
+            "paragraph": row["paragraph"],
             "price": row["price"],
             "unit": row["unit"],
             "keywords": row["keywords"],
@@ -221,7 +233,7 @@ def search_services(query):
 
     with _connect() as conn:
         rows = conn.execute(
-            """SELECT id, name, price, unit, keywords, created_at, updated_at
+            """SELECT id, name, note, paragraph, price, unit, keywords, created_at, updated_at
                FROM services
                WHERE name LIKE ? OR keywords LIKE ?
                ORDER BY name""",
@@ -232,6 +244,8 @@ def search_services(query):
         {
             "id": row["id"],
             "name": row["name"],
+            "note": row["note"],
+            "paragraph": row["paragraph"],
             "price": row["price"],
             "unit": row["unit"],
             "keywords": row["keywords"],

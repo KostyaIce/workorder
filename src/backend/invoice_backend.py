@@ -10,7 +10,9 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from models.services_model import ServiceModel
 from models.services_filter_model import ServicesFilterModel
+from models.coefficients_filter_model import CoefficientsFilterModel
 from utils.services_db import create_services_table, add_service, update_service, load_services, delete_service
+from utils.services_excel_builder import export_services_excel, import_services_from_excel
 
 logger = logging.getLogger("workorder")
 
@@ -24,6 +26,7 @@ class InvoiceBackend(QObject):
     
     # Сигналы
     countFound = pyqtSignal(int)
+    coefficientsCountFound = pyqtSignal(int)
     suggestionsUpdated = pyqtSignal(list)  # Список подсказок
     suggestionsCleared = pyqtSignal()
     invoiceCreated = pyqtSignal(int, str)  # invoice_id, invoice_number
@@ -39,6 +42,8 @@ class InvoiceBackend(QObject):
         self._services = ServiceModel()
         self._services_filter = ServicesFilterModel()
         self._services_filter.setSourceModel(self._services)
+        self._coefficients_filter = CoefficientsFilterModel()
+        self._coefficients_filter.setSourceModel(self._services)
 
         create_services_table()
         self._load_services()
@@ -50,6 +55,10 @@ class InvoiceBackend(QObject):
         engine.rootContext().setContextProperty(
             "servicesFilterModel",
             self._services_filter
+        )
+        engine.rootContext().setContextProperty(
+            "coefficientsFilterModel",
+            self._coefficients_filter
         )
     
     def _load_services(self):
@@ -101,6 +110,46 @@ class InvoiceBackend(QObject):
             logger.exception("Failed to delete service: %s", service_id)
             return False
 
+    @pyqtSlot(str, result=bool)
+    def importServicesFromFile(self, file_url):
+        """Import services from Excel file into services database."""
+        # try:
+        if True:
+            services = import_services_from_excel(file_url)
+            if not services:
+                logger.warning("Services import: no services found in %s", file_url)
+                return False
+
+            saved_count = 0
+            for item in services:
+                if add_service(item):
+                    saved_count += 1
+                else:
+                    logger.warning("Services import skipped: %s", item.get("name"))
+
+            self._load_services()
+            logger.info(
+                "Services import finished: saved %s of %s from %s",
+                saved_count,
+                len(services),
+                file_url,
+            )
+            return saved_count > 0
+        # except Exception:
+        #     logger.exception("Failed to import services from %s", file_url)
+        #     return False
+
+    @pyqtSlot(str, result=bool)
+    def exportServicesToFile(self, file_url):
+        """Create an empty Excel file; full export logic will be added later."""
+        try:
+            path = export_services_excel(file_url)
+            logger.info("Services exported to %s", path)
+            return True
+        except Exception:
+            logger.exception("Failed to export services to %s", file_url)
+            return False
+
     def bind_report_backend(self, report_backend):
         """Link report backend as client catalog source."""
         self._report_backend = report_backend
@@ -114,44 +163,24 @@ class InvoiceBackend(QObject):
         self._services_filter.setFilterText(query)
         count = self._services_filter.rowCount()
         self.countFound.emit(count)
-        # if not query or len(query.strip()) == 0:
-        #     self.suggestionsCleared.emit()
-        #     return
-        #
-        # query = query.lower().strip()
-        # suggestions = []
-        #
-        # for service in self._services_db:
-        #     if query in service["name"].lower():
-        #         suggestions.append({
-        #             "id": service["id"],
-        #             "name": service["name"],
-        #             "price": service["price"],
-        #             "match_type": "name",
-        #         })
-        #         continue
-        #
-        #     for keyword in service["keywords"]:
-        #         if query in keyword.lower():
-        #             suggestions.append({
-        #                 "id": service["id"],
-        #                 "name": service["name"],
-        #                 "price": service["price"],
-        #                 "match_type": "keyword",
-        #             })
-        #             break
-        #
-        # suggestions.sort(key=lambda item: (item["match_type"] != "name", item["name"]))
-        # suggestions = suggestions[:5]
-        #
-        # self.suggestionsUpdated.emit(suggestions)
-        # print(f"[Invoice] Поиск '{query}': найдено {len(suggestions)} подсказок")
     
     @pyqtSlot()
     def clearSuggestions(self):
         """Clear service suggestions."""
         self._services_filter.clearFilter()
         self.suggestionsCleared.emit()
+
+    @pyqtSlot(str)
+    def searchCoefficients(self, query):
+        """Search coefficient services by query."""
+        self._coefficients_filter.setFilterText(query)
+        count = self._coefficients_filter.rowCount()
+        self.coefficientsCountFound.emit(count)
+
+    @pyqtSlot()
+    def clearCoefficientSuggestions(self):
+        """Clear coefficient suggestions."""
+        self._coefficients_filter.clearFilter()
     
     @pyqtSlot(float, str, str, str, int)
     def addServiceToOrder(self, amount, client_id, client_name, object_id, price):
@@ -194,6 +223,8 @@ class InvoiceBackend(QObject):
         if self._report_backend:
             self._report_backend.clearCurrentService()
             self._report_backend.clearWorks()
+        self.clearSuggestions()
+        self.clearCoefficientSuggestions()
         self.suggestionsCleared.emit()
         print("[Invoice] Форма очищена")
     
