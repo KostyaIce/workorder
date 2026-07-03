@@ -8,7 +8,7 @@ project(WorkOrder
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/QtCreatorIntegration.cmake")
 
-set(Type "desktop" CACHE STRING "Application UI type: desktop or mobile")
+set(Type "desktop" CACHE STRING "Default UI type for generic run target: desktop or mobile")
 set_property(CACHE Type PROPERTY STRINGS desktop mobile)
 
 if(NOT Type MATCHES "^(desktop|mobile)$")
@@ -17,10 +17,15 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/.venv/bin/python")
-    set(WORKORDER_PYTHON "${CMAKE_SOURCE_DIR}/.venv/bin/python")
+workorder_resolve_python(WORKORDER_PYTHON WORKORDER_PYQT6_FOUND)
+if(WORKORDER_PYQT6_FOUND)
+    message(STATUS "Python with PyQt6: ${WORKORDER_PYTHON}")
 else()
-    set(WORKORDER_PYTHON "${Python3_EXECUTABLE}")
+    message(WARNING
+        "PyQt6 is not installed for any Python interpreter.\n"
+        "  Qt Creator: build target 'install-deps', then Run CMake.\n"
+        "  Shell: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+    )
 endif()
 
 workorder_find_qt6()
@@ -34,52 +39,54 @@ endif()
 
 set(QML_DIR "${CMAKE_SOURCE_DIR}/resources/qml/${Type}")
 
-set(APP_ICON_SOURCES
-    resources/icons/appIcons/icon_macos.icns
-    resources/icons/appIcons/icon_win32.ico
-    resources/icons/appIcons/icon_linux.png
+workorder_collect_project_sources(
+    ALL_SOURCES
+    DESKTOP_SOURCES
+    MOBILE_SOURCES
+    COMMON_SOURCES
 )
 
-set(PYTHON_SOURCES
-    src/main.py
-    src/app_paths.py
-    src/macos_icon.py
-    src/backend/__init__.py
-    src/backend/invoice_backend.py
-    src/backend/database_backend.py
-    src/backend/settings_backend.py
-    src/backend/report_backend.py
-    src/backend/report_options_backend.py
-    src/models/__init__.py
-    src/utils/__init__.py
-    src/utils/db_storage.py
-    src/utils/report_builder.py
-    src/utils/pdf_report_builder.py
-    src/utils/services_pdf_builder.py
-    src/ui/__init__.py
-)
-
-file(GLOB QML_SOURCES "${QML_DIR}/*.qml")
-
-set(ALL_SOURCES
-    ${PYTHON_SOURCES}
-    ${QML_SOURCES}
-    ${APP_ICON_SOURCES}
-    requirements.txt
-    README.md
-)
+file(GLOB_RECURSE PYTHON_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.py")
+workorder_filter_project_files(PYTHON_SOURCES)
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/tests/*.py")
+workorder_filter_project_files(TEST_SOURCES)
 
 workorder_setup_qml_import_path("${QML_DIR}")
 
-# Default build target for Qt Creator (no C++ link step in this project)
-add_custom_target(build ALL
-    COMMAND ${CMAKE_COMMAND} -E echo "WorkOrder ${Type} configured. Build target 'run' to start the app."
-    DEPENDS ${ALL_SOURCES}
-    COMMENT "Prepare WorkOrder (${Type})"
-    VERBATIM
+workorder_apply_source_groups(
+    DESKTOP ${DESKTOP_SOURCES}
+    MOBILE ${MOBILE_SOURCES}
+    COMMON ${COMMON_SOURCES}
+    PYTHON ${PYTHON_SOURCES}
+    TESTS ${TEST_SOURCES}
 )
 
-# Compile-time application type for Python entry point
+# Default build target for Qt Creator (no C++ link step in this project)
+add_custom_target(build ALL
+    COMMAND ${CMAKE_COMMAND} -E echo "WorkOrder configured. Run targets: run-desktop, run-mobile."
+    SOURCES ${ALL_SOURCES}
+    COMMENT "Prepare WorkOrder"
+    VERBATIM
+)
+set_target_properties(build PROPERTIES FOLDER "Project/Build")
+workorder_register_ide_sources(build FILES ${ALL_SOURCES})
+
+add_custom_target(desktop-ui SOURCES ${DESKTOP_SOURCES})
+add_custom_target(mobile-ui SOURCES ${MOBILE_SOURCES})
+add_custom_target(common-ui SOURCES ${COMMON_SOURCES})
+
+add_library(workorder_ide STATIC EXCLUDE_FROM_ALL
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ide_stub.cpp"
+)
+target_sources(workorder_ide PRIVATE ${ALL_SOURCES})
+set_source_files_properties(${ALL_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_target_properties(workorder_ide PROPERTIES
+    AUTOMOC OFF
+    AUTORCC OFF
+    AUTOUIC OFF
+)
+
+# Compile-time application type for Python entry point (used when Type cache is set)
 file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/workorder_config.py"
     CONTENT "APP_TYPE = '${Type}'\n"
 )
@@ -98,9 +105,6 @@ if(APPLE)
         @ONLY
     )
 
-    set(WORKORDER_APP_BUNDLE "${CMAKE_BINARY_DIR}/WorkOrder.app")
-    set(WORKORDER_APP_LAUNCHER "${WORKORDER_APP_BUNDLE}/Contents/MacOS/WorkOrder")
-
     add_custom_target(app-bundle
         COMMAND chmod +x "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
         COMMAND "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
@@ -108,39 +112,43 @@ if(APPLE)
             "${CMAKE_BINARY_DIR}"
             "${Type}"
             "${WORKORDER_PYTHON}"
-        DEPENDS ${ALL_SOURCES} "${CMAKE_BINARY_DIR}/macos/Info.plist"
-        COMMENT "Create WorkOrder.app bundle for macOS"
+        DEPENDS build
+        COMMENT "Create WorkOrder.app bundle for macOS (Type=${Type})"
         VERBATIM
     )
 endif()
 
+workorder_add_run_target(run-desktop desktop)
+workorder_add_run_target(run-mobile mobile)
+
 if(APPLE)
     add_custom_target(run
-        COMMAND "${WORKORDER_APP_LAUNCHER}"
-        DEPENDS app-bundle
-        COMMENT "Run WorkOrder (${Type}) via WorkOrder.app"
+        COMMAND "${CMAKE_BINARY_DIR}/WorkOrder-${Type}.app/Contents/MacOS/WorkOrder-${Type}"
+        DEPENDS "app-bundle-${Type}"
+        COMMENT "Run WorkOrder (${Type}) via WorkOrder-${Type}.app"
         VERBATIM
     )
 else()
     add_custom_target(run
+        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/scripts/run_workorder.sh"
         COMMAND ${CMAKE_COMMAND} -E env
             "WORKORDER_BUILD_DIR=${CMAKE_BINARY_DIR}"
-            "PYTHONPATH=${CMAKE_BINARY_DIR}:${CMAKE_SOURCE_DIR}/src"
-            "QML_IMPORT_PATH=${CMAKE_SOURCE_DIR}/resources/qml:${QML_DIR}"
-            ${WORKORDER_PYTHON}
-            "${CMAKE_SOURCE_DIR}/src/main.py"
-            --type ${Type}
+            "${CMAKE_SOURCE_DIR}/scripts/run_workorder.sh"
+            ${Type}
+            "${CMAKE_BINARY_DIR}"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        DEPENDS ${ALL_SOURCES}
-        COMMENT "Run WorkOrder (${Type})"
+        DEPENDS build
+        COMMENT "Run WorkOrder (${Type}, from cache variable Type)"
         VERBATIM
     )
 endif()
 
 add_custom_target(install-deps
-    COMMAND ${Python3_EXECUTABLE} -m pip install -r "${CMAKE_SOURCE_DIR}/requirements.txt"
+    COMMAND ${Python3_EXECUTABLE} -m venv --clear "${CMAKE_SOURCE_DIR}/.venv"
+    COMMAND "${CMAKE_SOURCE_DIR}/.venv/bin/python3" -m ensurepip --upgrade
+    COMMAND "${CMAKE_SOURCE_DIR}/.venv/bin/python3" -m pip install -r "${CMAKE_SOURCE_DIR}/requirements.txt"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Install Python dependencies"
+    COMMENT "Recreate .venv and install Python dependencies"
     VERBATIM
 )
 
@@ -151,7 +159,10 @@ add_custom_target(test
     VERBATIM
 )
 
-message(STATUS "WorkOrder configured: Type=${Type}")
-message(STATUS "Python: ${WORKORDER_PYTHON}")
-message(STATUS "QML directory: ${QML_DIR}")
-message(STATUS "Run: cmake --build ${CMAKE_BINARY_DIR} --target run")
+message(STATUS "WorkOrder configured: default Type=${Type}")
+if(WORKORDER_PYQT6_FOUND)
+    message(STATUS "Run desktop: cmake --build ${CMAKE_BINARY_DIR} --target run-desktop")
+    message(STATUS "Run mobile:  cmake --build ${CMAKE_BINARY_DIR} --target run-mobile")
+else()
+    message(STATUS "Run install-deps first, then Reconfigure CMake")
+endif()

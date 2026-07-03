@@ -103,7 +103,7 @@ ColumnLayout {
                 SettingsFormRow {
                     visible: !compact
                     label: qsTr("Язык")
-                    ComboBox {
+                    WorkOrderComboBox {
                         Layout.fillWidth: true
                         model: [qsTr("Русский"), "English"]
                         currentIndex: settingsBackend.language === "ru" ? 0 : 1
@@ -114,7 +114,7 @@ ColumnLayout {
                 SettingsFormRow {
                     visible: !compact
                     label: qsTr("Тема")
-                    ComboBox {
+                    WorkOrderComboBox {
                         Layout.fillWidth: true
                         model: [qsTr("Светлая"), qsTr("Темная"), qsTr("Авто")]
                         currentIndex: settingsBackend.theme === "dark" ? 1
@@ -160,7 +160,7 @@ ColumnLayout {
                 SettingsFormRow {
                     visible: !compact
                     label: qsTr("Валюта по умолчанию")
-                    ComboBox {
+                    WorkOrderComboBox {
                         Layout.fillWidth: true
                         model: ["RUB (₽)", "USD ($)", "EUR (€)"]
                         currentIndex: settingsBackend.currency === "USD" ? 1

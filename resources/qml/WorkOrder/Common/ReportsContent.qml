@@ -51,7 +51,7 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            ComboBox {
+            WorkOrderComboBox {
                 id: clientBox
                 Layout.fillWidth: true
                 model: clientsModel
@@ -94,7 +94,7 @@ Item {
                     anchors.fill: parent
                     spacing: 8
 
-                    ComboBox {
+                    WorkOrderComboBox {
                         id: objectBox
                         Layout.fillWidth: true
                         model: objectsModel
@@ -280,7 +280,7 @@ Item {
             spacing: 12
             visible: compact
 
-            ComboBox {
+            WorkOrderComboBox {
                 Layout.fillWidth: true
                 Layout.leftMargin: compactHorizontalMargin
                 Layout.rightMargin: compactHorizontalMargin
@@ -309,7 +309,7 @@ Item {
                 }
             }
 
-            ComboBox {
+            WorkOrderComboBox {
                 Layout.fillWidth: true
                 Layout.leftMargin: compactHorizontalMargin
                 Layout.rightMargin: compactHorizontalMargin
@@ -344,7 +344,7 @@ Item {
                 }
             }
 
-            ComboBox {
+            WorkOrderComboBox {
                 id: orderBox
                 Layout.fillWidth: true
                 Layout.leftMargin: compactHorizontalMargin

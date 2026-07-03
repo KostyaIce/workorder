@@ -39,7 +39,7 @@ ColumnLayout
         Layout.fillWidth: true
         spacing: 8
 
-        ComboBox
+        WorkOrderComboBox
         {
             id: clientBox
             Layout.fillWidth: true
@@ -97,7 +97,7 @@ ColumnLayout
         Layout.fillWidth: true
         spacing: 8
 
-        ComboBox
+        WorkOrderComboBox
         {
             id: objectBox
             Layout.fillWidth: true

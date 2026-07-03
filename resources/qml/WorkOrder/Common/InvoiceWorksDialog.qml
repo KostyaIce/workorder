@@ -16,15 +16,7 @@ Dialog {
     height: parent.height - 48
     padding: 12
 
-    contentItem: Item {
-        implicitWidth: root.width - root.leftPadding - root.rightPadding
-        implicitHeight: root.height - root.topPadding - root.bottomPadding
-                         - (root.header ? root.header.implicitHeight : 0)
-                         - (root.footer ? root.footer.implicitHeight : 0)
-
-        InvoiceWorksListContent {
-            anchors.fill: parent
-            compact: root.compact
-        }
+    contentItem: InvoiceWorksListContent {
+        compact: root.compact
     }
 }

@@ -8,8 +8,8 @@
     "configurePresets": [
         {
             "name": "workorder",
-            "displayName": "WorkOrder",
-            "description": "Single project for Qt Creator. Switch UI via CMake cache variable Type=desktop|mobile.",
+            "displayName": "WorkOrder (default desktop)",
+            "description": "Single build dir. Use run-desktop or run-mobile targets to launch UI mode.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
@@ -19,7 +19,8 @@
         },
         {
             "name": "desktop",
-            "hidden": true,
+            "displayName": "WorkOrder Desktop",
+            "description": "Desktop UI with sidebar navigation.",
             "inherits": "workorder",
             "binaryDir": "${sourceDir}/build/desktop",
             "cacheVariables": {
@@ -28,7 +29,8 @@
         },
         {
             "name": "mobile",
-            "hidden": true,
+            "displayName": "WorkOrder Mobile (compact)",
+            "description": "Compact mobile UI with bottom navigation.",
             "inherits": "workorder",
             "binaryDir": "${sourceDir}/build/mobile",
             "cacheVariables": {
@@ -44,8 +46,20 @@
             "targets": ["build"]
         },
         {
+            "name": "run-desktop",
+            "displayName": "Run Desktop",
+            "configurePreset": "workorder",
+            "targets": ["run-desktop"]
+        },
+        {
+            "name": "run-mobile",
+            "displayName": "Run Mobile (compact)",
+            "configurePreset": "workorder",
+            "targets": ["run-mobile"]
+        },
+        {
             "name": "run",
-            "displayName": "Run",
+            "displayName": "Run (Type from cache)",
             "configurePreset": "workorder",
             "targets": ["run"]
         },

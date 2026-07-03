@@ -11,7 +11,7 @@ Button {
     Layout.fillWidth: true
     highlighted: filled
     flat: !filled
-    implicitHeight: multiline ? Math.max(44, contentItem.implicitHeight + 16) : undefined
+    implicitHeight: multiline ? Math.max(40, contentItem.implicitHeight + 16) : 40
 
     background: Rectangle {
         visible: filled

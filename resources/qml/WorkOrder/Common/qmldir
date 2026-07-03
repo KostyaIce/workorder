@@ -3,6 +3,7 @@ Card 1.0 Card.qml
 PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
 PrimaryButton 1.0 PrimaryButton.qml
+WorkOrderComboBox 1.0 WorkOrderComboBox.qml
 FormField 1.0 FormField.qml
 FormTextArea 1.0 FormTextArea.qml
 FormFieldRow 1.0 FormFieldRow.qml

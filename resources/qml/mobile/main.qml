@@ -22,6 +22,17 @@ ApplicationWindow
 
     property int currentPage: 0
 
+    palette.window: backgroundColor
+    palette.windowText: textColor
+    palette.base: cardColor
+    palette.text: textColor
+    palette.button: cardColor
+    palette.buttonText: textColor
+    palette.highlight: primaryColor
+    palette.highlightedText: "white"
+    palette.mid: "#E0E0E0"
+    palette.dark: textSecondaryColor
+
     Rectangle
     {
         anchors.fill: parent

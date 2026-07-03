@@ -11,6 +11,8 @@ SRC_DIR = _SRC_DIR
 RESOURCES_DIR = PROJECT_ROOT / "resources"
 QML_ROOT = RESOURCES_DIR / "qml"
 ICONS_DIR = RESOURCES_DIR / "icons" / "appIcons"
+FONTS_DIR = RESOURCES_DIR / "fonts"
+UI_FONT_PATH = FONTS_DIR / "DejaVuSans.ttf"
 
 
 def setup_runtime() -> None:
@@ -27,7 +29,18 @@ def _prepend_path(path: str) -> None:
         sys.path.insert(0, path)
 
 
+def _cli_type_explicitly_provided() -> bool:
+    return "--type" in sys.argv
+
+
 def resolve_app_type(cli_type: str) -> str:
+    env_type = os.environ.get("WORKORDER_APP_TYPE")
+    if env_type in ("mobile", "desktop"):
+        return env_type
+
+    if _cli_type_explicitly_provided() and cli_type in ("mobile", "desktop"):
+        return cli_type
+
     try:
         from workorder_config import APP_TYPE
         if APP_TYPE in ("mobile", "desktop"):

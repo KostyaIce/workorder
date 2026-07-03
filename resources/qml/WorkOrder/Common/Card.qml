@@ -13,8 +13,24 @@ Item
 
     default property alias content: contentHost.data
 
-    implicitWidth: cardBackground.implicitWidth
-    implicitHeight: cardBackground.implicitHeight
+    implicitWidth: contentHost.childrenRect.width + horizontalPadding * 2
+    implicitHeight: contentHost.childrenRect.height + verticalPadding * 2
+
+    Rectangle
+    {
+        id: cardBackground
+        anchors.fill: parent
+        color: cardColor
+        radius: 12
+        clip: true
+
+        Item
+        {
+            id: contentHost
+            anchors.fill: parent
+            anchors.margins: Math.max(verticalPadding, horizontalPadding)
+        }
+    }
 
     Rectangle
     {
@@ -26,23 +42,5 @@ Item
         radius: cardBackground.radius
         color: Qt.rgba(0, 0, 0, 0.05)
         z: -1
-    }
-
-    Rectangle
-    {
-        id: cardBackground
-        width: parent.width
-        height: Math.max(implicitHeight, parent.height)
-        color: cardColor
-        radius: 12
-        clip: true
-        implicitHeight: contentHost.childrenRect.height + verticalPadding * 2
-
-        Item
-        {
-            id: contentHost
-            anchors.fill: parent
-            anchors.margins: Math.max(verticalPadding, horizontalPadding)
-        }
     }
 }

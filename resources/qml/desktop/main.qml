@@ -22,6 +22,17 @@ ApplicationWindow
 
     property int currentPage: 0
 
+    palette.window: backgroundColor
+    palette.windowText: textColor
+    palette.base: cardColor
+    palette.text: textColor
+    palette.button: cardColor
+    palette.buttonText: textColor
+    palette.highlight: primaryColor
+    palette.highlightedText: "white"
+    palette.mid: "#E0E0E0"
+    palette.dark: textSecondaryColor
+
     Rectangle
     {
         anchors.fill: parent
@@ -55,7 +66,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Создать счет"
-                    iconText: "\u270F"
+                    iconText: "+"
                     active: currentPage === 0
                     onClicked: currentPage = 0
                 }
@@ -63,7 +74,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "База услуг"
-                    iconText: "\u2630"
+                    iconText: "#"
                     active: currentPage === 1
                     onClicked: currentPage = 1
                 }
@@ -71,7 +82,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Отчёты"
-                    iconText: "\u2637"
+                    iconText: "%"
                     active: currentPage === 2
                     onClicked: currentPage = 2
                 }
@@ -79,7 +90,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Настройки"
-                    iconText: "\u2699"
+                    iconText: "*"
                     active: currentPage === 3
                     onClicked: currentPage = 3
                 }
@@ -197,7 +208,10 @@ ApplicationWindow
             {
                 text: iconText
                 font.pixelSize: 18
+                font.bold: true
                 color: active ? primaryColor : textSecondaryColor
+                Layout.preferredWidth: 18
+                horizontalAlignment: Text.AlignHCenter
             }
 
             Label
