@@ -18,6 +18,22 @@ ColumnLayout
     spacing: layoutSpacing
     Layout.fillWidth: true
 
+    function handleTextChanged(text)
+    {
+        var growing = text.length > countField
+        countField = text.length
+        isValueGrowing = growing
+        invoiceBackend.searchServices(text)
+        updateSuggestions()
+    }
+
+    function openAddServiceDialog(serviceName)
+    {
+        serviceDialog.clearInfo()
+        serviceDialog.name = serviceName
+        serviceDialog.open()
+    }
+
     function updateSuggestions()
     {
         if(serviceInput.activeFocus && servicesFilterModel.count > 0)
@@ -57,16 +73,7 @@ ColumnLayout
         id: serviceInput
         Layout.fillWidth: true
         placeholderText: qsTr("Введите название услуги...")
-        onTextChanged:
-        {
-            invoiceBackend.searchServices(text)
-            if(countField < text.length)
-                isValueGrowing = true
-            else
-                isValueGrowing = false
-            countField = text.length
-            updateSuggestions()
-        }
+        onTextChanged: handleTextChanged(text)
         onActiveFocusChanged:
         {
             if(activeFocus)
@@ -197,12 +204,11 @@ ColumnLayout
 
         function onCountFound(count)
         {
-            if(count === 0 && isValueGrowing && serviceInput.text !== "")
-            {
-                console.log("[TEST] servise add")
-                serviceDialog.name = serviceInput.text
-                serviceDialog.open()
-            }
+            if(count === 0
+                    && isValueGrowing
+                    && serviceInput.text !== ""
+                    && !serviceDialog.visible)
+                openAddServiceDialog(serviceInput.text)
         }
     }
 }

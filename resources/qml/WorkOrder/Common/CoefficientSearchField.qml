@@ -10,6 +10,7 @@ ColumnLayout
     property bool useRowLayout: false
 
     property int countField: 0
+    property bool isValueGrowing: false
     property int layoutSpacing: 8
 
     readonly property Item activeInput: useRowLayout ? coefficientInputRow : coefficientInput
@@ -18,6 +19,34 @@ ColumnLayout
 
     spacing: useRowLayout ? 0 : layoutSpacing
     Layout.fillWidth: true
+
+    function activeInputText()
+    {
+        return useRowLayout ? coefficientInputRow.text : coefficientInput.text
+    }
+
+    function setActiveInputText(value)
+    {
+        coefficientInput.text = value
+        coefficientInputRow.text = value
+    }
+
+    function handleTextChanged(text)
+    {
+        var growing = text.length > countField
+        countField = text.length
+        isValueGrowing = growing
+        invoiceBackend.searchCoefficients(text)
+        updateSuggestions()
+    }
+
+    function openAddServiceDialog(serviceName)
+    {
+        serviceDialog.clearInfo()
+        serviceDialog.name = serviceName
+        serviceDialog.unit = "%"
+        serviceDialog.open()
+    }
 
     function updateSuggestions()
     {
@@ -36,6 +65,14 @@ ColumnLayout
                 coefficientsFilterModel.clearFilter()
             }
         }
+    }
+
+    ServiceDialog
+    {
+        id: serviceDialog
+        compact: root.compact
+        parent: Overlay.overlay
+        anchors.centerIn: parent
     }
 
     Label
@@ -64,12 +101,7 @@ ColumnLayout
             id: coefficientInputRow
             Layout.fillWidth: true
             placeholderText: qsTr("Введите название коэффициента...")
-            onTextChanged:
-            {
-                invoiceBackend.searchCoefficients(text)
-                countField = text.length
-                updateSuggestions()
-            }
+            onTextChanged: root.handleTextChanged(text)
             onActiveFocusChanged:
             {
                 if(activeFocus)
@@ -86,12 +118,7 @@ ColumnLayout
         visible: !useRowLayout
         Layout.fillWidth: true
         placeholderText: qsTr("Введите название коэффициента...")
-        onTextChanged:
-        {
-            invoiceBackend.searchCoefficients(text)
-            countField = text.length
-            updateSuggestions()
-        }
+        onTextChanged: root.handleTextChanged(text)
         onActiveFocusChanged:
         {
             if(activeFocus)
@@ -186,8 +213,7 @@ ColumnLayout
                 {
                     closeSuggestionsTimer.stop()
                     reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
-                    coefficientInput.text = reportBackend.currentCoefficients
-                    coefficientInputRow.text = reportBackend.currentCoefficients
+                    setActiveInputText(reportBackend.currentCoefficients)
                     invoiceBackend.clearCoefficientSuggestions()
                     coefficientsFilterModel.clearFilter()
                     suggestionsPopup.close()
@@ -220,13 +246,27 @@ ColumnLayout
 
     Connections
     {
+        target: invoiceBackend
+        function onCoefficientsCountFound(count)
+        {
+            if(count === 0
+                    && isValueGrowing
+                    && activeInputText() !== ""
+                    && !serviceDialog.visible)
+                openAddServiceDialog(activeInputText())
+        }
+    }
+
+    Connections
+    {
         target: reportBackend
         function onServiceSelected()
         {
             if(reportBackend.currentServiceName === "")
             {
-                coefficientInput.text = ""
-                coefficientInputRow.text = ""
+                setActiveInputText("")
+                countField = 0
+                isValueGrowing = false
                 invoiceBackend.clearCoefficientSuggestions()
             }
         }

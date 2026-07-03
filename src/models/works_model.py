@@ -19,6 +19,8 @@ class WorksModel(QAbstractListModel):
     CreatedAtRole = Qt.ItemDataRole.UserRole + 9
     UpdatedAtRole = Qt.ItemDataRole.UserRole + 10
     StartOrderAtRole = Qt.ItemDataRole.UserRole + 11
+    CoefficientsRole = Qt.ItemDataRole.UserRole + 12
+    PercentSumRole = Qt.ItemDataRole.UserRole + 13
 
     def __init__(self):
         super().__init__()
@@ -118,6 +120,12 @@ class WorksModel(QAbstractListModel):
         if role == self.StartOrderAtRole:
             return item["start_order_at"]
 
+        if role == self.CoefficientsRole:
+            return item.get("coefficients", "")
+
+        if role == self.PercentSumRole:
+            return item.get("percent_sum", 100)
+
         return None
 
     def roleNames(self):
@@ -133,6 +141,8 @@ class WorksModel(QAbstractListModel):
             self.CreatedAtRole: b"created_at",
             self.UpdatedAtRole: b"updated_at",
             self.StartOrderAtRole: b"start_order_at",
+            self.CoefficientsRole: b"coefficients",
+            self.PercentSumRole: b"percent_sum",
         }
 
     def itemData(self, work_id):

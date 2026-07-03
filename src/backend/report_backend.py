@@ -153,7 +153,7 @@ class ReportBackend(QObject):
     def worksTotal(self):
         total = 0.0
         for item in self._works.items():
-            total += float(item.get("price", 0)) * float(item.get("quantity", 0))
+            total += float(item.get("price", 0) * item.get("quantity", 0) * (item.get("percent_sum", 100) / 100))
         return total
 
     @pyqtProperty(str, notify=clientSelected)
@@ -381,7 +381,9 @@ class ReportBackend(QObject):
             "price": self._current_service_data.price,
             "unit": self._current_service_data.unit,
             "quantity": quantity,
-            "start_order_at": self._current_object_data.last_order_at
+            "start_order_at": self._current_object_data.last_order_at,
+            "coefficients": self._current_service_data.coefficients,
+            "percent_sum": self._current_service_data.percent_sum,
         }
 
         result = add_work(self._current_client_data.name, self._current_client_data.id, data)

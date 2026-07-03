@@ -19,7 +19,7 @@ Dialog {
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
-    height: compact ? parent.height * 0.85 : 520
+    height: compact ? parent.height * 0.85 : 560
 
     onOpened: {
         nameField.text = name
@@ -67,7 +67,7 @@ Dialog {
 
         FormField {
             label: qsTr("Единица измерения")
-            placeholder: qsTr("шт, м, м², час, усл. ед.")
+            placeholder: qsTr("шт, м символ % будет коэфициентом")
             compact: root.compact
             id: unitField
         }

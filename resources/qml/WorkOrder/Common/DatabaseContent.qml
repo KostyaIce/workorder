@@ -9,6 +9,24 @@ Item {
     property string layoutStyle: "desktop"
     readonly property bool compact: layoutStyle === "mobile"
 
+    function isPercentUnit(unitValue)
+    {
+        return unitValue === "%"
+    }
+
+    function formatServicePrice(priceValue, unitValue)
+    {
+        if(isPercentUnit(unitValue))
+            return (priceValue / 100).toFixed(0)
+
+        return (priceValue / 100).toFixed(2)
+    }
+
+    function servicePriceSuffix(unitValue)
+    {
+        return isPercentUnit(unitValue) ? "%" : "\u20BD"
+    }
+
     ServiceFormDialog {
         id: addServiceDialog
         mode: "add"
@@ -218,14 +236,14 @@ Item {
                             }
 
                             Label {
-                                text: (price / 100).toFixed(2)
+                                text: formatServicePrice(price, unit)
                                 Layout.preferredWidth: 120
                                 horizontalAlignment: Text.AlignRight
                                 color: primaryColor
                             }
 
                             Label {
-                                text: "\u20BD"
+                                text: servicePriceSuffix(unit)
                                 font.pixelSize: 15
                                 color: primaryColor
                                 font.bold: true
@@ -363,14 +381,14 @@ ListView {
                     spacing: 6
 
                     Text {
-                        text: (price / 100).toFixed(2)
+                        text: formatServicePrice(price, unit)
                         font.pixelSize: 15
                         color: primaryColor
                         horizontalAlignment: Text.AlignRight
                     }
 
                     Label {
-                        text: "\u20BD"
+                        text: servicePriceSuffix(unit)
                         font.pixelSize: 15
                         color: primaryColor
                         font.bold: true

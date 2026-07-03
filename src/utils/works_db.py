@@ -3,12 +3,24 @@
 SQLite storage for completed works.
 """
 
+import logging
 import sqlite3
 import uuid
 from datetime import datetime
-from os.path import join
 
 from utils.db_storage import object_db_path
+
+logger = logging.getLogger("workorder")
+
+_WORKS_COLUMNS = frozenset({
+    "id", "object_id", "service_id", "subobject_name", "name", "price", "unit", "quantity",
+    "created_at", "updated_at", "start_order_at", "coefficients", "percent_sum",
+})
+
+_WORKS_SELECT_COLUMNS = """
+    id, object_id, service_id, subobject_name, name, price, unit, quantity,
+    created_at, updated_at, start_order_at, coefficients, percent_sum
+"""
 
 
 def _connect(client_name, client_id):
@@ -20,10 +32,8 @@ def _connect(client_name, client_id):
     return conn
 
 
-_WORKS_COLUMNS = """
-    id, object_id, service_id, subobject_name, name, price, unit, quantity,
-    created_at, updated_at, start_order_at
-"""
+def _table_columns(conn):
+    return {row[1] for row in conn.execute("PRAGMA table_info(completed_works)").fetchall()}
 
 
 def _parse_quantity(value):
@@ -31,6 +41,14 @@ def _parse_quantity(value):
     if quantity <= 0:
         quantity = 1.0
     return round(quantity, 3)
+
+
+def _parse_percent_sum(value):
+    try:
+        percent_sum = int(value)
+    except (TypeError, ValueError):
+        percent_sum = 100
+    return max(percent_sum, 100)
 
 
 def _row_to_work(row):
@@ -46,12 +64,19 @@ def _row_to_work(row):
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "start_order_at": row["start_order_at"],
+        "coefficients": row["coefficients"],
+        "percent_sum": row["percent_sum"],
     }
 
 
 def create_works_table(client_name, client_id):
     """Create works table if not exists."""
     with _connect(client_name, client_id) as conn:
+        columns = _table_columns(conn)
+        if columns and columns != _WORKS_COLUMNS:
+            logger.warning("completed_works table schema mismatch, recreating table")
+            conn.execute("DROP TABLE completed_works")
+
         conn.execute("""
             CREATE TABLE IF NOT EXISTS completed_works (
                 id TEXT PRIMARY KEY,
@@ -64,7 +89,9 @@ def create_works_table(client_name, client_id):
                 quantity NUMERIC(18, 3) NOT NULL DEFAULT 1,
                 created_at INTEGER NOT NULL DEFAULT 0,
                 updated_at INTEGER NOT NULL DEFAULT 0,
-                start_order_at INTEGER NOT NULL DEFAULT 0
+                start_order_at INTEGER NOT NULL DEFAULT 0,
+                coefficients TEXT NOT NULL DEFAULT '',
+                percent_sum INTEGER NOT NULL DEFAULT 100
             )
         """)
         conn.commit()
@@ -86,6 +113,8 @@ def add_work(client_name, client_id, data):
     price = int(data.get("price", 0))
     unit = data.get("unit", "").strip()
     quantity = _parse_quantity(data.get("quantity", 1))
+    coefficients = str(data.get("coefficients", "")).strip()
+    percent_sum = _parse_percent_sum(data.get("percent_sum", 100))
     now = int(datetime.now().timestamp())
     start_order_at = int(data.get("start_order_at", now))
 
@@ -94,13 +123,14 @@ def add_work(client_name, client_id, data):
     try:
         with _connect(client_name, client_id) as conn:
             conn.execute("""
-                INSERT INTO completed_works
-                (id, object_id, service_id, subobject_name, name, price, unit, quantity,
-                 created_at, updated_at, start_order_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO completed_works (
+                    id, object_id, service_id, subobject_name, name, price, unit, quantity,
+                    created_at, updated_at, start_order_at, coefficients, percent_sum
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 work_id, object_id, service_id, subobject_name, name, price, unit, quantity,
-                now, now, start_order_at,
+                now, now, start_order_at, coefficients, percent_sum,
             ))
             conn.commit()
             return {
@@ -115,6 +145,8 @@ def add_work(client_name, client_id, data):
                 "created_at": now,
                 "updated_at": now,
                 "start_order_at": start_order_at,
+                "coefficients": coefficients,
+                "percent_sum": percent_sum,
             }
     except sqlite3.IntegrityError:
         return {}
@@ -126,7 +158,7 @@ def load_works(client_name, client_id):
 
     with _connect(client_name, client_id) as conn:
         rows = conn.execute(
-            f"""SELECT {_WORKS_COLUMNS}
+            f"""SELECT {_WORKS_SELECT_COLUMNS}
                FROM completed_works
                ORDER BY start_order_at DESC, updated_at DESC"""
         ).fetchall()
@@ -143,7 +175,7 @@ def load_works_by_object(client_name, client_id, object_id):
 
     with _connect(client_name, client_id) as conn:
         rows = conn.execute(
-            f"""SELECT {_WORKS_COLUMNS}
+            f"""SELECT {_WORKS_SELECT_COLUMNS}
                FROM completed_works
                WHERE object_id = ?
                ORDER BY start_order_at DESC, updated_at DESC""",
@@ -152,8 +184,9 @@ def load_works_by_object(client_name, client_id, object_id):
 
     return [_row_to_work(row) for row in rows]
 
+
 def load_works_by_start_order(client_name, client_id, object_id, start_order_at):
-    """Load works for specific object."""
+    """Load works for specific object and order."""
     if not object_id or not start_order_at:
         return []
 
@@ -161,7 +194,7 @@ def load_works_by_start_order(client_name, client_id, object_id, start_order_at)
 
     with _connect(client_name, client_id) as conn:
         rows = conn.execute(
-            f"""SELECT {_WORKS_COLUMNS}
+            f"""SELECT {_WORKS_SELECT_COLUMNS}
                FROM completed_works
                WHERE object_id = ? AND start_order_at = ?
                ORDER BY start_order_at DESC, updated_at DESC""",
@@ -170,8 +203,9 @@ def load_works_by_start_order(client_name, client_id, object_id, start_order_at)
 
     return [_row_to_work(row) for row in rows]
 
+
 def load_works_by_select_at(client_name, client_id, object_id, start_order_at):
-    """Load works for specific object."""
+    """Load works for specific object and selected order."""
     if not object_id or not start_order_at:
         return []
 
@@ -179,7 +213,7 @@ def load_works_by_select_at(client_name, client_id, object_id, start_order_at):
 
     with _connect(client_name, client_id) as conn:
         rows = conn.execute(
-            f"""SELECT {_WORKS_COLUMNS}
+            f"""SELECT {_WORKS_SELECT_COLUMNS}
                FROM completed_works
                WHERE object_id = ? AND start_order_at = ?
                ORDER BY updated_at DESC""",
@@ -270,6 +304,14 @@ def update_work(client_name, client_id, data):
         updates.append("start_order_at = ?")
         params.append(int(data["start_order_at"]))
 
+    if "coefficients" in data:
+        updates.append("coefficients = ?")
+        params.append(str(data["coefficients"]).strip())
+
+    if "percent_sum" in data:
+        updates.append("percent_sum = ?")
+        params.append(_parse_percent_sum(data["percent_sum"]))
+
     if not updates:
         return False
 
@@ -289,12 +331,13 @@ def update_work(client_name, client_id, data):
     except sqlite3.IntegrityError:
         return False
 
+
 def get_orders(client_name, client_id, object_id):
-    
+
     with _connect(client_name, client_id) as conn:
-        rows = conn.execute(f"""
+        rows = conn.execute("""
             SELECT start_order_at,
-            SUM(quantity * price) AS total_price
+            SUM(quantity * price * (percent_sum / 100.0)) AS total_price
             FROM completed_works
             WHERE object_id = ?
             GROUP BY start_order_at
@@ -304,8 +347,9 @@ def get_orders(client_name, client_id, object_id):
                 "start_order_at": row["start_order_at"],
                 "total_price": row["total_price"]
             }
-                for row in rows
+            for row in rows
         ]
+
 
 def get_result_works(client_name, client_id, object_ids, orders_at):
     if not orders_at or not object_ids:
@@ -320,7 +364,9 @@ def get_result_works(client_name, client_id, object_ids, orders_at):
             price,
             unit,
             quantity,
-            start_order_at
+            start_order_at,
+            coefficients,
+            percent_sum
         FROM completed_works
         WHERE object_id IN ({place_hold_objects})
           AND start_order_at IN ({place_hold_orders})
@@ -343,4 +389,6 @@ def _row_to_result(row):
         "unit": row["unit"],
         "quantity": row["quantity"],
         "start_order_at": row["start_order_at"],
+        "coefficients": row["coefficients"],
+        "percent_sum": row["percent_sum"],
     }

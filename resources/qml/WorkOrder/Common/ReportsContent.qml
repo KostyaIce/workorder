@@ -257,12 +257,12 @@ Item {
                                 }
 
                                 Label {
-                                    text: quantity + " x " + (price/100).toFixed(2) + " \u20BD"
+                                    text: quantity + " \u00D7 " +  + percent_sum / 100 + " \u00D7 " + (price/100).toFixed(2) + " \u20BD"
                                     color: textSecondaryColor
                                 }
 
                                 Label {
-                                    text: ((quantity * price)/100).toFixed(2) + " \u20BD"
+                                    text: (((quantity * price) / 100) * (percent_sum / 100)).toFixed(2) + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
                                 }

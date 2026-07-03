@@ -66,6 +66,8 @@ def add_work_entry(client_name, client_id, data):
         "price": data.get("price", 0),
         "unit": data.get("unit", ""),
         "quantity": data.get("quantity", 1),
+        "coefficients": data.get("coefficients", ""),
+        "percent_sum": data.get("percent_sum", 100),
     }
     return add_work(client_name, client_id, payload)
 
@@ -101,7 +103,10 @@ def update_work_entry(client_name, client_id, data):
         return False
 
     payload = {"id": work_id}
-    for field in ("object_id", "service_id", "subobject_name", "name", "price", "unit", "quantity", "start_order_at"):
+    for field in (
+        "object_id", "service_id", "subobject_name", "name", "price", "unit", "quantity",
+        "start_order_at", "coefficients", "percent_sum",
+    ):
         if field in data:
             payload[field] = data[field]
     if "service" in data and "name" not in payload:
