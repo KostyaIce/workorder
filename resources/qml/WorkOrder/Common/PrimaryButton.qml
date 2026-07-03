@@ -6,10 +6,12 @@ Button {
     id: root
 
     property bool filled: true
+    property bool multiline: false
 
     Layout.fillWidth: true
     highlighted: filled
     flat: !filled
+    implicitHeight: multiline ? Math.max(44, contentItem.implicitHeight + 16) : undefined
 
     background: Rectangle {
         visible: filled
@@ -26,5 +28,7 @@ Button {
         font.pixelSize: filled ? 16 : 14
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+        wrapMode: root.multiline ? Text.WordWrap : Text.NoWrap
+        width: root.width
     }
 }

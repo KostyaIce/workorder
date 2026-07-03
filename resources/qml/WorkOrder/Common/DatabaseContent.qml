@@ -78,6 +78,21 @@ Item {
         }
     }
 
+    FileDialog
+    {
+        id: presentationServicesDialog
+        title: qsTr("Презентация услуг")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("PDF файлы (*.pdf)")]
+        defaultSuffix: "pdf"
+
+        onAccepted:
+        {
+            if(!invoiceBackend.exportServicesPresentationToFile(selectedFile))
+                console.log("Не удалось сохранить презентацию услуг")
+        }
+    }
+
     Menu {
         id: contextMenu
         property string _id: ""
@@ -148,6 +163,14 @@ Item {
                 Layout.fillWidth: false
                 Layout.preferredWidth: implicitWidth
                 onClicked: exportServicesDialog.open()
+            }
+
+            PrimaryButton {
+                text: qsTr("Презентация")
+                filled: false
+                Layout.fillWidth: false
+                Layout.preferredWidth: implicitWidth
+                onClicked: presentationServicesDialog.open()
             }
 
             PrimaryButton {
@@ -331,12 +354,15 @@ ListView {
 
     header: Rectangle {
         width: mobileList.width
-        height: 48
+        height: mobileHeaderColumn.implicitHeight + 16
         color: backgroundColor
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
+
+        ColumnLayout {
+            id: mobileHeaderColumn
+            width: parent.width - 32
+            x: 16
+            y: 8
+            spacing: 8
 
             Label {
                 text: qsTr("Услуги (%1)")
@@ -345,6 +371,39 @@ ListView {
                 font.bold: true
                 color: textSecondaryColor
                 Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 56
+                spacing: 8
+
+                PrimaryButton {
+                    text: qsTr("Импорт")
+                    filled: false
+                    multiline: true
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 56
+                    onClicked: importServicesDialog.open()
+                }
+
+                PrimaryButton {
+                    text: qsTr("Экспорт")
+                    filled: false
+                    multiline: true
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 56
+                    onClicked: exportServicesDialog.open()
+                }
+
+                PrimaryButton {
+                    text: qsTr("Презентация")
+                    filled: false
+                    multiline: true
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 56
+                    onClicked: presentationServicesDialog.open()
+                }
             }
         }
     }

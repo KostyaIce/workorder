@@ -13,6 +13,7 @@ from models.services_filter_model import ServicesFilterModel
 from models.coefficients_filter_model import CoefficientsFilterModel
 from utils.services_db import create_services_table, add_service, update_service, load_services, delete_service
 from utils.services_excel_builder import export_services_excel, import_services_from_excel
+from utils.services_pdf_builder import export_services_pdf
 
 logger = logging.getLogger("workorder")
 
@@ -148,6 +149,17 @@ class InvoiceBackend(QObject):
             return True
         except Exception:
             logger.exception("Failed to export services to %s", file_url)
+            return False
+
+    @pyqtSlot(str, result=bool)
+    def exportServicesPresentationToFile(self, file_url):
+        """Export services catalog presentation to PDF."""
+        try:
+            path = export_services_pdf(file_url, load_services())
+            logger.info("Services presentation exported to %s", path)
+            return True
+        except Exception:
+            logger.exception("Failed to export services presentation to %s", file_url)
             return False
 
     def bind_report_backend(self, report_backend):
