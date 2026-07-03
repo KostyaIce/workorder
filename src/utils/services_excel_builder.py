@@ -8,6 +8,12 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment
+
+_BASE_COL_WIDTH = 15.0
+_EXPORT_COL1_WIDTH = _BASE_COL_WIDTH * 4
+_EXPORT_COL2_WIDTH = _BASE_COL_WIDTH * 2.0
+_WRAP_ALIGNMENT = Alignment(wrap_text=True, vertical="top")
 
 
 def resolve_excel_path(file_url, ensure_extension=False):
@@ -80,6 +86,27 @@ def _price_for_db(cents):
     return f"{cents / 100:.2f}"
 
 
+def _price_for_excel(cents):
+    """Convert stored kopecks back to Excel price cell value."""
+    value = int(cents or 0)
+    if value % 100 == 0:
+        return value // 100
+    return float(Decimal(value) / 100)
+
+
+def _group_services_by_paragraph(services):
+    grouped = {}
+    for service in services:
+        paragraph = str(service.get("paragraph") or "").strip()
+        grouped.setdefault(paragraph, []).append(service)
+
+    for paragraph in grouped:
+        grouped[paragraph].sort(key=lambda item: str(item.get("name") or "").lower())
+
+    paragraphs = sorted(grouped.keys(), key=lambda text: (text == "", text.lower()))
+    return [(paragraph, grouped[paragraph]) for paragraph in paragraphs]
+
+
 def _row_is_empty(cells):
     return all(_cell_text(cell) == "" for cell in cells[:4])
 
@@ -138,12 +165,53 @@ class ServicesExcelBuilder:
 
         return services
 
-    def write_empty_export(self, file_path):
-        """Create an empty Excel file for services export."""
+    def write_export(self, file_path, services):
+        """
+        Write services catalog to Excel.
+
+        Services are grouped by paragraph; each group starts with a merged header
+        row across four columns. Service rows: name, note, price, unit.
+        First two columns use wider layout and wrap long text.
+        """
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
+
         workbook = Workbook()
+        sheet = workbook.active
+        sheet.column_dimensions["A"].width = _EXPORT_COL1_WIDTH
+        sheet.column_dimensions["B"].width = _EXPORT_COL2_WIDTH
+
+        row_num = 1
         try:
+            for paragraph, items in _group_services_by_paragraph(services):
+                if paragraph:
+                    sheet.cell(row=row_num, column=1, value=paragraph)
+                    sheet.merge_cells(
+                        start_row=row_num,
+                        start_column=1,
+                        end_row=row_num,
+                        end_column=4,
+                    )
+                    sheet.cell(row=row_num, column=1).alignment = _WRAP_ALIGNMENT
+                    row_num += 1
+
+                for service in items:
+                    name = str(service.get("name") or "").strip()
+                    if not name:
+                        continue
+
+                    note = str(service.get("note") or "").strip()
+                    price = _price_for_excel(service.get("price", 0))
+                    unit = str(service.get("unit") or "").strip()
+
+                    sheet.cell(row=row_num, column=1, value=name)
+                    sheet.cell(row=row_num, column=2, value=note or None)
+                    sheet.cell(row=row_num, column=3, value=price)
+                    sheet.cell(row=row_num, column=4, value=unit or None)
+                    sheet.cell(row=row_num, column=1).alignment = _WRAP_ALIGNMENT
+                    sheet.cell(row=row_num, column=2).alignment = _WRAP_ALIGNMENT
+                    row_num += 1
+
             workbook.save(path)
         finally:
             workbook.close()
@@ -158,9 +226,14 @@ def import_services_from_excel(file_url):
     return ServicesExcelBuilder().read_services(path)
 
 
-def export_services_excel(file_url):
-    """Create empty services Excel file at the given path or URL."""
+def export_services_excel(file_url, services=None):
+    """Write services catalog to Excel file at the given path or URL."""
     path = resolve_excel_path(file_url, ensure_extension=True)
     if not path:
         raise ValueError("Services export path is empty")
-    return ServicesExcelBuilder().write_empty_export(path)
+
+    if services is None:
+        from utils.services_db import load_services
+        services = load_services()
+
+    return ServicesExcelBuilder().write_export(path, services)

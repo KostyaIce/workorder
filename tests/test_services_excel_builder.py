@@ -14,6 +14,7 @@ from openpyxl import Workbook
 from utils import services_db
 from utils.services_excel_builder import (
     ServicesExcelBuilder,
+    export_services_excel,
     import_services_from_excel,
     parse_excel_price,
 )
@@ -83,6 +84,72 @@ class ServicesExcelBuilderTest(unittest.TestCase):
         self.assertEqual(loaded[0]["name"], "Монтаж")
         self.assertEqual(loaded[0]["paragraph"], "Общие работы")
         self.assertEqual(loaded[0]["price"], 10000)
+
+    def test_write_export_groups_by_paragraph(self):
+        services = [
+            {
+                "name": "Ремонт",
+                "note": "",
+                "paragraph": "Раздел Б",
+                "price": 120000,
+                "unit": "",
+            },
+            {
+                "name": "Диагностика",
+                "note": "Первичный осмотр",
+                "paragraph": "Раздел А",
+                "price": 50000,
+                "unit": "шт",
+            },
+            {
+                "name": "Консультация",
+                "note": "Устная",
+                "paragraph": "Раздел А",
+                "price": 550,
+                "unit": "%",
+            },
+            {
+                "name": "Без раздела",
+                "note": "note",
+                "paragraph": "",
+                "price": 10000,
+                "unit": "м",
+            },
+        ]
+
+        export_path = Path(self.temp_dir.name) / "export.xlsx"
+        ServicesExcelBuilder().write_export(export_path, services)
+        imported = ServicesExcelBuilder().read_services(export_path)
+
+        self.assertEqual(len(imported), 4)
+        self.assertEqual(imported[0]["name"], "Без раздела")
+        self.assertEqual(imported[0]["paragraph"], "")
+        self.assertEqual(imported[1]["name"], "Диагностика")
+        self.assertEqual(imported[1]["paragraph"], "Раздел А")
+        self.assertEqual(imported[1]["price"], "500.00")
+        self.assertEqual(imported[2]["name"], "Консультация")
+        self.assertEqual(imported[2]["price"], "5.50")
+        self.assertEqual(imported[3]["name"], "Ремонт")
+        self.assertEqual(imported[3]["paragraph"], "Раздел Б")
+
+    def test_export_services_excel(self):
+        services = [
+            {
+                "name": "Монтаж",
+                "note": "Базовый",
+                "paragraph": "Общие работы",
+                "price": 10000,
+                "unit": "м",
+            },
+        ]
+        export_path = Path(self.temp_dir.name) / "catalog"
+        saved_path = export_services_excel(str(export_path), services)
+
+        self.assertTrue(saved_path.endswith(".xlsx"))
+        imported = import_services_from_excel(saved_path)
+        self.assertEqual(len(imported), 1)
+        self.assertEqual(imported[0]["paragraph"], "Общие работы")
+        self.assertEqual(imported[0]["price"], "100.00")
 
 
 if __name__ == "__main__":

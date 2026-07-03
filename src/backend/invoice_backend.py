@@ -141,9 +141,9 @@ class InvoiceBackend(QObject):
 
     @pyqtSlot(str, result=bool)
     def exportServicesToFile(self, file_url):
-        """Create an empty Excel file; full export logic will be added later."""
+        """Export services catalog from database to Excel."""
         try:
-            path = export_services_excel(file_url)
+            path = export_services_excel(file_url, load_services())
             logger.info("Services exported to %s", path)
             return True
         except Exception:
