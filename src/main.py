@@ -21,35 +21,72 @@ from app_paths import (
     qml_main_path,
     qml_import_paths,
     application_icon_path,
+    is_android_runtime,
     UI_FONT_PATH,
 )
-
-setup_runtime()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+from qt_compat import (
+    QT_BINDING,
+    QColor,
+    QFont,
+    QFontDatabase,
+    QGuiApplication,
+    QIcon,
+    QPalette,
+    QQmlApplicationEngine,
+    QQmlContext,
+    QQuickWindow,
+    Qt,
+    QtMsgType,
+    QUrl,
+    qInstallMessageHandler,
+    qt_qml_path,
 )
-logger = logging.getLogger("workorder")
-
-# Non-native style: Basic on macOS (custom button backgrounds), Fusion elsewhere.
-if sys.platform == "darwin":
-    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
-else:
-    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
-
-import PyQt6
-
-from PyQt6.QtCore import QUrl, Qt
-from PyQt6.QtGui import QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QPalette
-from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext
-from PyQt6.QtQuick import QQuickWindow
 
 from backend.invoice_backend import InvoiceBackend
 from backend.database_backend import DatabaseBackend
 from backend.report_options_backend import ReportOptionsBackend
 from backend.settings_backend import SettingsBackend
 from backend.report_backend import ReportBackend
+from utils.app_logging import setup_app_logging
+
+setup_runtime()
+
+_log_file = setup_app_logging()
+logger = logging.getLogger("workorder")
+
+# Non-native style: Basic on macOS/Android, Fusion elsewhere.
+if is_android_runtime():
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+elif sys.platform == "darwin":
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+else:
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
+
+
+def _install_qt_message_handler() -> None:
+    def handler(mode, context, message):
+        if mode == QtMsgType.QtDebugMsg:
+            level = logging.DEBUG
+        elif mode == QtMsgType.QtInfoMsg:
+            level = logging.INFO
+        elif mode == QtMsgType.QtWarningMsg:
+            level = logging.WARNING
+        elif mode == QtMsgType.QtCriticalMsg:
+            level = logging.ERROR
+        else:
+            level = logging.CRITICAL
+        logger.log(level, "Qt: %s", message)
+
+    qInstallMessageHandler(handler)
+
+
+def _set_qml_theme_context(context: QQmlContext) -> None:
+    context.setContextProperty("primaryColor", "#2196F3")
+    context.setContextProperty("secondaryColor", "#1976D2")
+    context.setContextProperty("backgroundColor", "#F5F5F5")
+    context.setContextProperty("cardColor", "#FFFFFF")
+    context.setContextProperty("textColor", "#212121")
+    context.setContextProperty("textSecondaryColor", "#757575")
 
 
 def _setup_light_palette(app: QGuiApplication) -> None:
@@ -71,7 +108,7 @@ def _setup_light_palette(app: QGuiApplication) -> None:
 
 
 def _setup_ui_font(app: QGuiApplication) -> str | None:
-    if sys.platform != "linux":
+    if is_android_runtime() or sys.platform != "linux":
         return None
 
     if not UI_FONT_PATH.is_file():
@@ -109,16 +146,22 @@ def _apply_window_icons(app: QGuiApplication, engine: QQmlApplicationEngine) -> 
 
 def main():
     parser = argparse.ArgumentParser(description='WorkOrder Application')
-    parser.add_argument('--type', choices=['mobile', 'desktop'], default='desktop',
+    default_type = "mobile" if is_android_runtime() else "desktop"
+    parser.add_argument('--type', choices=['mobile', 'desktop'], default=default_type,
                         help='Тип приложения: mobile или desktop')
-    args = parser.parse_args()
+    args, _unknown = parser.parse_known_args()
 
     app_type = resolve_app_type(args.type)
-    logger.info("Starting WorkOrder, type=%s", app_type)
-    # Включаем атрибуты для правильного масштабирования
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    _install_qt_message_handler()
+    logger.info("Starting WorkOrder, type=%s, qt=%s", app_type, QT_BINDING)
+    if _log_file is not None:
+        logger.info("Android debug log: %s", _log_file)
+    try:
+        QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+        )
+    except AttributeError:
+        pass
 
     app = QGuiApplication(sys.argv)
     app.setApplicationName("WorkOrder")
@@ -138,34 +181,38 @@ def main():
 
     engine = QQmlApplicationEngine()
 
-    qt_qml_path = Path(PyQt6.__file__).resolve().parent / "Qt6" / "qml"
-    engine.addImportPath(str(qt_qml_path))
+    engine.addImportPath(str(qt_qml_path()))
     for import_path in qml_import_paths(app_type):
         engine.addImportPath(import_path)
 
-    # Создаем бэкенды
-    invoice_backend = InvoiceBackend(engine)
-    database_backend = DatabaseBackend()
-    settings_backend = SettingsBackend()
-    report_options_backend = ReportOptionsBackend()
-    report_backend = ReportBackend(settings_backend, report_options_backend, engine)
-    report_backend.initializeData()
-    invoice_backend.bind_report_backend(report_backend)
-
-    # Регистрируем бэкенды в QML
     context = engine.rootContext()
+    _set_qml_theme_context(context)
+
+    try:
+        invoice_backend = InvoiceBackend(engine)
+        database_backend = DatabaseBackend()
+        settings_backend = SettingsBackend()
+        report_options_backend = ReportOptionsBackend()
+        report_backend = ReportBackend(settings_backend, report_options_backend, engine)
+        report_backend.initializeData()
+        invoice_backend.bind_report_backend(report_backend)
+    except Exception:
+        logger.exception("Backend initialization failed")
+        raise
+
     context.setContextProperty("invoiceBackend", invoice_backend)
     context.setContextProperty("databaseBackend", database_backend)
     context.setContextProperty("settingsBackend", settings_backend)
     context.setContextProperty("reportOptionsBackend", report_options_backend)
     context.setContextProperty("reportBackend", report_backend)
 
-    # Устанавливаем тип приложения как свойство
     context.setContextProperty("appType", app_type)
+    context.setContextProperty("pdfPreviewSupported", not is_android_runtime())
     if ui_font_family:
         context.setContextProperty("defaultFontFamily", ui_font_family)
 
     qml_path = qml_main_path(app_type)
+    logger.info("Loading QML: %s", qml_path)
     engine.load(QUrl.fromLocalFile(str(qml_path)))
 
     if not engine.rootObjects():

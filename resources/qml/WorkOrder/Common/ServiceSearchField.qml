@@ -14,17 +14,34 @@ ColumnLayout
 
     readonly property int suggestionRowHeight: compact ? 56 : 36
     readonly property int suggestionMaxRowHeight: compact ? 56 : 48
+    readonly property int clearButtonSize: compact ? 44 : 38
 
     spacing: layoutSpacing
     Layout.fillWidth: true
 
+    property bool suppressSearch: false
+
     function handleTextChanged(text)
     {
+        if(suppressSearch)
+            return
+
         var growing = text.length > countField
         countField = text.length
         isValueGrowing = growing
         invoiceBackend.searchServices(text)
         updateSuggestions()
+    }
+
+    function clearField()
+    {
+        suppressSearch = true
+        serviceInput.text = ""
+        countField = 0
+        isValueGrowing = false
+        invoiceBackend.clearSuggestions()
+        updateSuggestions()
+        suppressSearch = false
     }
 
     function openAddServiceDialog(serviceName)
@@ -36,21 +53,10 @@ ColumnLayout
 
     function updateSuggestions()
     {
-        if(serviceInput.activeFocus && servicesFilterModel.count > 0)
-        {
-            closeSuggestionsTimer.stop()
+        if(servicesFilterModel.count > 0)
             suggestionsPopup.syncOpen()
-        }
         else
-        {
             suggestionsPopup.close()
-
-            if(!serviceInput.activeFocus)
-            {
-                invoiceBackend.clearSuggestions()
-                servicesFilterModel.clearFilter()
-            }
-        }
     }
 
     ServiceDialog
@@ -68,18 +74,67 @@ ColumnLayout
         color: textSecondaryColor
     }
 
-    TextField
+    RowLayout
     {
-        id: serviceInput
+        id: serviceInputRow
         Layout.fillWidth: true
-        placeholderText: qsTr("Введите название услуги...")
-        onTextChanged: handleTextChanged(text)
-        onActiveFocusChanged:
+        spacing: 8
+
+        TextField
         {
-            if(activeFocus)
-                updateSuggestions()
-            else
-                closeSuggestionsTimer.start()
+            id: serviceInput
+            Layout.fillWidth: true
+            placeholderText: qsTr("Введите название услуги...")
+            onTextChanged: {
+                handleTextChanged(text)
+                console.log("[TEST] text change", serviceInput.activeFocus,
+                            "opened", suggestionsPopup.opened,
+                            "visible", suggestionsPopup.visible,
+                            "count", servicesFilterModel.count)
+            }
+
+            onActiveFocusChanged:
+            {
+                console.log("[TEST] focus", serviceInput.activeFocus,
+                            "opened", suggestionsPopup.opened,
+                            "visible", suggestionsPopup.visible,
+                            "count", servicesFilterModel.count)
+            }
+        }
+
+        Rectangle
+        {
+            id: clearFieldButton
+            visible: serviceInput.text !== ""
+            Layout.preferredWidth: clearButtonSize
+            Layout.preferredHeight: clearButtonSize
+            radius: 8
+            color: clearFieldMouse.pressed
+                   ? Qt.darker(textSecondaryColor, 1.15)
+                   : textSecondaryColor
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: "\u2715"
+                font.pixelSize: clearButtonSize > 40 ? 18 : 16
+                font.bold: true
+                color: "white"
+            }
+
+            MouseArea
+            {
+                id: clearFieldMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                onClicked: clearField()
+            }
+
+            ToolTip
+            {
+                visible: clearFieldMouse.containsMouse
+                text: qsTr("Очистить фильтр")
+            }
         }
     }
 
@@ -166,25 +221,16 @@ ColumnLayout
                 hoverEnabled: !compact
                 onClicked:
                 {
-                    closeSuggestionsTimer.stop()
                     reportBackend.selectService(model.id, model.name, model.unit, model.price)
-                    serviceInput.text = model.name
                     servicesFilterModel.clearFilter()
-                    suggestionsPopup.close()
+                    suppressSearch = true
+                    serviceInput.text = ""
+                    countField = 0
+                    isValueGrowing = false
+                    updateSuggestions()
+                    suppressSearch = false
                 }
             }
-        }
-    }
-
-    Timer
-    {
-        id: closeSuggestionsTimer
-        interval: 150
-        onTriggered:
-        {
-            suggestionsPopup.close()
-            invoiceBackend.clearSuggestions()
-            servicesFilterModel.clearFilter()
         }
     }
 
@@ -193,8 +239,7 @@ ColumnLayout
         target: servicesFilterModel
         function onFilterTextChanged()
         {
-            if(serviceInput.activeFocus)
-                updateSuggestions()
+            updateSuggestions()
         }
     }
 

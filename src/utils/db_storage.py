@@ -8,8 +8,10 @@ from pathlib import Path
 
 
 def project_data_dir():
-    """Return default data directory under project root."""
-    return Path(__file__).resolve().parent.parent.parent / "data"
+    """Return default data directory."""
+    from app_paths import data_dir
+
+    return data_dir()
 
 
 def default_clients_db_path():

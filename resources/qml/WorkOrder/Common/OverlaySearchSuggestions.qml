@@ -37,6 +37,7 @@ Popup
         x = pos.x
         y = pos.y + 4
         width = anchorItem.width
+        console.log("[TEST] x,y",x,", ", y)
     }
 
     function syncOpen()
@@ -47,7 +48,11 @@ Popup
         reposition()
 
         if(!opened)
+        {
             open()
+            console.log("[TEST] List show")
+        }
+            
     }
 
     onOpened: reposition()

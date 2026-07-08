@@ -32,7 +32,8 @@ resolve_python()
         "${ROOT}/.venv/bin/python3.11" \
         "${ROOT}/.venv/bin/python3.10"
     do
-        if [[ -f "${candidate}" ]] && "${candidate}" -c "import PyQt6" >/dev/null 2>&1
+        if [[ -f "${candidate}" ]] \
+            && PYTHONPATH="${ROOT}/src" "${candidate}" -c "import qt_compat; import reportlab; import openpyxl" >/dev/null 2>&1
         then
             echo "${candidate}"
             return 0
@@ -40,7 +41,7 @@ resolve_python()
     done
 
     if command -v python3 >/dev/null 2>&1 \
-        && python3 -c "import PyQt6" >/dev/null 2>&1
+        && PYTHONPATH="${ROOT}/src" python3 -c "import qt_compat; import reportlab; import openpyxl" >/dev/null 2>&1
     then
         command -v python3
         return 0
@@ -52,7 +53,7 @@ resolve_python()
 PYTHON="$(resolve_python || true)"
 if [[ -z "${PYTHON}" ]]
 then
-    echo "Error: PyQt6 is not installed." >&2
+    echo "Error: Qt bindings or app deps missing (PyQt6/PySide6, reportlab, openpyxl)." >&2
     echo "Run in Qt Creator: Build target 'install-deps', then Run CMake." >&2
     echo "Or manually:" >&2
     echo "  cd ${ROOT}" >&2

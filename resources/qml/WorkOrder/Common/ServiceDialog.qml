@@ -81,10 +81,14 @@ Dialog {
     }
 
     onAccepted: {
+        var trimmedName = nameField.text.trim()
+        if(trimmedName === "")
+            return
+
         if(service_id === "")
         {
             var data = {
-                "name": nameField.text,
+                "name": trimmedName,
                 "note": noteField.text,
                 "paragraph": paragraphField.text,
                 "price": priceField.text,
@@ -98,7 +102,7 @@ Dialog {
         {
             var data = {
                 "id": service_id,
-                "name": nameField.text,
+                "name": trimmedName,
                 "note": noteField.text,
                 "paragraph": paragraphField.text,
                 "price": priceField.text,

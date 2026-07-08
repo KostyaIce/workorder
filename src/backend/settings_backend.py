@@ -4,8 +4,9 @@ SettingsPage Backend
 Бэкенд для окна настроек
 """
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
+from qt_compat import QObject, pyqtProperty, pyqtSignal, pyqtSlot
 
+from app_paths import data_dir
 from utils.db_storage import load_app_settings, save_app_settings
 
 
@@ -32,7 +33,7 @@ class SettingsBackend(QObject):
         self._currency = "RUB"
         self._vat_rate = 20
         self._invoice_prefix = "INV"
-        self._db_path = "./data/services.db"
+        self._db_path = str(data_dir() / "services.db")
         self._personal_info = ""
 
         self._load_persisted_settings()
@@ -175,6 +176,10 @@ class SettingsBackend(QObject):
             self._db_path = value
             self.settingsChanged.emit()
 
+    @pyqtProperty(str, constant=True)
+    def defaultImportPath(self):
+        return str(data_dir() / "import.json")
+
     @pyqtProperty(str, notify=settingsChanged)
     def personalInfo(self):
         return self._personal_info
@@ -213,7 +218,7 @@ class SettingsBackend(QObject):
         self._currency = "RUB"
         self._vat_rate = 20
         self._invoice_prefix = "INV"
-        self._db_path = "./data/services.db"
+        self._db_path = str(data_dir() / "services.db")
         self._personal_info = ""
         self.settingsChanged.emit()
         self.themeChanged.emit()

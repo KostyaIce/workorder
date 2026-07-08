@@ -24,23 +24,35 @@ function(workorder_python_candidates out_var)
     set(${out_var} "${_candidates}" PARENT_SCOPE)
 endfunction()
 
-function(workorder_python_has_pyqt6 python out_var)
+function(workorder_python_has_qt python out_var)
     if(NOT EXISTS "${python}")
         set(${out_var} FALSE PARENT_SCOPE)
         return()
     endif()
 
     execute_process(
-        COMMAND "${python}" -c "import PyQt6"
+        COMMAND "${python}" -c "import qt_compat; import reportlab; import openpyxl"
         RESULT_VARIABLE _result
         OUTPUT_QUIET
         ERROR_QUIET
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src"
         TIMEOUT 15
     )
     if(_result EQUAL 0)
         set(${out_var} TRUE PARENT_SCOPE)
     else()
-        set(${out_var} FALSE PARENT_SCOPE)
+        execute_process(
+            COMMAND "${python}" -c "import PyQt6; import reportlab; import openpyxl"
+            RESULT_VARIABLE _result
+            OUTPUT_QUIET
+            ERROR_QUIET
+            TIMEOUT 15
+        )
+        if(_result EQUAL 0)
+            set(${out_var} TRUE PARENT_SCOPE)
+        else()
+            set(${out_var} FALSE PARENT_SCOPE)
+        endif()
     endif()
 endfunction()
 
@@ -49,8 +61,8 @@ function(workorder_resolve_python out_python out_found)
 
     set(_selected "")
     foreach(_python IN LISTS _candidates)
-        workorder_python_has_pyqt6("${_python}" _has_pyqt6)
-        if(_has_pyqt6)
+        workorder_python_has_qt("${_python}" _has_qt)
+        if(_has_qt)
             set(_selected "${_python}")
             break()
         endif()

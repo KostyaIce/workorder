@@ -19,13 +19,13 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 workorder_resolve_python(WORKORDER_PYTHON WORKORDER_PYQT6_FOUND)
 if(WORKORDER_PYQT6_FOUND)
-    message(STATUS "Python with PyQt6: ${WORKORDER_PYTHON}")
+    message(STATUS "Python runtime OK: ${WORKORDER_PYTHON}")
 else()
-    message(WARNING
-        "PyQt6 is not installed for any Python interpreter.\n"
-        "  Qt Creator: build target 'install-deps', then Run CMake.\n"
-        "  Shell: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
-    )
+        message(WARNING
+            "Qt Python bindings or app deps missing (PyQt6/PySide6, reportlab, openpyxl).\n"
+            "  Desktop: pip install -r requirements.txt\n"
+            "  Android: pip install -r requirements-android.txt"
+        )
 endif()
 
 workorder_find_qt6()

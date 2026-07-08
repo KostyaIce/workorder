@@ -1,4 +1,4 @@
-from PyQt6.QtCore import (
+from qt_compat import (
     Qt,
     QAbstractListModel,
     QModelIndex,

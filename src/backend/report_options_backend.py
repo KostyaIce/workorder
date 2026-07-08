@@ -3,7 +3,7 @@
 Report options backend: report layout settings and order selection.
 """
 
-from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+from qt_compat import QObject, pyqtProperty, pyqtSignal, pyqtSlot
 
 from utils.qsettings_store import QSettingsStore
 

@@ -219,7 +219,7 @@ ColumnLayout {
                     visible: compact
                     label: qsTr("Импорт данных")
                     icon: "\u2198"
-                    onActivated: settingsBackend.importData("./data/import.json")
+                    onActivated: settingsBackend.importData(settingsBackend.defaultImportPath)
                 }
 
                 SettingsActionRow {
@@ -286,7 +286,7 @@ ColumnLayout {
                         Button {
                             text: qsTr("Импорт данных")
                             flat: true
-                            onClicked: settingsBackend.importData("./data/import.json")
+                            onClicked: settingsBackend.importData(settingsBackend.defaultImportPath)
                         }
                         Item { Layout.fillWidth: true }
                         Button {

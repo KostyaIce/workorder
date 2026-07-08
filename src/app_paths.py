@@ -1,4 +1,4 @@
-"""Runtime paths for WorkOrder (PyCharm, Qt Creator, CMake, plain python)."""
+"""Runtime paths for WorkOrder (PyCharm, Qt Creator, CMake, plain python, Android)."""
 from __future__ import annotations
 
 import os
@@ -13,6 +13,8 @@ QML_ROOT = RESOURCES_DIR / "qml"
 ICONS_DIR = RESOURCES_DIR / "icons" / "appIcons"
 FONTS_DIR = RESOURCES_DIR / "fonts"
 UI_FONT_PATH = FONTS_DIR / "DejaVuSans.ttf"
+
+_DATA_DIR: Path | None = None
 
 
 def setup_runtime() -> None:
@@ -29,11 +31,78 @@ def _prepend_path(path: str) -> None:
         sys.path.insert(0, path)
 
 
+def is_android_runtime() -> bool:
+    if os.environ.get("ANDROID_ARGUMENT") is not None:
+        return True
+    if os.environ.get("WORKORDER_PLATFORM") == "android":
+        return True
+
+    try:
+        from qt_compat import QSysInfo
+
+        return QSysInfo.productType().lower() == "android"
+    except Exception:
+        return False
+
+
+def _qt_standard_paths():
+    from qt_compat import QStandardPaths
+
+    return QStandardPaths
+
+
+def data_dir() -> Path:
+    """Writable application data directory."""
+    global _DATA_DIR
+    if _DATA_DIR is not None:
+        return _DATA_DIR
+
+    if is_android_runtime():
+        QStandardPaths = _qt_standard_paths()
+        base = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.AppDataLocation
+        )
+        if not base:
+            base = QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.GenericDataLocation
+            )
+        if not base:
+            private = os.environ.get("ANDROID_PRIVATE")
+            if private:
+                base = private
+        if not base:
+            app_path = os.environ.get("ANDROID_APP_PATH")
+            if app_path:
+                base = app_path
+        path = Path(base) / "data" if base else PROJECT_ROOT / "data"
+    else:
+        override = os.environ.get("WORKORDER_DATA_DIR")
+        path = Path(override).expanduser() if override else PROJECT_ROOT / "data"
+
+    path.mkdir(parents=True, exist_ok=True)
+    _DATA_DIR = path.resolve()
+    return _DATA_DIR
+
+
+def project_data_dir() -> Path:
+    """Backward-compatible alias for data_dir()."""
+    return data_dir()
+
+
+def default_app_type() -> str:
+    if is_android_runtime():
+        return "mobile"
+    return "desktop"
+
+
 def _cli_type_explicitly_provided() -> bool:
     return "--type" in sys.argv
 
 
 def resolve_app_type(cli_type: str) -> str:
+    if is_android_runtime():
+        return "mobile"
+
     env_type = os.environ.get("WORKORDER_APP_TYPE")
     if env_type in ("mobile", "desktop"):
         return env_type
@@ -63,7 +132,9 @@ def qml_import_paths(app_type: str) -> list[str]:
 
 
 def application_icon_path() -> Path | None:
-    if sys.platform == "darwin":
+    if is_android_runtime():
+        path = ICONS_DIR / "icon_linux.png"
+    elif sys.platform == "darwin":
         path = ICONS_DIR / "icon_macos.icns"
     elif sys.platform == "win32":
         path = ICONS_DIR / "icon_win32.ico"

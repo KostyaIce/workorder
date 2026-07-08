@@ -4,7 +4,7 @@ QSettings storage wrapper.
 Callers provide keys; organization, application name and QSettings instance are internal.
 """
 
-from PyQt6.QtCore import QCoreApplication, QSettings
+from qt_compat import QCoreApplication, QSettings
 
 
 class QSettingsStore:

@@ -4,7 +4,7 @@ DatabasePage Backend
 Бэкенд для окна управления базой услуг
 """
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
+from qt_compat import QObject, pyqtSignal, pyqtSlot, pyqtProperty
 
 from utils.db_storage import create_works_database
 from utils.services_db import (

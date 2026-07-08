@@ -6,7 +6,7 @@ InvoicePage Backend
 
 import logging
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from qt_compat import QObject, pyqtSignal, pyqtSlot
 
 from models.services_model import ServiceModel
 from models.services_filter_model import ServicesFilterModel

@@ -1,9 +1,9 @@
-from PyQt6.QtCore import (
+from qt_compat import (
     Qt,
     QSortFilterProxyModel,
     pyqtProperty,
     pyqtSignal,
-    pyqtSlot
+    pyqtSlot,
 )
 
 from utils.service_units import is_percent_unit

@@ -1,6 +1,1 @@
-# Backend модуль
-from .invoice_backend import InvoiceBackend
-from .database_backend import DatabaseBackend
-from .settings_backend import SettingsBackend
-
-__all__ = ['InvoiceBackend', 'DatabaseBackend', 'SettingsBackend']
+# Backend package (imports are lazy; do not import backends here).

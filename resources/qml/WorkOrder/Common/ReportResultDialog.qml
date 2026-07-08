@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Pdf
 
 Dialog
 {
@@ -56,8 +55,24 @@ Dialog
             id: pdfLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
-            active: root.opened && root.reportUrl !== ""
-            sourceComponent: pdfViewerComponent
+            active: root.opened && root.reportUrl !== "" && pdfPreviewSupported
+            source: active ? Qt.resolvedUrl("ReportResultDialogPdfPreview.qml") : ""
+            onLoaded:
+            {
+                if(item)
+                    item.reportUrl = Qt.binding(function() { return root.reportUrl })
+            }
+        }
+
+        Label
+        {
+            visible: root.reportUrl !== "" && !pdfPreviewSupported
+            text: qsTr("PDF сохранён. Откройте файл во внешнем просмотрщике.")
+            font.pixelSize: 12
+            color: textSecondaryColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
         }
 
         Label
@@ -68,50 +83,6 @@ Dialog
             color: textSecondaryColor
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
-        }
-    }
-
-    Component
-    {
-        id: pdfViewerComponent
-
-        Item
-        {
-            anchors.fill: parent
-
-            PdfDocument
-            {
-                id: pdfDocument
-                source: root.reportUrl
-
-                onStatusChanged:
-                {
-                    if(status === PdfDocument.Ready)
-                        fitTimer.restart()
-                }
-            }
-
-            PdfMultiPageView
-            {
-                id: pdfView
-                anchors.fill: parent
-                document: pdfDocument
-            }
-
-            Timer
-            {
-                id: fitTimer
-                interval: 50
-                repeat: false
-                onTriggered:
-                {
-                    if(pdfDocument.status !== PdfDocument.Ready)
-                        return
-                    if(pdfView.width <= 0 || pdfView.height <= 0)
-                        return
-                    pdfView.scaleToWidth(pdfView.width, pdfView.height)
-                }
-            }
         }
     }
 }

@@ -8,7 +8,7 @@ import os
 import tempfile
 from datetime import datetime
 
-from PyQt6.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
+from qt_compat import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
 from models.clients_model import ClientModel
 from models.objects_model import ObjectModel
 from models.orders_model import OrdersModel

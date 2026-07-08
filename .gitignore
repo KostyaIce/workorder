@@ -43,8 +43,14 @@ Thumbs.db
 data/
 *.db
 *.sqlite
+*.apk
 
 # Production build artifacts
 prod_build/dist/
 prod_build/work/
 prod_build/dmg_staging/
+
+# Android deploy (symlinks + buildozer cache)
+android/src
+android/resources
+android/.buildozer
