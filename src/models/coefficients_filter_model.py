@@ -8,6 +8,10 @@ from qt_compat import (
 
 from utils.service_units import is_percent_unit
 
+import logging
+
+logger = logging.getLogger("workorder")
+
 
 class CoefficientsFilterModel(QSortFilterProxyModel):
 
@@ -34,11 +38,31 @@ class CoefficientsFilterModel(QSortFilterProxyModel):
     def setFilterText(self, text):
         self._filter_text = text
         self.invalidateFilter()
+        self.filterTextChanged.emit()
+        self._log_filter_result()
 
     @pyqtSlot()
     def clearFilter(self):
         self._filter_text = ""
         self.invalidateFilter()
+        self.filterTextChanged.emit()
+        logger.debug("CoefficientsFilter: cleared, count=%s", self.rowCount())
+
+    def _log_filter_result(self):
+        count = self.rowCount()
+        preview = []
+        source_model = self.sourceModel()
+        if source_model and count > 0:
+            for row in range(min(count, 3)):
+                idx = self.index(row, 0)
+                name = self.data(idx, source_model.NameRole) or ""
+                preview.append(name)
+        logger.debug(
+            "CoefficientsFilter: query=%r count=%s preview=%s",
+            self._filter_text,
+            count,
+            preview,
+        )
 
     def filterAcceptsRow(self, source_row, source_parent):
         if self._filter_text == "":

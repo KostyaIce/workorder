@@ -20,28 +20,114 @@ ColumnLayout
     Layout.fillWidth: true
 
     property bool suppressSearch: false
+    property string lastSearchQuery: ""
+    property bool hasPendingInputValue: false
+    property string pendingInputValue: ""
+    property bool restoreFocusAfterReset: false
 
-    function handleTextChanged(text)
+    function currentQuery()
+    {
+        var displayQuery = serviceInput.displayText
+        var textQuery = serviceInput.text
+        return displayQuery.length >= textQuery.length ? displayQuery : textQuery
+    }
+
+    function syncFieldText(field, value)
+    {
+        if(field.text === value && field.displayText === value)
+            return
+
+        var wasReadOnly = field.readOnly
+        field.readOnly = true
+        field.text = value
+        field.readOnly = wasReadOnly
+
+        if(field.displayText !== value && field.activeFocus)
+        {
+            var len = field.displayText.length
+            if(len > 0)
+            {
+                field.select(0, len)
+                field.insert(value)
+            }
+        }
+    }
+
+    function commitPendingInputValue()
+    {
+        if(!hasPendingInputValue)
+            return
+
+        syncFieldText(serviceInput, pendingInputValue)
+        tryFinishInputReset()
+    }
+
+    function tryFinishInputReset()
+    {
+        if(!hasPendingInputValue)
+            return
+
+        if(serviceInput.text !== pendingInputValue
+                || serviceInput.displayText !== pendingInputValue)
+            return
+
+        var value = pendingInputValue
+        var restoreFocus = restoreFocusAfterReset
+        hasPendingInputValue = false
+        restoreFocusAfterReset = false
+        lastSearchQuery = value
+        suppressSearch = false
+        suggestionsPopup.close()
+        updateSuggestions()
+
+        if(restoreFocus)
+            serviceInput.forceActiveFocus()
+    }
+
+    function applyInputValue(value, restoreFocus)
+    {
+        suppressSearch = true
+        hasPendingInputValue = true
+        pendingInputValue = value
+        restoreFocusAfterReset = restoreFocus === true
+        suggestionsPopup.close()
+
+        lastSearchQuery = value
+        countField = value.length
+        isValueGrowing = false
+        invoiceBackend.clearSuggestions()
+
+        if(serviceInput.activeFocus)
+        {
+            serviceInput.focus = false
+            Qt.inputMethod.hide()
+        }
+        else
+        {
+            commitPendingInputValue()
+        }
+    }
+
+    function runSearch()
     {
         if(suppressSearch)
             return
 
-        var growing = text.length > countField
-        countField = text.length
+        var query = currentQuery()
+        if(query === lastSearchQuery)
+            return
+
+        lastSearchQuery = query
+        var growing = query.length > countField
+        countField = query.length
         isValueGrowing = growing
-        invoiceBackend.searchServices(text)
+        invoiceBackend.searchServices(query)
         updateSuggestions()
     }
 
     function clearField()
     {
-        suppressSearch = true
-        serviceInput.text = ""
-        countField = 0
-        isValueGrowing = false
-        invoiceBackend.clearSuggestions()
-        updateSuggestions()
-        suppressSearch = false
+        applyInputValue("", true)
     }
 
     function openAddServiceDialog(serviceName)
@@ -53,7 +139,13 @@ ColumnLayout
 
     function updateSuggestions()
     {
-        if(servicesFilterModel.count > 0)
+        if(suppressSearch || hasPendingInputValue)
+        {
+            suggestionsPopup.close()
+            return
+        }
+
+        if(currentQuery().length > 0 && servicesFilterModel.count > 0)
             suggestionsPopup.syncOpen()
         else
             suggestionsPopup.close()
@@ -85,27 +177,23 @@ ColumnLayout
             id: serviceInput
             Layout.fillWidth: true
             placeholderText: qsTr("Введите название услуги...")
-            onTextChanged: {
-                handleTextChanged(text)
-                console.log("[TEST] text change", serviceInput.activeFocus,
-                            "opened", suggestionsPopup.opened,
-                            "visible", suggestionsPopup.visible,
-                            "count", servicesFilterModel.count)
+            onTextChanged: runSearch()
+            onDisplayTextChanged:
+            {
+                runSearch()
+                tryFinishInputReset()
             }
-
             onActiveFocusChanged:
             {
-                console.log("[TEST] focus", serviceInput.activeFocus,
-                            "opened", suggestionsPopup.opened,
-                            "visible", suggestionsPopup.visible,
-                            "count", servicesFilterModel.count)
+                if(!activeFocus)
+                    commitPendingInputValue()
             }
         }
 
         Rectangle
         {
             id: clearFieldButton
-            visible: serviceInput.text !== ""
+            visible: currentQuery() !== ""
             Layout.preferredWidth: clearButtonSize
             Layout.preferredHeight: clearButtonSize
             radius: 8
@@ -222,13 +310,7 @@ ColumnLayout
                 onClicked:
                 {
                     reportBackend.selectService(model.id, model.name, model.unit, model.price)
-                    servicesFilterModel.clearFilter()
-                    suppressSearch = true
-                    serviceInput.text = ""
-                    countField = 0
-                    isValueGrowing = false
-                    updateSuggestions()
-                    suppressSearch = false
+                    applyInputValue("", false)
                 }
             }
         }
@@ -249,11 +331,23 @@ ColumnLayout
 
         function onCountFound(count)
         {
+            updateSuggestions()
+
             if(count === 0
                     && isValueGrowing
-                    && serviceInput.text !== ""
+                    && currentQuery() !== ""
                     && !serviceDialog.visible)
-                openAddServiceDialog(serviceInput.text)
+                openAddServiceDialog(currentQuery())
+        }
+    }
+
+    Connections
+    {
+        target: Qt.inputMethod
+        function onVisibleChanged()
+        {
+            if(!Qt.inputMethod.visible)
+                commitPendingInputValue()
         }
     }
 }

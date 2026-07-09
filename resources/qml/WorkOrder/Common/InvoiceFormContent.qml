@@ -61,9 +61,8 @@ Item
     function clearCurrentServiceSelection()
     {
         reportBackend.clearCurrentService()
-        searchFieldMobile.serviceInput.text = ""
-        searchFieldDesktop.serviceInput.text = ""
-        invoiceBackend.clearSuggestions()
+        searchFieldMobile.clearField()
+        searchFieldDesktop.clearField()
     }
 
     Flickable
@@ -171,7 +170,7 @@ Item
                                 if(!reportBackend.addWork(quantityMobile.displayValue))
                                     console.log("work not created")
                                 else
-                                    searchFieldMobile.serviceInput.text = ""
+                                    searchFieldMobile.clearField()
                             }
                         }
 
@@ -326,7 +325,7 @@ Item
                                 if(!reportBackend.addWork(quantityDesktop.displayValue))
                                     console.log("work not created")
                                 else
-                                    searchFieldDesktop.serviceInput.text = ""
+                                    searchFieldDesktop.clearField()
                             }
                         }
 
@@ -391,8 +390,8 @@ Item
     function clearForm()
     {
         invoiceBackend.clearForm()
-        searchFieldMobile.serviceInput.text = ""
-        searchFieldDesktop.serviceInput.text = ""
+        searchFieldMobile.clearField()
+        searchFieldDesktop.clearField()
     }
 
     ReportOptionsDialog

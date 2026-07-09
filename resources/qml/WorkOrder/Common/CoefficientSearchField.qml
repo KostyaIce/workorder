@@ -20,6 +20,45 @@ ColumnLayout
     spacing: useRowLayout ? 0 : layoutSpacing
     Layout.fillWidth: true
 
+    property bool suppressSearch: false
+    property string lastSearchQuery: ""
+    property bool hasPendingInputValue: false
+    property string pendingInputValue: ""
+    property bool restoreFocusAfterReset: false
+
+    function currentQuery()
+    {
+        var displayQuery = activeInputDisplayText()
+        var textQuery = activeInputText()
+        return displayQuery.length >= textQuery.length ? displayQuery : textQuery
+    }
+
+    function syncFieldText(field, value)
+    {
+        if(field.text === value && field.displayText === value)
+            return
+
+        var wasReadOnly = field.readOnly
+        field.readOnly = true
+        field.text = value
+        field.readOnly = wasReadOnly
+
+        if(field.displayText !== value && field.activeFocus)
+        {
+            var len = field.displayText.length
+            if(len > 0)
+            {
+                field.select(0, len)
+                field.insert(value)
+            }
+        }
+    }
+
+    function activeInputDisplayText()
+    {
+        return useRowLayout ? coefficientInputRow.displayText : coefficientInput.displayText
+    }
+
     function activeInputText()
     {
         return useRowLayout ? coefficientInputRow.text : coefficientInput.text
@@ -27,17 +66,86 @@ ColumnLayout
 
     function setActiveInputText(value)
     {
-        coefficientInput.text = value
-        coefficientInputRow.text = value
+        syncFieldText(coefficientInput, value)
+        syncFieldText(coefficientInputRow, value)
     }
 
-    function handleTextChanged(text)
+    function commitPendingInputValue()
     {
-        var growing = text.length > countField
-        countField = text.length
-        isValueGrowing = growing
-        invoiceBackend.searchCoefficients(text)
+        if(!hasPendingInputValue)
+            return
+
+        setActiveInputText(pendingInputValue)
+        tryFinishInputReset()
+    }
+
+    function tryFinishInputReset()
+    {
+        if(!hasPendingInputValue)
+            return
+
+        var field = activeInput
+        if(field.text !== pendingInputValue || field.displayText !== pendingInputValue)
+            return
+
+        var value = pendingInputValue
+        var restoreFocus = restoreFocusAfterReset
+        hasPendingInputValue = false
+        restoreFocusAfterReset = false
+        lastSearchQuery = value
+        suppressSearch = false
+        suggestionsPopup.close()
         updateSuggestions()
+
+        if(restoreFocus)
+            field.forceActiveFocus()
+    }
+
+    function applyInputValue(value, restoreFocus)
+    {
+        suppressSearch = true
+        hasPendingInputValue = true
+        pendingInputValue = value
+        restoreFocusAfterReset = restoreFocus === true
+        suggestionsPopup.close()
+
+        lastSearchQuery = value
+        countField = value.length
+        isValueGrowing = false
+        invoiceBackend.clearCoefficientSuggestions()
+
+        if(activeInput.activeFocus)
+        {
+            coefficientInput.focus = false
+            coefficientInputRow.focus = false
+            Qt.inputMethod.hide()
+        }
+        else
+        {
+            commitPendingInputValue()
+        }
+    }
+
+    function runSearch()
+    {
+        if(suppressSearch)
+            return
+
+        var query = currentQuery()
+        if(query === lastSearchQuery)
+            return
+
+        lastSearchQuery = query
+        var growing = query.length > countField
+        countField = query.length
+        isValueGrowing = growing
+        invoiceBackend.searchCoefficients(query)
+        updateSuggestions()
+    }
+
+    function clearField()
+    {
+        applyInputValue("", false)
     }
 
     function openAddServiceDialog(serviceName)
@@ -50,21 +158,16 @@ ColumnLayout
 
     function updateSuggestions()
     {
-        if(activeInput.activeFocus && coefficientsFilterModel.count > 0)
-        {
-            closeSuggestionsTimer.stop()
-            suggestionsPopup.syncOpen()
-        }
-        else
+        if(suppressSearch || hasPendingInputValue)
         {
             suggestionsPopup.close()
-
-            if(!activeInput.activeFocus)
-            {
-                invoiceBackend.clearCoefficientSuggestions()
-                coefficientsFilterModel.clearFilter()
-            }
+            return
         }
+
+        if(currentQuery().length > 0 && coefficientsFilterModel.count > 0)
+            suggestionsPopup.syncOpen()
+        else
+            suggestionsPopup.close()
     }
 
     ServiceDialog
@@ -101,13 +204,16 @@ ColumnLayout
             id: coefficientInputRow
             Layout.fillWidth: true
             placeholderText: qsTr("Введите название коэффициента...")
-            onTextChanged: root.handleTextChanged(text)
+            onTextChanged: root.runSearch()
+            onDisplayTextChanged:
+            {
+                root.runSearch()
+                root.tryFinishInputReset()
+            }
             onActiveFocusChanged:
             {
-                if(activeFocus)
-                    updateSuggestions()
-                else
-                    closeSuggestionsTimer.start()
+                if(!activeFocus)
+                    root.commitPendingInputValue()
             }
         }
     }
@@ -118,13 +224,16 @@ ColumnLayout
         visible: !useRowLayout
         Layout.fillWidth: true
         placeholderText: qsTr("Введите название коэффициента...")
-        onTextChanged: root.handleTextChanged(text)
+        onTextChanged: root.runSearch()
+        onDisplayTextChanged:
+        {
+            root.runSearch()
+            root.tryFinishInputReset()
+        }
         onActiveFocusChanged:
         {
-            if(activeFocus)
-                updateSuggestions()
-            else
-                closeSuggestionsTimer.start()
+            if(!activeFocus)
+                root.commitPendingInputValue()
         }
     }
 
@@ -211,26 +320,10 @@ ColumnLayout
                 hoverEnabled: !compact
                 onClicked:
                 {
-                    closeSuggestionsTimer.stop()
                     reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
-                    setActiveInputText(reportBackend.currentCoefficients)
-                    invoiceBackend.clearCoefficientSuggestions()
-                    coefficientsFilterModel.clearFilter()
-                    suggestionsPopup.close()
+                    applyInputValue(reportBackend.currentCoefficients, false)
                 }
             }
-        }
-    }
-
-    Timer
-    {
-        id: closeSuggestionsTimer
-        interval: 150
-        onTriggered:
-        {
-            suggestionsPopup.close()
-            invoiceBackend.clearCoefficientSuggestions()
-            coefficientsFilterModel.clearFilter()
         }
     }
 
@@ -239,8 +332,7 @@ ColumnLayout
         target: coefficientsFilterModel
         function onFilterTextChanged()
         {
-            if(activeInput.activeFocus)
-                updateSuggestions()
+            updateSuggestions()
         }
     }
 
@@ -249,11 +341,13 @@ ColumnLayout
         target: invoiceBackend
         function onCoefficientsCountFound(count)
         {
+            updateSuggestions()
+
             if(count === 0
                     && isValueGrowing
-                    && activeInputText() !== ""
+                    && currentQuery() !== ""
                     && !serviceDialog.visible)
-                openAddServiceDialog(activeInputText())
+                openAddServiceDialog(currentQuery())
         }
     }
 
@@ -263,12 +357,17 @@ ColumnLayout
         function onServiceSelected()
         {
             if(reportBackend.currentServiceName === "")
-            {
-                setActiveInputText("")
-                countField = 0
-                isValueGrowing = false
-                invoiceBackend.clearCoefficientSuggestions()
-            }
+                clearField()
+        }
+    }
+
+    Connections
+    {
+        target: Qt.inputMethod
+        function onVisibleChanged()
+        {
+            if(!Qt.inputMethod.visible)
+                commitPendingInputValue()
         }
     }
 }

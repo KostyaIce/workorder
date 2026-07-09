@@ -172,26 +172,32 @@ class InvoiceBackend(QObject):
     @pyqtSlot(str)
     def searchServices(self, query):
         """Поиск услуг по запросу."""
+        logger.debug("searchServices: query=%r", query)
         self._services_filter.setFilterText(query)
         count = self._services_filter.rowCount()
+        logger.debug("searchServices: count=%s", count)
         self.countFound.emit(count)
     
     @pyqtSlot()
     def clearSuggestions(self):
         """Clear service suggestions."""
+        logger.debug("clearSuggestions")
         self._services_filter.clearFilter()
         self.suggestionsCleared.emit()
 
     @pyqtSlot(str)
     def searchCoefficients(self, query):
         """Search coefficient services by query."""
+        logger.debug("searchCoefficients: query=%r", query)
         self._coefficients_filter.setFilterText(query)
         count = self._coefficients_filter.rowCount()
+        logger.debug("searchCoefficients: count=%s", count)
         self.coefficientsCountFound.emit(count)
 
     @pyqtSlot()
     def clearCoefficientSuggestions(self):
         """Clear coefficient suggestions."""
+        logger.debug("clearCoefficientSuggestions")
         self._coefficients_filter.clearFilter()
     
     @pyqtSlot(float, str, str, str, int)
