@@ -152,7 +152,6 @@ Item
                         stepSize: 0.1
                         minimumValue: 0.1
                         decimals: 2
-                        onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
                     }
 
                     RowLayout
@@ -311,7 +310,6 @@ Item
                             stepSize: 0.1
                             minimumValue: 0.1
                             decimals: 2
-                            onQuantityChanged: (newValue) => reportBackend.setQuantity(newValue)
                         }
 
                         PrimaryButton

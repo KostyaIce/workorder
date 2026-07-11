@@ -47,7 +47,8 @@ DISTFILES += \
 # Helper target for Qt Creator (no C++ compilation)
 all: force
 	@echo "WorkOrder: Python/PyQt6 project"
-	@echo "Configure: cmake --preset workorder"
+	@echo "Configure Python: cmake --preset python"
+	@echo "Configure C++:    cmake --preset cpp"
 	@echo "Run:       cmake --build build --target run"
 	@echo "Or:        python src/main.py --type $$BUILD_TYPE"
 

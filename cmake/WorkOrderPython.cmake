@@ -2,13 +2,13 @@ function(workorder_python_candidates out_var)
     set(_candidates)
 
     foreach(_name IN ITEMS python3 python python3.13 python3.12 python3.11 python3.10)
-        set(_path "${CMAKE_SOURCE_DIR}/.venv/bin/${_name}")
+        set(_path "${WORKORDER_ROOT}/.venv/bin/${_name}")
         if(EXISTS "${_path}")
             list(APPEND _candidates "${_path}")
         endif()
     endforeach()
 
-    file(GLOB _venv_pythons "${CMAKE_SOURCE_DIR}/.venv/bin/python*")
+    file(GLOB _venv_pythons "${WORKORDER_ROOT}/.venv/bin/python*")
     foreach(_path IN LISTS _venv_pythons)
         if(_path MATCHES "(python-config|pythonw|\\.py$)$")
             continue()
@@ -35,7 +35,7 @@ function(workorder_python_has_qt python out_var)
         RESULT_VARIABLE _result
         OUTPUT_QUIET
         ERROR_QUIET
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src"
+        WORKING_DIRECTORY "${WORKORDER_ROOT}/src"
         TIMEOUT 15
     )
     if(_result EQUAL 0)

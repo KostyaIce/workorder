@@ -30,7 +30,7 @@ Dialog
         onAccepted:
         {
             reportOptionsBackend.saveSettings()
-            if(reportBackend.saveReportToFile(reportBackend.selectedClientId, selectedFile))
+            if(reportBackend.saveReportToFile(selectedFile))
                 root.close()
         }
     }
@@ -395,7 +395,7 @@ Dialog
                          && reportBackend.selectedObjectName !== ""
                 onClicked:
                 {
-                    if(reportBackend.previewReport(reportBackend.selectedClientId))
+                    if(reportBackend.previewReport())
                         root.close()
                 }
             }
@@ -436,7 +436,7 @@ Dialog
                          && reportBackend.selectedObjectName !== ""
                 onClicked:
                 {
-                    if(reportBackend.previewReport(reportBackend.selectedClientId))
+                    if(reportBackend.previewReport())
                         root.close()
                 }
             }

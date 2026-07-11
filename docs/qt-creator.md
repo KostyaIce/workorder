@@ -32,7 +32,7 @@ Starting WorkOrder, type=mobile
 
 ## Первичная настройка
 
-1. **File → Open** → `CMakeLists.txt`
+1. **File → Open** → `python/CMakeLists.txt` (Python) или `cpp/CMakeLists.txt` (C++)
 2. Kit: **Desktop Qt 6.8.x GCC 64bit** (Linux) или **Qt 6.x for macOS**
 3. **Configure Project**
 4. Оставить активным **один** kit (Desktop Qt 6.8.3), отключить Qt 5.15 / Android

@@ -2,7 +2,7 @@
 # Capture WorkOrder Android logs (logcat + optional file tail hint).
 set -euo pipefail
 
-PACKAGE="com.workorder.workorder"
+PACKAGE="${WORKORDER_ANDROID_PACKAGE:-com.workorder}"
 
 if ! command -v adb >/dev/null 2>&1; then
     echo "adb not found" >&2

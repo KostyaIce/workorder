@@ -19,17 +19,18 @@ python src/main.py --type desktop
 python src/main.py --type mobile
 ```
 
-## CMake (Type при конфигурации)
+## CMake
 
-Один preset **WorkOrder**, переключение UI через `-DType=`:
+Отдельные проекты для Python и C++:
 
 ```bash
-cmake --preset workorder
-cmake --build build --target run
+# Python
+cmake --preset python
+cmake --build build/python --target run-desktop
 
-# Mobile UI
-cmake --preset workorder -DType=mobile
-cmake --build build --target run
+# C++ 
+cmake --preset cpp
+cmake --build build/cpp --target run-desktop
 ```
 
 ## PyCharm
@@ -46,4 +47,4 @@ python3 -m pip install -r requirements.txt
 
 ## Qt Creator
 
-Открыть `CMakeLists.txt` или `WorkOrder.pro`. Подробнее: [qt-creator.md](qt-creator.md)
+Открыть `python/CMakeLists.txt` или `cpp/CMakeLists.txt`. Подробнее: [qt-creator.md](qt-creator.md)

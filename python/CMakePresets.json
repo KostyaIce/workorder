@@ -1,0 +1,32 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "WorkOrder Python",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/python",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "Type": "desktop"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "run-desktop",
+            "configurePreset": "default",
+            "targets": ["run-desktop"]
+        },
+        {
+            "name": "run-mobile",
+            "configurePreset": "default",
+            "targets": ["run-mobile"]
+        }
+    ]
+}

@@ -7,67 +7,131 @@
     },
     "configurePresets": [
         {
-            "name": "workorder",
-            "displayName": "WorkOrder (default desktop)",
-            "description": "Single build dir. Use run-desktop or run-mobile targets to launch UI mode.",
+            "name": "python",
+            "displayName": "WorkOrder Python",
+            "description": "Python/PyQt6 IDE and run targets (run-desktop, run-mobile).",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/python",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
+                "WORKORDER_CMAKE_PRESET": "python",
                 "Type": "desktop"
             }
         },
         {
-            "name": "desktop",
-            "displayName": "WorkOrder Desktop",
-            "description": "Desktop UI with sidebar navigation.",
-            "inherits": "workorder",
-            "binaryDir": "${sourceDir}/build/desktop",
+            "name": "python-desktop",
+            "displayName": "WorkOrder Python Desktop",
+            "inherits": "python",
+            "binaryDir": "${sourceDir}/build/python/desktop",
             "cacheVariables": {
                 "Type": "desktop"
             }
         },
         {
-            "name": "mobile",
-            "displayName": "WorkOrder Mobile (compact)",
-            "description": "Compact mobile UI with bottom navigation.",
-            "inherits": "workorder",
-            "binaryDir": "${sourceDir}/build/mobile",
+            "name": "python-mobile",
+            "displayName": "WorkOrder Python Mobile",
+            "inherits": "python",
+            "binaryDir": "${sourceDir}/build/python/mobile",
             "cacheVariables": {
                 "Type": "mobile"
+            }
+        },
+        {
+            "name": "cpp",
+            "displayName": "WorkOrder C++",
+            "description": "C++ Qt6 application (WorkOrder executable, run-desktop, run-mobile).",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/cpp",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "WORKORDER_CMAKE_PRESET": "cpp",
+                "Type": "desktop"
+            }
+        },
+        {
+            "name": "cpp-desktop",
+            "displayName": "WorkOrder C++ Desktop",
+            "inherits": "cpp",
+            "binaryDir": "${sourceDir}/build/cpp/desktop",
+            "cacheVariables": {
+                "Type": "desktop"
+            }
+        },
+        {
+            "name": "cpp-mobile",
+            "displayName": "WorkOrder C++ Mobile",
+            "inherits": "cpp",
+            "binaryDir": "${sourceDir}/build/cpp/mobile",
+            "cacheVariables": {
+                "Type": "mobile"
+            }
+        },
+        {
+            "name": "cpp-android-arm64",
+            "displayName": "WorkOrder C++ Android (arm64)",
+            "inherits": "cpp",
+            "binaryDir": "${sourceDir}/build/cpp-android-arm64",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{HOME}/Qt/6.8.3/android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake",
+                "QT_HOST_PATH": "$env{HOME}/Qt/6.8.3/gcc_64",
+                "ANDROID_ABI": "arm64-v8a",
+                "Type": "mobile",
+                "WORKORDER_CMAKE_PRESET": "cpp"
+            },
+            "environment": {
+                "ANDROID_SDK_ROOT": "$env{HOME}/Android/Sdk",
+                "ANDROID_NDK_ROOT": "$env{HOME}/Android/Sdk/ndk/26.1.10909125"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "build",
-            "displayName": "Build",
-            "configurePreset": "workorder",
+            "name": "python-build",
+            "displayName": "Python Build",
+            "configurePreset": "python",
             "targets": ["build"]
         },
         {
-            "name": "run-desktop",
-            "displayName": "Run Desktop",
-            "configurePreset": "workorder",
+            "name": "python-run-desktop",
+            "displayName": "Python Run Desktop",
+            "configurePreset": "python",
             "targets": ["run-desktop"]
         },
         {
-            "name": "run-mobile",
-            "displayName": "Run Mobile (compact)",
-            "configurePreset": "workorder",
+            "name": "python-run-mobile",
+            "displayName": "Python Run Mobile",
+            "configurePreset": "python",
             "targets": ["run-mobile"]
         },
         {
-            "name": "run",
-            "displayName": "Run (Type from cache)",
-            "configurePreset": "workorder",
-            "targets": ["run"]
+            "name": "python-test",
+            "displayName": "Python Test",
+            "configurePreset": "python",
+            "targets": ["test"]
         },
         {
-            "name": "test",
-            "displayName": "Test",
-            "configurePreset": "workorder",
-            "targets": ["test"]
+            "name": "cpp-build",
+            "displayName": "C++ Build",
+            "configurePreset": "cpp",
+            "targets": ["WorkOrder"]
+        },
+        {
+            "name": "cpp-run-desktop",
+            "displayName": "C++ Run Desktop",
+            "configurePreset": "cpp",
+            "targets": ["run-desktop"]
+        },
+        {
+            "name": "cpp-run-mobile",
+            "displayName": "C++ Run Mobile",
+            "configurePreset": "cpp",
+            "targets": ["run-mobile"]
+        },
+        {
+            "name": "cpp-android-apk",
+            "displayName": "C++ Android APK",
+            "configurePreset": "cpp-android-arm64",
+            "targets": ["WorkOrder_make_apk"]
         }
     ]
 }

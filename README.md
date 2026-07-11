@@ -8,12 +8,15 @@
 
 ```
 workorder/
-├── CMakeLists.txt           # Сборка и переключение Type=desktop|mobile
-├── CMakePresets.json        # Пресеты для Qt Creator
+├── CMakeLists.txt           # Переключатель: WORKORDER_CMAKE_PRESET=python|cpp
+├── CMakePresets.json        # Пресеты python / cpp
+├── python/CMakeLists.txt    # Python/PyQt6 (IDE, run-desktop, run-mobile)
+├── cpp/CMakeLists.txt       # C++ Qt6 (WorkOrder, run-desktop, run-mobile)
 ├── WorkOrder.pro            # Альтернативное открытие в Qt Creator (qmake)
 ├── src/
-│   ├── main.py              # Точка входа
-│   └── backend/             # Python-логика (заглушки)
+│   ├── main.py              # Точка входа Python
+│   └── backend/             # Python-логика
+├── cpp/                     # C++ код (utils, models, backend, main.cpp)
 ├── resources/
 │   ├── icons/appIcons/      # icon_macos.icns, icon_win32.ico, icon_linux.png
 │   └── qml/
@@ -51,17 +54,25 @@ python src/main.py --type desktop
 python src/main.py --type mobile
 ```
 
-### Через CMake (Type задаётся при конфигурации)
+### Через CMake
+
+**Python** (PyQt6):
 
 ```bash
-# Desktop (по умолчанию)
-cmake --preset workorder
-cmake --build build --target run
-
-# Mobile
-cmake --preset workorder -DType=mobile
-cmake --build build --target run
+cmake --preset python
+cmake --build build/python --target run-desktop
+cmake --build build/python --target run-mobile
 ```
+
+**C++** (Qt6):
+
+```bash
+cmake --preset cpp
+cmake --build build/cpp --target WorkOrder
+cmake --build build/cpp --target run-desktop
+```
+
+В Qt Creator можно открыть напрямую `python/CMakeLists.txt` или `cpp/CMakeLists.txt`.
 
 При сборке через CMake тип UI фиксируется в `build/*/workorder_config.py` и имеет приоритет над `--type`.
 

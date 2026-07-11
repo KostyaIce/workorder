@@ -1,6 +1,4 @@
-# Qt Creator / QML IDE integration helpers for Python+PyQt6 project.
-
-include("${CMAKE_CURRENT_LIST_DIR}/WorkOrderPython.cmake")
+# Shared Qt Creator / QML IDE helpers for WorkOrder subprojects.
 
 function(workorder_collect_qt_prefix_candidates out_var)
     set(_candidates)
@@ -61,8 +59,7 @@ function(workorder_collect_qt_prefix_candidates out_var)
     set(${out_var} "${_verified}" PARENT_SCOPE)
 endfunction()
 
-# Macro: find_package results must stay in caller scope for CMakeLists.txt.
-macro(workorder_find_qt6)
+function(workorder_apply_qt_prefix_path)
     workorder_collect_qt_prefix_candidates(_qt_prefixes)
 
     if(_qt_prefixes)
@@ -71,14 +68,17 @@ macro(workorder_find_qt6)
         set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "Qt install prefixes" FORCE)
         message(STATUS "Qt prefix candidates: ${_qt_prefixes}")
     endif()
+endfunction()
 
+macro(workorder_find_qt6_for_qml)
+    workorder_apply_qt_prefix_path()
     find_package(Qt6 6.4 COMPONENTS Quick Qml QUIET)
 
     if(NOT Qt6_FOUND)
         message(WARNING
             "Qt6 not found. QML preview and completion in Qt Creator will be limited.\n"
             "  - Select kit \"Qt 6.x\" with Quick/Qml (not Generic)\n"
-            "  - Or set CMAKE_PREFIX_PATH to Qt install, e.g. ~/Qt/6.8.3/gcc_64 or ~/Qt/6.8.3/macos"
+            "  - Or set CMAKE_PREFIX_PATH to Qt install, e.g. ~/Qt/6.8.3/gcc_64"
         )
     endif()
 endmacro()
@@ -90,32 +90,36 @@ endfunction()
 
 function(workorder_collect_project_sources out_all out_desktop out_mobile out_common)
     file(GLOB_RECURSE _python_sources CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/src/*.py"
+        "${WORKORDER_ROOT}/src/*.py"
+    )
+    file(GLOB_RECURSE _cpp_sources CONFIGURE_DEPENDS
+        "${WORKORDER_ROOT}/cpp/*.cpp"
+        "${WORKORDER_ROOT}/cpp/*.h"
     )
     file(GLOB_RECURSE _desktop_qml CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/desktop/*.qml"
+        "${WORKORDER_ROOT}/resources/qml/desktop/*.qml"
     )
     file(GLOB_RECURSE _mobile_qml CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/mobile/*.qml"
+        "${WORKORDER_ROOT}/resources/qml/mobile/*.qml"
     )
     file(GLOB_RECURSE _common_qml CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/WorkOrder/*.qml"
+        "${WORKORDER_ROOT}/resources/qml/WorkOrder/*.qml"
     )
     file(GLOB _desktop_qmldir CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/desktop/qmldir"
+        "${WORKORDER_ROOT}/resources/qml/desktop/qmldir"
     )
     file(GLOB _mobile_qmldir CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/mobile/qmldir"
+        "${WORKORDER_ROOT}/resources/qml/mobile/qmldir"
     )
     file(GLOB _common_qmldir CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/resources/qml/WorkOrder/Common/qmldir"
+        "${WORKORDER_ROOT}/resources/qml/WorkOrder/Common/qmldir"
     )
     file(GLOB_RECURSE _tests CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/tests/*.py"
+        "${WORKORDER_ROOT}/tests/*.py"
     )
 
     foreach(_list IN ITEMS
-        _python_sources
+        _python_sources _cpp_sources
         _desktop_qml _mobile_qml _common_qml
         _desktop_qmldir _mobile_qmldir _common_qmldir
         _tests
@@ -128,12 +132,13 @@ function(workorder_collect_project_sources out_all out_desktop out_mobile out_co
     set(_common_sources ${_common_qml} ${_common_qmldir})
     set(_shared
         ${_python_sources}
+        ${_cpp_sources}
         ${_tests}
-        resources/icons/appIcons/icon_macos.icns
-        resources/icons/appIcons/icon_win32.ico
-        resources/icons/appIcons/icon_linux.png
-        requirements.txt
-        README.md
+        ${WORKORDER_ROOT}/resources/icons/appIcons/icon_macos.icns
+        ${WORKORDER_ROOT}/resources/icons/appIcons/icon_win32.ico
+        ${WORKORDER_ROOT}/resources/icons/appIcons/icon_linux.png
+        ${WORKORDER_ROOT}/requirements.txt
+        ${WORKORDER_ROOT}/README.md
     )
     set(_all
         ${_shared}
@@ -153,89 +158,49 @@ function(workorder_collect_project_sources out_all out_desktop out_mobile out_co
 endfunction()
 
 function(workorder_apply_source_groups)
-    cmake_parse_arguments(_args "" "" "FILES;DESKTOP;MOBILE;COMMON;PYTHON;TESTS" ${ARGN})
+    cmake_parse_arguments(_args "" "" "FILES;DESKTOP;MOBILE;COMMON;PYTHON;CPP;TESTS" ${ARGN})
 
     if(_args_DESKTOP)
-        source_group(TREE "${CMAKE_SOURCE_DIR}/resources/qml/desktop"
+        source_group(TREE "${WORKORDER_ROOT}/resources/qml/desktop"
             PREFIX "UI/Desktop"
             FILES ${_args_DESKTOP}
         )
     endif()
 
     if(_args_MOBILE)
-        source_group(TREE "${CMAKE_SOURCE_DIR}/resources/qml/mobile"
+        source_group(TREE "${WORKORDER_ROOT}/resources/qml/mobile"
             PREFIX "UI/Mobile (compact)"
             FILES ${_args_MOBILE}
         )
     endif()
 
     if(_args_COMMON)
-        source_group(TREE "${CMAKE_SOURCE_DIR}/resources/qml/WorkOrder"
+        source_group(TREE "${WORKORDER_ROOT}/resources/qml/WorkOrder"
             PREFIX "UI/Common"
             FILES ${_args_COMMON}
         )
     endif()
 
     if(_args_PYTHON)
-        source_group(TREE "${CMAKE_SOURCE_DIR}/src"
+        source_group(TREE "${WORKORDER_ROOT}/src"
             PREFIX "Python"
             FILES ${_args_PYTHON}
         )
     endif()
 
+    if(_args_CPP)
+        source_group(TREE "${WORKORDER_ROOT}/cpp"
+            PREFIX "C++"
+            FILES ${_args_CPP}
+        )
+    endif()
+
     if(_args_TESTS)
-        source_group(TREE "${CMAKE_SOURCE_DIR}/tests"
+        source_group(TREE "${WORKORDER_ROOT}/tests"
             PREFIX "Tests"
             FILES ${_args_TESTS}
         )
     endif()
-endfunction()
-
-function(workorder_add_run_target target_name app_type)
-    set(_qml_dir "${CMAKE_SOURCE_DIR}/resources/qml/${app_type}")
-
-    if(APPLE)
-        set(_bundle "${CMAKE_BINARY_DIR}/WorkOrder-${app_type}.app")
-        set(_launcher "${_bundle}/Contents/MacOS/WorkOrder-${app_type}")
-
-        add_custom_target("app-bundle-${app_type}"
-            COMMAND chmod +x "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
-            COMMAND "${CMAKE_SOURCE_DIR}/scripts/macos/create_app_bundle.sh"
-                "${CMAKE_SOURCE_DIR}"
-                "${CMAKE_BINARY_DIR}"
-                "${app_type}"
-                "${WORKORDER_PYTHON}"
-                "WorkOrder-${app_type}"
-            DEPENDS build
-            COMMENT "Create WorkOrder-${app_type}.app bundle for macOS"
-            VERBATIM
-        )
-
-        add_custom_target(${target_name}
-            COMMAND "${_launcher}"
-            DEPENDS "app-bundle-${app_type}"
-            COMMENT "Run WorkOrder (${app_type}) via WorkOrder-${app_type}.app"
-            VERBATIM
-        )
-    else()
-        add_custom_target(${target_name}
-            COMMAND chmod +x "${CMAKE_SOURCE_DIR}/scripts/run_workorder.sh"
-            COMMAND ${CMAKE_COMMAND} -E env
-                "WORKORDER_BUILD_DIR=${CMAKE_BINARY_DIR}"
-                "${CMAKE_SOURCE_DIR}/scripts/run_workorder.sh"
-                ${app_type}
-                "${CMAKE_BINARY_DIR}"
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            DEPENDS build
-            COMMENT "Run WorkOrder (${app_type})"
-            VERBATIM
-        )
-    endif()
-
-    set_target_properties(${target_name} PROPERTIES
-        FOLDER "qtc_runnable"
-        WORKORDER_APP_TYPE "${app_type}"
-    )
 endfunction()
 
 function(workorder_register_ide_sources target)
@@ -262,9 +227,9 @@ endfunction()
 
 macro(workorder_setup_qml_import_path qml_dir)
     set(_paths
-        "${CMAKE_SOURCE_DIR}/resources/qml"
-        "${CMAKE_SOURCE_DIR}/resources/qml/desktop"
-        "${CMAKE_SOURCE_DIR}/resources/qml/mobile"
+        "${WORKORDER_ROOT}/resources/qml"
+        "${WORKORDER_ROOT}/resources/qml/desktop"
+        "${WORKORDER_ROOT}/resources/qml/mobile"
         "${qml_dir}"
     )
 
