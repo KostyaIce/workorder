@@ -1,38 +1,38 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(WORKORDER_UTILS_SOURCES
-    appPaths.cpp
-    appLogging.cpp
-    clientsDatabase.cpp
-    databaseStorage.cpp
-    minimalZip.cpp
-    objectsDatabase.cpp
-    pdfReportBuilder.cpp
-    qSettingsStore.cpp
-    reportBuilder.cpp
-    serviceUnits.cpp
-    servicesDatabase.cpp
-    servicesExcelBuilder.cpp
-    servicesPdfBuilder.cpp
-    worksDatabase.cpp
+    AppPaths.cpp
+    AppLogging.cpp
+    ClientsDatabase.cpp
+    DatabaseStorage.cpp
+    MinimalZip.cpp
+    ObjectsDatabase.cpp
+    PdfReportBuilder.cpp
+    QSettingsStore.cpp
+    ReportBuilder.cpp
+    ServiceUnits.cpp
+    ServicesDatabase.cpp
+    ServicesExcelBuilder.cpp
+    ServicesPdfBuilder.cpp
+    WorksDatabase.cpp
 )
 
 set(WORKORDER_UTILS_HEADERS
-    appPaths.h
-    appLogging.h
-    clientsDatabase.h
-    databaseStorage.h
-    minimalZip.h
-    objectsDatabase.h
-    pdfReportBuilder.h
-    qSettingsStore.h
-    reportBuilder.h
-    serviceUnits.h
-    servicesDatabase.h
-    servicesExcelBuilder.h
-    servicesPdfBuilder.h
-    types.h
-    worksDatabase.h
+    AppPaths.h
+    AppLogging.h
+    ClientsDatabase.h
+    DatabaseStorage.h
+    MinimalZip.h
+    ObjectsDatabase.h
+    PdfReportBuilder.h
+    QSettingsStore.h
+    ReportBuilder.h
+    ServiceUnits.h
+    ServicesDatabase.h
+    ServicesExcelBuilder.h
+    ServicesPdfBuilder.h
+    Types.h
+    WorksDatabase.h
 )
 
 add_library(workorder_utils STATIC

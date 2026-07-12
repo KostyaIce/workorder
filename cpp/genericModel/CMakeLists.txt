@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_library(workorder_generic_model STATIC
-    genericItem.h
-    genericModel.h
-    genericModelBase.h
-    genericModelImpl.h
+    GenericItem.h
+    GenericModel.h
+    GenericModelBase.h
+    GenericModelImpl.h
 )
 
 add_library(WorkOrder::GenericModel ALIAS workorder_generic_model)

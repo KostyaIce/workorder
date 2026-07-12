@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(WORKORDER_BACKEND_SOURCES
-    ../app/applicationBootstrap.cpp
-    backendController.cpp
-    databaseBackend.cpp
-    invoiceBackend.cpp
-    reportBackend.cpp
-    reportOptionsBackend.cpp
-    settingsBackend.cpp
+    ../app/ApplicationBootstrap.cpp
+    BackendController.cpp
+    DatabaseBackend.cpp
+    InvoiceBackend.cpp
+    ReportBackend.cpp
+    ReportOptionsBackend.cpp
+    SettingsBackend.cpp
 )
 
 set(WORKORDER_BACKEND_HEADERS
-    ../app/applicationBootstrap.h
-    backendController.h
-    databaseBackend.h
-    invoiceBackend.h
-    reportBackend.h
-    reportOptionsBackend.h
-    settingsBackend.h
+    ../app/ApplicationBootstrap.h
+    BackendController.h
+    DatabaseBackend.h
+    InvoiceBackend.h
+    ReportBackend.h
+    ReportOptionsBackend.h
+    SettingsBackend.h
 )
 
 add_library(workorder_backend STATIC

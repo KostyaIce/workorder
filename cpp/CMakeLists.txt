@@ -55,7 +55,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/models)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/backend)
 
 qt_add_executable(WorkOrder
-    ${CMAKE_CURRENT_LIST_DIR}/main.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Main.cpp
 )
 
 target_link_libraries(WorkOrder

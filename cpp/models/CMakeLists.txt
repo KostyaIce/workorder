@@ -1,36 +1,36 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(WORKORDER_MODELS_SOURCES
-    clientsModel.cpp
-    objectsModel.cpp
-    servicesModel.cpp
-    worksModel.cpp
-    ordersModel.cpp
-    subobjectsModel.cpp
-    filters/textFilterProxyModel.cpp
-    filters/servicesFilterModel.cpp
-    filters/coefficientsFilterModel.cpp
-    filters/subobjectsFilterModel.cpp
+    ClientsModel.cpp
+    ObjectsModel.cpp
+    ServicesModel.cpp
+    WorksModel.cpp
+    OrdersModel.cpp
+    SubobjectsModel.cpp
+    filters/TextFilterProxyModel.cpp
+    filters/ServicesFilterModel.cpp
+    filters/CoefficientsFilterModel.cpp
+    filters/SubobjectsFilterModel.cpp
 )
 
 set(WORKORDER_MODELS_HEADERS
-    clientsModel.h
-    objectsModel.h
-    servicesModel.h
-    worksModel.h
-    ordersModel.h
-    subobjectsModel.h
-    modelUtils.h
-    items/clientItem.h
-    items/objectItem.h
-    items/serviceItem.h
-    items/workItem.h
-    items/orderItem.h
-    items/subobjectItem.h
-    filters/textFilterProxyModel.h
-    filters/servicesFilterModel.h
-    filters/coefficientsFilterModel.h
-    filters/subobjectsFilterModel.h
+    ClientsModel.h
+    ObjectsModel.h
+    ServicesModel.h
+    WorksModel.h
+    OrdersModel.h
+    SubobjectsModel.h
+    ModelUtils.h
+    items/ClientItem.h
+    items/ObjectItem.h
+    items/ServiceItem.h
+    items/WorkItem.h
+    items/OrderItem.h
+    items/SubobjectItem.h
+    filters/TextFilterProxyModel.h
+    filters/ServicesFilterModel.h
+    filters/CoefficientsFilterModel.h
+    filters/SubobjectsFilterModel.h
 )
 
 add_library(workorder_models STATIC
