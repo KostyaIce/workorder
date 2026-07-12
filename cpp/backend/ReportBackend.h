@@ -45,6 +45,7 @@ public:
                   ReportOptionsBackend *reportOptionsBackend,
                   QQmlApplicationEngine *engine,
                   QObject *parent = nullptr);
+    ~ReportBackend() override;
 
     int clientCount() const;
     int workCount() const;

@@ -16,6 +16,8 @@ SettingsBackend::SettingsBackend(QObject *parent)
     loadPersistedSettings();
 }
 
+SettingsBackend::~SettingsBackend() = default;
+
 QString SettingsBackend::appVersion() const { return m_appVersion; }
 QString SettingsBackend::appName() const { return m_appName; }
 QString SettingsBackend::buildDate() const { return m_buildDate; }

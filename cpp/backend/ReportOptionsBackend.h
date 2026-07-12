@@ -23,6 +23,7 @@ class ReportOptionsBackend : public QObject
 
 public:
     explicit ReportOptionsBackend(QObject *parent = nullptr);
+    ~ReportOptionsBackend() override;
 
     bool includeClientName() const;
     void setIncludeClientName(bool value);

@@ -26,6 +26,8 @@ ReportOptionsBackend::ReportOptionsBackend(QObject *parent)
     loadSettings();
 }
 
+ReportOptionsBackend::~ReportOptionsBackend() = default;
+
 bool ReportOptionsBackend::includeClientName() const { return m_includeClientName; }
 void ReportOptionsBackend::setIncludeClientName(bool value)
 {

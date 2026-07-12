@@ -18,6 +18,7 @@ class InvoiceBackend : public QObject
 
 public:
     explicit InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent = nullptr);
+    ~InvoiceBackend() override;
 
     void bindReportBackend(ReportBackend *reportBackend);
 

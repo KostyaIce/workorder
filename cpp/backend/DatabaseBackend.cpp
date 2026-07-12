@@ -21,6 +21,8 @@ DatabaseBackend::DatabaseBackend(QObject *parent)
 {
 }
 
+DatabaseBackend::~DatabaseBackend() = default;
+
 int DatabaseBackend::workCount() const
 {
     return 0;

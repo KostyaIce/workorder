@@ -29,6 +29,7 @@ class SettingsBackend : public QObject
 
 public:
     explicit SettingsBackend(QObject *parent = nullptr);
+    ~SettingsBackend() override;
 
     QString appVersion() const;
     QString appName() const;

@@ -26,6 +26,8 @@ InvoiceBackend::InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent)
     registerModels(engine);
 }
 
+InvoiceBackend::~InvoiceBackend() = default;
+
 void InvoiceBackend::registerModels(QQmlApplicationEngine *engine)
 {
     if(!engine)

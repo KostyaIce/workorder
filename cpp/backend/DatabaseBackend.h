@@ -20,6 +20,7 @@ class DatabaseBackend : public QObject
 
 public:
     explicit DatabaseBackend(QObject *parent = nullptr);
+    ~DatabaseBackend() override;
 
     int serviceCount() const { return m_services.size(); }
     int selectedServiceId() const { return m_selectedServiceId; }

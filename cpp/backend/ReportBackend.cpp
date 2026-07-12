@@ -64,6 +64,12 @@ ReportBackend::ReportBackend(SettingsBackend *settingsBackend,
     registerModels(engine);
 }
 
+ReportBackend::~ReportBackend()
+{
+    if(!m_previewTempPath.isEmpty())
+        QFile::remove(m_previewTempPath);
+}
+
 void ReportBackend::registerModels(QQmlApplicationEngine *engine)
 {
     if(!engine)
