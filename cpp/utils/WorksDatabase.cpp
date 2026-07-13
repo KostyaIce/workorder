@@ -58,6 +58,14 @@ QSet<QString> tableColumns(QSqlDatabase &db)
     return columns;
 }
 
+QString notNullText(const QVariant &value)
+{
+    QString text = value.toString().trimmed();
+    if(text.isNull())
+        text = QStringLiteral("");
+    return text;
+}
+
 } // namespace
 
 double WorksDatabase::parseQuantity(const QVariant &value)
@@ -151,11 +159,11 @@ StringMap WorksDatabase::addWork(const QString &clientName, const QString &clien
     const QString workId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QString objectId = data.value("object_id").toString();
     const QString serviceId = data.value("service_id").toString();
-    const QString subobjectName = data.value("subobject_name").toString().trimmed();
+    const QString subobjectName = notNullText(data.value("subobject_name"));
     const int price = data.value("price").toInt();
     const QString unit = data.value("unit").toString().trimmed();
     const double quantity = parseQuantity(data.value("quantity"));
-    const QString coefficients = data.value("coefficients").toString().trimmed();
+    const QString coefficients = notNullText(data.value("coefficients"));
     const int percentSum = parsePercentSum(data.value("percent_sum"));
     const qint64 now = QDateTime::currentSecsSinceEpoch();
     const qint64 startOrderAt = data.contains("start_order_at")
@@ -186,7 +194,15 @@ StringMap WorksDatabase::addWork(const QString &clientName, const QString &clien
     query.addBindValue(percentSum);
 
     if(!query.exec())
+    {
+        const QSqlError error = query.lastError();
+        qWarning("WorksDatabase::addWork failed: %s (db: %s, driver: %s, code: %s)",
+                 qPrintable(error.text()),
+                 qPrintable(error.databaseText()),
+                 qPrintable(error.driverText()),
+                 qPrintable(error.nativeErrorCode()));
         return {};
+    }
 
     StringMap result;
     result.insert("id", workId);
@@ -344,7 +360,7 @@ bool WorksDatabase::updateWork(const QString &clientName, const QString &clientI
     if(data.contains("subobject_name"))
     {
         updates.append("subobject_name = ?");
-        params.append(data.value("subobject_name").toString().trimmed());
+        params.append(notNullText(data.value("subobject_name")));
     }
     if(data.contains("name"))
     {
@@ -378,7 +394,7 @@ bool WorksDatabase::updateWork(const QString &clientName, const QString &clientI
     if(data.contains("coefficients"))
     {
         updates.append("coefficients = ?");
-        params.append(data.value("coefficients").toString().trimmed());
+        params.append(notNullText(data.value("coefficients")));
     }
     if(data.contains("percent_sum"))
     {

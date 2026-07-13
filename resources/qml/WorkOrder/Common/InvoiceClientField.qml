@@ -12,6 +12,11 @@ ColumnLayout
     property int layoutSpacing: 12
     property int actionButtonSize: 44
 
+    readonly property int objectLastOrder: reportBackend.selectedObjectLastOrder
+    readonly property bool noActiveReport: objectLastOrder === 0
+    readonly property bool reportIsStale: objectLastOrder > 0
+        && (Math.floor(Date.now() / 1000) - objectLastOrder) > 12 * 3600
+
     spacing: layoutSpacing
     Layout.fillWidth: true
 
@@ -148,9 +153,29 @@ ColumnLayout
         visible: showStartReport
         Layout.fillWidth: true
         text: qsTr("Начать новый отчет")
-        filled: false
+        filled: true
         enabled: reportBackend.selectedObjectName !== ""
         onClicked: reportBackend.updateLastTimeObject()
+    }
+
+    Label
+    {
+        visible: showStartReport && noActiveReport && reportBackend.selectedObjectName !== ""
+        Layout.fillWidth: true
+        text: qsTr("Для создания отчета нажмите эту кнопку")
+        font.pixelSize: compact ? 12 : 13
+        color: primaryColor
+        wrapMode: Text.WordWrap
+    }
+
+    Label
+    {
+        visible: showStartReport && reportIsStale && reportBackend.selectedObjectName !== ""
+        Layout.fillWidth: true
+        text: qsTr("Дата отчета может быть неактуальна. Возможно, вы хотите начать новый отчет.")
+        font.pixelSize: compact ? 12 : 13
+        color: "#F57C00"
+        wrapMode: Text.WordWrap
     }
 
     RowLayout

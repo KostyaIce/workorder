@@ -25,6 +25,8 @@ ColumnLayout
     property string pendingInputValue: ""
     property bool restoreFocusAfterReset: false
 
+    readonly property bool reportReady: reportBackend.selectedObjectLastOrder !== 0
+
     function currentQuery()
     {
         var displayQuery = serviceInput.displayText
@@ -176,7 +178,10 @@ ColumnLayout
         {
             id: serviceInput
             Layout.fillWidth: true
-            placeholderText: qsTr("Введите название услуги...")
+            enabled: root.reportReady
+            placeholderText: root.reportReady
+                ? qsTr("Введите название услуги...")
+                : qsTr("Сначала начните новый отчет")
             onTextChanged: runSearch()
             onDisplayTextChanged:
             {
@@ -193,7 +198,7 @@ ColumnLayout
         Rectangle
         {
             id: clearFieldButton
-            visible: currentQuery() !== ""
+            visible: root.reportReady && currentQuery() !== ""
             Layout.preferredWidth: clearButtonSize
             Layout.preferredHeight: clearButtonSize
             radius: 8

@@ -144,6 +144,7 @@ void ReportBackend::updateLastTimeObject()
         return;
 
     ObjectsDatabase::updateObjectLastOrderAt(m_currentClient.name, m_currentClient.id, m_currentObject.id);
+    m_works->clear();
     loadObjects();
     updateCurrentObjectData();
 }
@@ -282,6 +283,7 @@ bool ReportBackend::addWork(double quantity)
     const StringMap result = WorksDatabase::addWork(m_currentClient.name, m_currentClient.id, data);
     if(result.isEmpty())
     {
+        qDebug() << "Не удалось добавить работу";
         emit errorOccurred(QStringLiteral("Не удалось добавить работу"));
         return false;
     }
@@ -567,6 +569,8 @@ void ReportBackend::restoreSelection()
         return;
     }
 
+    updateCurrentObjectData();
+    reloadWorks();
     refreshSubobject(objectId);
     emit objectSelected();
     emit objectUpdated();
