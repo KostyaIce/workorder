@@ -27,6 +27,27 @@ QString bundledFontPath()
     return QStringLiteral(":/resources/fonts/DejaVuSans.ttf");
 }
 
+QIcon loadBundledAppIcon()
+{
+#if defined(Q_OS_WIN)
+    const QString preferred = QStringLiteral(":/resources/icons/appIcons/icon_win32.ico");
+#elif defined(Q_OS_MACOS)
+    const QString preferred = QStringLiteral(":/resources/icons/appIcons/icon_macos.icns");
+#else
+    const QString preferred = QStringLiteral(":/resources/icons/appIcons/icon_linux.png");
+#endif
+
+    QIcon icon(preferred);
+    if(!icon.isNull() && !icon.availableSizes().isEmpty())
+        return icon;
+
+    icon = QIcon(QStringLiteral(":/resources/icons/appIcons/icon_linux.png"));
+    if(!icon.isNull() && !icon.availableSizes().isEmpty())
+        return icon;
+
+    return QIcon();
+}
+
 } // namespace
 
 QString ApplicationBootstrap::resolveAppType(const QString &cliType)
@@ -133,9 +154,17 @@ void ApplicationBootstrap::setQmlThemeContext(QQmlContext *context)
 
 void ApplicationBootstrap::applyWindowIcons(QGuiApplication &app, QQmlApplicationEngine &engine)
 {
-    const QIcon icon = app.windowIcon();
-    if(icon.isNull())
+    QIcon icon = app.windowIcon();
+    if(icon.isNull() || icon.availableSizes().isEmpty())
+        icon = loadBundledAppIcon();
+
+    if(icon.isNull() || icon.availableSizes().isEmpty())
+    {
+        qWarning("Application icon not found in resources");
         return;
+    }
+
+    app.setWindowIcon(icon);
 
     const QList<QObject *> roots = engine.rootObjects();
     for(QObject *root : roots)

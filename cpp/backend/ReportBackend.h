@@ -28,11 +28,14 @@ class ReportBackend : public QObject
     Q_PROPERTY(double worksTotal READ worksTotal NOTIFY worksChanged)
     Q_PROPERTY(QString selectedClientId READ selectedClientId NOTIFY clientSelected)
     Q_PROPERTY(QString selectedClientName READ selectedClientName NOTIFY clientSelected)
+    Q_PROPERTY(QString selectedClientAddress READ selectedClientAddress NOTIFY clientSelected)
     Q_PROPERTY(QString selectedObjectName READ selectedObjectName NOTIFY objectSelected)
+    Q_PROPERTY(QString selectedObjectAddress READ selectedObjectAddress NOTIFY objectSelected)
     Q_PROPERTY(int selectedObjectLastOrder READ selectedObjectLastOrder NOTIFY objectUpdated)
     Q_PROPERTY(int selectedStartOrderAt READ selectedStartOrderAt NOTIFY orderSelected)
     Q_PROPERTY(int selectedOrderTotalPrice READ selectedOrderTotalPrice NOTIFY orderSelected)
     Q_PROPERTY(QString currentServiceName READ currentServiceName NOTIFY serviceSelected)
+    Q_PROPERTY(QString currentUnit READ currentUnit NOTIFY serviceSelected)
     Q_PROPERTY(int currentPrice READ currentPrice NOTIFY serviceSelected)
     Q_PROPERTY(QString currentCoefficients READ currentCoefficients NOTIFY serviceSelected)
     Q_PROPERTY(int currentPercentSum READ currentPercentSum NOTIFY serviceSelected)
@@ -52,11 +55,14 @@ public:
     double worksTotal() const;
     QString selectedClientId() const { return m_currentClient.id; }
     QString selectedClientName() const { return m_currentClient.name; }
+    QString selectedClientAddress() const { return m_currentClient.address; }
     QString selectedObjectName() const { return m_currentObject.name; }
+    QString selectedObjectAddress() const { return m_currentObject.address; }
     int selectedObjectLastOrder() const { return static_cast<int>(m_currentObject.lastOrderAt); }
     int selectedStartOrderAt() const { return m_selectedStartOrderAt; }
     int selectedOrderTotalPrice() const { return m_selectedOrderTotalPrice; }
     QString currentServiceName() const { return m_currentService.name; }
+    QString currentUnit() const;
     int currentPrice() const { return m_currentService.price; }
     QString currentCoefficients() const { return m_currentService.coefficients; }
     int currentPercentSum() const { return m_currentService.percentSum; }
@@ -110,6 +116,7 @@ private:
     {
         QString id;
         QString name;
+        QString address;
     };
 
     struct CurrentObject

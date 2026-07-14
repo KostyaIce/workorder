@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName("WorkOrder");
     app.setOrganizationName("WorkOrderApp");
+    app.setDesktopFileName(QStringLiteral("WorkOrder"));
 
     QCommandLineParser parser;
     parser.setApplicationDescription("WorkOrder Application");

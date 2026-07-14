@@ -61,7 +61,7 @@ Rectangle
 
             Label
             {
-                text: "\u20BD/ед."
+                text: "\u20BD/" + reportBackend.currentUnit
                 font.pixelSize: 14
                 color: primaryColor
                 font.bold: true
@@ -196,7 +196,7 @@ Rectangle
 
                 Label
                 {
-                    text: "\u20BD/ед."
+                    text: "\u20BD/" + reportBackend.currentUnit
                     font.pixelSize: 14
                     color: primaryColor
                     font.bold: true

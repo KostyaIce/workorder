@@ -24,11 +24,6 @@ Item {
         compact: root.compact
     }
 
-    ReportResultDialog {
-        id: reportDialog
-        compact: root.compact
-    }
-
     ReportOptionsDialog {
         id: reportOptionsDialog
         compact: root.compact
@@ -557,12 +552,6 @@ Item {
     Connections
     {
         target: reportBackend
-        function onReportGenerated(path, url)
-        {
-            reportDialog.reportPath = path
-            reportDialog.reportUrl = url
-            reportDialog.open()
-        }
         function onErrorOccurred(error) { console.log("Report error:", error) }
         function onObjectSelected() { reportBackend.refreshOrders() }
     }

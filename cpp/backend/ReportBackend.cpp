@@ -88,6 +88,12 @@ void ReportBackend::registerModels(QQmlApplicationEngine *engine)
 int ReportBackend::clientCount() const { return m_clients->rowCount(); }
 int ReportBackend::workCount() const { return m_works->count(); }
 
+QString ReportBackend::currentUnit() const
+{
+    const QString unit = m_currentService.unit.trimmed();
+    return unit.isEmpty() ? QStringLiteral("ед.") : unit;
+}
+
 double ReportBackend::worksTotal() const
 {
     double total = 0.0;
@@ -495,6 +501,7 @@ bool ReportBackend::setCurrentClient(const QString &clientId)
 
     m_currentClient.id = item.value("id").toString();
     m_currentClient.name = item.value("name").toString();
+    m_currentClient.address = item.value("address").toString();
 
     WorksDatabase::createWorksTable(m_currentClient.name, m_currentClient.id);
     ObjectsDatabase::createObjectDatabase(m_currentClient.name, m_currentClient.id);

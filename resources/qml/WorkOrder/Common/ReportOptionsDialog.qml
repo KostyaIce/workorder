@@ -10,6 +10,32 @@ Dialog
     property bool compact: true
     property bool ordersListReady: false
 
+    readonly property string clientNamePreview: reportBackend.selectedClientName
+    readonly property string clientAddressPreview:
+    {
+        var lines = []
+        var address = reportBackend.selectedObjectAddress
+        if(address === "")
+            address = reportBackend.selectedClientAddress
+        if(address !== "")
+            lines.push(qsTr("Адрес: %1").arg(address))
+        if(reportBackend.selectedObjectName !== "")
+            lines.push(qsTr("Объект: %1").arg(reportBackend.selectedObjectName))
+        return lines.join("\n")
+    }
+    readonly property string reportDatePreview: qsTr("Дата формирования: %1")
+        .arg(Qt.formatDateTime(new Date(), "dd.MM.yyyy HH:mm"))
+    readonly property string personalInfoPreview:
+    {
+        var info = settingsBackend.personalInfo.trim()
+        return info !== "" ? info : "—"
+    }
+    readonly property string reportHeaderPreview:
+    {
+        var text = reportOptionsBackend.reportHeaderText.trim()
+        return text !== "" ? text : qsTr("ОТЧЁТ О ПРОДЕЛАННЫХ РАБОТАХ")
+    }
+
     parent: Overlay.overlay
     anchors.centerIn: parent
     modal: true
@@ -172,12 +198,14 @@ Dialog
                     ColumnLayout
                     {
                         id: optionsColumnDesktop
-                        width: optionsFlickableDesktop.width
+                        width: optionsFlickableDesktop.width - 8
+                        x: 4
                         spacing: 4
 
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указать имя заказчика")
+                            previewText: root.clientNamePreview
                             checked: reportOptionsBackend.includeClientName
                             onCheckStateChanged: (value) => reportOptionsBackend.includeClientName = value
                         }
@@ -185,6 +213,7 @@ Dialog
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указать адрес заказчика")
+                            previewText: root.clientAddressPreview
                             checked: reportOptionsBackend.includeClientAddress
                             onCheckStateChanged: (value) => reportOptionsBackend.includeClientAddress = value
                         }
@@ -192,6 +221,7 @@ Dialog
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указать дату формирования отчёта")
+                            previewText: root.reportDatePreview
                             checked: reportOptionsBackend.includeReportDate
                             onCheckStateChanged: (value) => reportOptionsBackend.includeReportDate = value
                         }
@@ -199,6 +229,7 @@ Dialog
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указать информацию о себе")
+                            previewText: root.personalInfoPreview
                             checked: reportOptionsBackend.includePersonalInfo
                             onCheckStateChanged: (value) => reportOptionsBackend.includePersonalInfo = value
                         }
@@ -206,6 +237,7 @@ Dialog
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указать шапку отчёта")
+                            previewText: root.reportHeaderPreview
                             checked: reportOptionsBackend.includeReportHeader
                             onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
                         }
@@ -234,6 +266,7 @@ Dialog
                         ReportOptionCheckRow
                         {
                             label: qsTr("Указывать субобъекты (иначе сплошной список)")
+                            showPreview: false
                             checked: reportOptionsBackend.groupBySubobjects
                             onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
                         }
@@ -293,12 +326,14 @@ Dialog
 
                 ColumnLayout
                 {
-                    width: parent.width
+                    width: parent.width - 8
+                    x: 4
                     spacing: 4
 
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указать имя заказчика")
+                        previewText: root.clientNamePreview
                         checked: reportOptionsBackend.includeClientName
                         onCheckStateChanged: (value) => reportOptionsBackend.includeClientName = value
                     }
@@ -306,6 +341,7 @@ Dialog
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указать адрес заказчика")
+                        previewText: root.clientAddressPreview
                         checked: reportOptionsBackend.includeClientAddress
                         onCheckStateChanged: (value) => reportOptionsBackend.includeClientAddress = value
                     }
@@ -313,6 +349,7 @@ Dialog
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указать дату формирования отчёта")
+                        previewText: root.reportDatePreview
                         checked: reportOptionsBackend.includeReportDate
                         onCheckStateChanged: (value) => reportOptionsBackend.includeReportDate = value
                     }
@@ -320,6 +357,7 @@ Dialog
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указать информацию о себе")
+                        previewText: root.personalInfoPreview
                         checked: reportOptionsBackend.includePersonalInfo
                         onCheckStateChanged: (value) => reportOptionsBackend.includePersonalInfo = value
                     }
@@ -327,6 +365,7 @@ Dialog
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указать шапку отчёта")
+                        previewText: root.reportHeaderPreview
                         checked: reportOptionsBackend.includeReportHeader
                         onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
                     }
@@ -355,6 +394,7 @@ Dialog
                     ReportOptionCheckRow
                     {
                         label: qsTr("Указывать субобъекты (иначе сплошной список)")
+                        showPreview: false
                         checked: reportOptionsBackend.groupBySubobjects
                         onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
                     }
@@ -386,59 +426,29 @@ Dialog
                          && reportBackend.selectedObjectName !== ""
                 onClicked: root.openSaveReportDialog()
             }
-
-            PrimaryButton
-            {
-                Layout.fillWidth: false
-                text: qsTr("Показать превью")
-                enabled: reportBackend.selectedClientId !== ""
-                         && reportBackend.selectedObjectName !== ""
-                onClicked:
-                {
-                    if(reportBackend.previewReport())
-                        root.close()
-                }
-            }
         }
 
-        ColumnLayout
+        RowLayout
         {
             Layout.fillWidth: true
             spacing: 8
             visible: compact
 
-            RowLayout
+            PrimaryButton
             {
                 Layout.fillWidth: true
-                spacing: 8
-
-                PrimaryButton
-                {
-                    text: qsTr("Закрыть")
-                    filled: false
-                    onClicked: root.close()
-                }
-
-                PrimaryButton
-                {
-                    text: qsTr("Сохранить")
-                    enabled: reportBackend.selectedClientId !== ""
-                             && reportBackend.selectedObjectName !== ""
-                    onClicked: root.openSaveReportDialog()
-                }
+                text: qsTr("Закрыть")
+                filled: false
+                onClicked: root.close()
             }
 
             PrimaryButton
             {
                 Layout.fillWidth: true
-                text: qsTr("Показать превью")
+                text: qsTr("Сохранить")
                 enabled: reportBackend.selectedClientId !== ""
                          && reportBackend.selectedObjectName !== ""
-                onClicked:
-                {
-                    if(reportBackend.previewReport())
-                        root.close()
-                }
+                onClicked: root.openSaveReportDialog()
             }
         }
     }

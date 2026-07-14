@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
+Dialog
+{
     id: root
 
     property bool compact: true
@@ -16,7 +17,9 @@ Dialog {
     height: parent.height - 48
     padding: 12
 
-    contentItem: InvoiceWorksListContent {
+    InvoiceWorksListContent
+    {
+        anchors.fill: parent
         compact: root.compact
     }
 }

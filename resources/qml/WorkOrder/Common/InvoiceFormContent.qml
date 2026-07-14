@@ -297,23 +297,6 @@ Item
         compact: root.compact
     }
 
-    ReportResultDialog
-    {
-        id: reportResultDialog
-        compact: root.compact
-    }
-
-    Connections
-    {
-        target: reportBackend
-        function onReportGenerated(path, url)
-        {
-            reportResultDialog.reportPath = path
-            reportResultDialog.reportUrl = url
-            reportResultDialog.open()
-        }
-    }
-
     Connections
     {
         target: invoiceBackend

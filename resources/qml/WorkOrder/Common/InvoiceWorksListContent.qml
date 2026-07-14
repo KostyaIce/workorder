@@ -2,15 +2,16 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ColumnLayout {
+ColumnLayout
+{
     id: root
 
     property bool compact: true
 
-    anchors.fill: parent
     spacing: 8
 
-    Rectangle {
+    Rectangle
+    {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: compact ? 200 : 280
@@ -21,7 +22,8 @@ ColumnLayout {
         border.width: 1
         clip: true
 
-        ListView {
+        ListView
+        {
             id: linesList
             anchors.fill: parent
             anchors.margins: compact ? 4 : 8
@@ -29,7 +31,8 @@ ColumnLayout {
             spacing: 0
             model: worksModel
 
-            delegate: Rectangle {
+            delegate: Rectangle
+            {
                 id: workItem
 
                 readonly property string workId: id
@@ -38,19 +41,26 @@ ColumnLayout {
                 property string editName: name
                 property string savedSubobject: subobject_name
                 property string editSubobject: subobject_name
+                property string savedCoefficients: coefficients
+                property string editCoefficients: coefficients
                 property string savedUnit: unit
-                property string editUnit: unit
                 property real savedQuantity: quantity
                 property real editQuantity: quantity
                 property int savedPrice: price
                 property int editPrice: price
                 property string editPriceText: (price / 100).toFixed(2)
+                property int savedPercentSum: percent_sum
+                property int editPercentSum: percent_sum
+
+                readonly property string displayUnit: savedUnit !== "" ? savedUnit : qsTr("ед.")
+                readonly property real lineTotal: editQuantity * editPrice / 100.0 * editPercentSum / 100.0
 
                 property bool hasChanges: editName !== savedName
                     || editSubobject !== savedSubobject
-                    || editUnit !== savedUnit
+                    || editCoefficients !== savedCoefficients
                     || editQuantity !== savedQuantity
                     || editPrice !== savedPrice
+                    || editPercentSum !== savedPercentSum
 
                 function applyModelState()
                 {
@@ -58,13 +68,16 @@ ColumnLayout {
                     editName = name
                     savedSubobject = subobject_name
                     editSubobject = subobject_name
+                    savedCoefficients = coefficients
+                    editCoefficients = coefficients
                     savedUnit = unit
-                    editUnit = unit
                     savedQuantity = quantity
                     editQuantity = quantity
                     savedPrice = price
                     editPrice = price
                     editPriceText = (price / 100).toFixed(2)
+                    savedPercentSum = percent_sum
+                    editPercentSum = percent_sum
                 }
 
                 function saveWork()
@@ -76,9 +89,11 @@ ColumnLayout {
                         id: workId,
                         name: editName,
                         subobject_name: editSubobject,
-                        unit: editUnit,
+                        coefficients: editCoefficients,
+                        unit: savedUnit,
                         quantity: editQuantity,
-                        price: editPrice
+                        price: editPrice,
+                        percent_sum: editPercentSum
                     }
 
                     if(reportBackend.updateWork(data))
@@ -90,7 +105,8 @@ ColumnLayout {
                 color: compact ? "white" : (index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02))
                 radius: compact ? 0 : 4
 
-                ColumnLayout {
+                ColumnLayout
+                {
                     id: lineColumn
                     visible: compact
                     width: parent.width - 12
@@ -100,11 +116,13 @@ ColumnLayout {
                     anchors.leftMargin: 6
                     spacing: 4
 
-                    RowLayout {
+                    RowLayout
+                    {
                         Layout.fillWidth: true
                         spacing: 4
 
-                        TextField {
+                        TextField
+                        {
                             Layout.fillWidth: true
                             font.pixelSize: 13
                             text: workItem.editName
@@ -112,7 +130,8 @@ ColumnLayout {
                             onTextChanged: workItem.editName = text
                         }
 
-                        ToolButton {
+                        ToolButton
+                        {
                             Layout.preferredWidth: 32
                             Layout.preferredHeight: 32
                             font.pixelSize: 14
@@ -121,11 +140,13 @@ ColumnLayout {
                         }
                     }
 
-                    RowLayout {
+                    RowLayout
+                    {
                         Layout.fillWidth: true
                         spacing: 4
 
-                        TextField {
+                        TextField
+                        {
                             Layout.fillWidth: true
                             font.pixelSize: 12
                             text: workItem.editSubobject
@@ -133,21 +154,23 @@ ColumnLayout {
                             onTextChanged: workItem.editSubobject = text
                         }
 
-                        TextField {
-                            Layout.preferredWidth: 44
-                            Layout.maximumWidth: 52
+                        TextField
+                        {
+                            Layout.fillWidth: true
                             font.pixelSize: 12
-                            text: workItem.editUnit
-                            placeholderText: qsTr("Ед.")
-                            onTextChanged: workItem.editUnit = text
+                            text: workItem.editCoefficients
+                            placeholderText: qsTr("Коэффициенты")
+                            onTextChanged: workItem.editCoefficients = text
                         }
                     }
 
-                    RowLayout {
+                    RowLayout
+                    {
                         Layout.fillWidth: true
                         spacing: 4
 
-                        Label {
+                        Label
+                        {
                             Layout.preferredWidth: 64
                             text: (workItem.editPrice / 100).toFixed(2) + " \u20BD"
                             font.pixelSize: 12
@@ -155,7 +178,8 @@ ColumnLayout {
                             color: primaryColor
                         }
 
-                        QuantityField {
+                        QuantityField
+                        {
                             Layout.fillWidth: true
                             Layout.maximumWidth: 110
                             spacing: 2
@@ -166,17 +190,52 @@ ColumnLayout {
                             onQuantityChanged: (newValue) => workItem.editQuantity = newValue
                         }
 
-                        Label {
+                        Label
+                        {
+                            Layout.preferredWidth: 40
+                            horizontalAlignment: Text.AlignHCenter
+                            text: workItem.displayUnit
+                            font.pixelSize: 12
+                            color: textSecondaryColor
+                        }
+
+                        TextField
+                        {
+                            Layout.preferredWidth: 52
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            text: workItem.editPercentSum
+                            placeholderText: "%"
+                            validator: IntValidator { bottom: 100; top: 9999 }
+                            onTextChanged:
+                            {
+                                var value = parseInt(text, 10)
+                                if(!isNaN(value))
+                                    workItem.editPercentSum = value
+                            }
+                        }
+
+                        Label
+                        {
+                            text: "%"
+                            font.pixelSize: 12
+                            color: textSecondaryColor
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Label
+                        {
                             Layout.preferredWidth: 68
                             horizontalAlignment: Text.AlignRight
-                            text: (workItem.editQuantity * workItem.editPrice / 100).toFixed(2) + " \u20BD"
+                            text: workItem.lineTotal.toFixed(2) + " \u20BD"
                             font.pixelSize: 12
                             font.bold: true
                             color: textColor
                         }
                     }
 
-                    PrimaryButton {
+                    PrimaryButton
+                    {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 32
                         text: qsTr("Сохранить")
@@ -185,14 +244,16 @@ ColumnLayout {
                         onClicked: workItem.saveWork()
                     }
 
-                    DividerLine {
+                    DividerLine
+                    {
                         Layout.fillWidth: true
                         Layout.topMargin: 4
                         visible: index < linesList.count - 1
                     }
                 }
 
-                ColumnLayout {
+                ColumnLayout
+                {
                     id: desktopColumn
                     visible: !compact
                     width: parent.width - 16
@@ -201,41 +262,48 @@ ColumnLayout {
                     anchors.margins: 8
                     spacing: 6
 
-                    TextField {
+                    TextField
+                    {
                         Layout.fillWidth: true
                         text: workItem.editName
                         placeholderText: qsTr("Название услуги")
                         onTextChanged: workItem.editName = text
                     }
 
-                    RowLayout {
+                    RowLayout
+                    {
                         Layout.fillWidth: true
                         spacing: 12
 
-                        TextField {
+                        TextField
+                        {
                             Layout.fillWidth: true
                             text: workItem.editSubobject
                             placeholderText: qsTr("Субобъект")
                             onTextChanged: workItem.editSubobject = text
                         }
 
-                        TextField {
-                            Layout.preferredWidth: 90
-                            text: workItem.editUnit
-                            placeholderText: qsTr("Ед.")
-                            onTextChanged: workItem.editUnit = text
+                        TextField
+                        {
+                            Layout.fillWidth: true
+                            text: workItem.editCoefficients
+                            placeholderText: qsTr("Коэффициенты")
+                            onTextChanged: workItem.editCoefficients = text
                         }
                     }
 
-                    RowLayout {
+                    RowLayout
+                    {
                         Layout.fillWidth: true
                         spacing: 12
 
-                        TextField {
+                        TextField
+                        {
                             Layout.preferredWidth: 90
                             text: workItem.editPriceText
                             horizontalAlignment: Text.AlignRight
-                            onTextChanged: {
+                            onTextChanged:
+                            {
                                 workItem.editPriceText = text
                                 var rubles = parseFloat(text)
                                 if(!isNaN(rubles))
@@ -243,7 +311,8 @@ ColumnLayout {
                             }
                         }
 
-                        QuantityField {
+                        QuantityField
+                        {
                             Layout.preferredWidth: 120
                             value: workItem.editQuantity
                             stepSize: 0.1
@@ -252,9 +321,40 @@ ColumnLayout {
                             onQuantityChanged: (newValue) => workItem.editQuantity = newValue
                         }
 
-                        Label {
+                        Label
+                        {
+                            Layout.preferredWidth: 56
+                            horizontalAlignment: Text.AlignHCenter
+                            text: workItem.displayUnit
+                            color: textSecondaryColor
+                        }
+
+                        TextField
+                        {
+                            Layout.preferredWidth: 72
+                            text: workItem.editPercentSum
+                            horizontalAlignment: Text.AlignRight
+                            placeholderText: qsTr("%")
+                            validator: IntValidator { bottom: 100; top: 9999 }
+                            onTextChanged:
+                            {
+                                var value = parseInt(text, 10)
+                                if(!isNaN(value))
+                                    workItem.editPercentSum = value
+                            }
+                        }
+
+                        Label
+                        {
+                            text: "%"
+                            color: textSecondaryColor
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Label
+                        {
                             Layout.preferredWidth: 100
-                            text: (workItem.editQuantity * workItem.editPrice / 100).toFixed(2) + " \u20BD"
+                            text: workItem.lineTotal.toFixed(2) + " \u20BD"
                             horizontalAlignment: Text.AlignRight
                             font.bold: true
                             color: textColor
@@ -262,13 +362,15 @@ ColumnLayout {
 
                         Item { Layout.fillWidth: true }
 
-                        ToolButton {
+                        ToolButton
+                        {
                             text: "\u2715"
                             onClicked: reportBackend.deleteWork(workItem.workId)
                         }
                     }
 
-                    PrimaryButton {
+                    PrimaryButton
+                    {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
                         text: qsTr("Сохранить")
@@ -277,7 +379,8 @@ ColumnLayout {
                         onClicked: workItem.saveWork()
                     }
 
-                    DividerLine {
+                    DividerLine
+                    {
                         Layout.fillWidth: true
                         Layout.topMargin: 4
                         visible: index < linesList.count - 1
@@ -287,7 +390,8 @@ ColumnLayout {
         }
     }
 
-    Label {
+    Label
+    {
         Layout.fillWidth: true
         text: qsTr("Нет добавленных позиций")
         color: textSecondaryColor

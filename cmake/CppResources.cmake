@@ -20,6 +20,11 @@ function(workorder_setup_qrc_resources target)
     file(GLOB _fonts CONFIGURE_DEPENDS
         "${WORKORDER_ROOT}/resources/fonts/*.ttf"
     )
+    file(GLOB _app_icons CONFIGURE_DEPENDS
+        "${WORKORDER_ROOT}/resources/icons/appIcons/icon_linux.png"
+        "${WORKORDER_ROOT}/resources/icons/appIcons/icon_win32.ico"
+        "${WORKORDER_ROOT}/resources/icons/appIcons/icon_macos.icns"
+    )
 
     qt_add_resources(${target} "workorder_qml_assets"
         PREFIX "/"
@@ -29,8 +34,9 @@ function(workorder_setup_qrc_resources target)
             ${_qml_mobile}
             ${_qml_common}
             ${_fonts}
+            ${_app_icons}
     )
 
     set_target_properties(${target} PROPERTIES AUTORCC ON)
-    message(STATUS "QML and fonts bundled into qrc for ${target}")
+    message(STATUS "QML, fonts and app icons bundled into qrc for ${target}")
 endfunction()
