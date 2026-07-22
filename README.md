@@ -8,10 +8,12 @@
 
 ```
 workorder/
+├── version.mk               # Версия приложения (MAJOR/MINOR/PATCH)
 ├── CMakeLists.txt           # Переключатель: WORKORDER_CMAKE_PRESET=python|cpp
 ├── CMakePresets.json        # Пресеты python / cpp
 ├── python/CMakeLists.txt    # Python/PyQt6 (IDE, run-desktop, run-mobile)
 ├── cpp/CMakeLists.txt       # C++ Qt6 (WorkOrder, run-desktop, run-mobile)
+├── utils/hooks/             # Git hooks (авто-bump VERSION_PATCH)
 ├── WorkOrder.pro            # Альтернативное открытие в Qt Creator (qmake)
 ├── src/
 │   ├── main.py              # Точка входа Python
@@ -75,6 +77,10 @@ cmake --build build/cpp --target run-desktop
 В Qt Creator можно открыть напрямую `python/CMakeLists.txt` или `cpp/CMakeLists.txt`.
 
 При сборке через CMake тип UI фиксируется в `build/*/workorder_config.py` и имеет приоритет над `--type`.
+
+### Версия приложения
+
+Источник версии — `version.mk`. Подробности и установка Git-хука авто-bump: [docs/versioning.md](docs/versioning.md).
 
 ### macOS: иконка приложения
 

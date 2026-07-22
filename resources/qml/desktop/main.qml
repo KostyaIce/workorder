@@ -99,7 +99,7 @@ ApplicationWindow
 
                 Label
                 {
-                    text: "v1.0.0"
+                    text: "v" + settingsBackend.appVersion
                     font.pixelSize: 12
                     color: textSecondaryColor
                     Layout.alignment: Qt.AlignHCenter

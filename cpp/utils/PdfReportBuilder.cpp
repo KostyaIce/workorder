@@ -194,7 +194,7 @@ QString PdfReportBuilder::buildReportDateHtml(const StringMap &options) const
     if(!optionEnabled(options, "include_report_date"))
         return QString();
 
-    return QStringLiteral("<p>Дата формирования: %1</p>")
+    return QStringLiteral("<p>Дата: %1</p>")
         .arg(escapeHtml(QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm")));
 }
 
@@ -420,9 +420,9 @@ QString PdfReportBuilder::buildHtml(const QString &personalInfo, const StringMap
 {
     QString html = buildHtmlHead();
     html += buildReportHeaderHtml(options);
-    html += buildReportDateHtml(options);
     html += buildWorksHtml(works, options);
     html += buildPartiesHtml(personalInfo, client, objectData, options);
+    html += buildReportDateHtml(options);
     html += QStringLiteral("</body></html>");
     return html;
 }

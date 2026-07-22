@@ -17,6 +17,13 @@ function(workorder_setup_android_target target)
         QT_ANDROID_APPLICATION_ARGUMENTS "--type mobile"
     )
 
+    if(DEFINED WORKORDER_VERSION_NAME AND DEFINED WORKORDER_VERSION_CODE)
+        set_target_properties(${target} PROPERTIES
+            QT_ANDROID_VERSION_NAME "${WORKORDER_VERSION_NAME}"
+            QT_ANDROID_VERSION_CODE "${WORKORDER_VERSION_CODE}"
+        )
+    endif()
+
     if(COMMAND qt_add_android_permission)
         qt_add_android_permission(${target}
             NAME android.permission.READ_EXTERNAL_STORAGE

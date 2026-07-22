@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/WorkOrderRoot.cmake")
+include("${WORKORDER_ROOT}/cmake/WorkOrderVersion.cmake")
+
 project(WorkOrderPython
-    VERSION 1.0.0
+    VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
     DESCRIPTION "WorkOrder Python/PyQt6 IDE and run targets"
     LANGUAGES C CXX
 )
 
-include("${CMAKE_CURRENT_LIST_DIR}/../cmake/WorkOrderRoot.cmake")
 include("${WORKORDER_ROOT}/cmake/IdeCommon.cmake")
 include("${WORKORDER_ROOT}/cmake/PythonProject.cmake")
 

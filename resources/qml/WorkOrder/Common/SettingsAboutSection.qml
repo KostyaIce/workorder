@@ -26,13 +26,6 @@ ColumnLayout {
     }
 
     Label {
-        text: qsTr("Сборка: %1").arg(settingsBackend.buildDate)
-        font.pixelSize: 12
-        color: textSecondaryColor
-        Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
-    }
-
-    Label {
         text: settingsBackend.developer
         font.pixelSize: 12
         color: textSecondaryColor

@@ -5,6 +5,10 @@
 #include <QString>
 #include <QVariantList>
 
+#ifndef WORKORDER_VERSION
+#define WORKORDER_VERSION "1.0.0"
+#endif
+
 namespace workorder
 {
 
@@ -84,7 +88,7 @@ private:
     void loadPersistedSettings();
     QVariantMap collectSettings() const;
 
-    QString m_appVersion = QStringLiteral("1.0.0");
+    QString m_appVersion = QLatin1String(WORKORDER_VERSION);
     QString m_appName = QStringLiteral("WorkOrder");
     QString m_buildDate = QStringLiteral("2024-01-15");
     QString m_developer = QStringLiteral("WorkOrder Team");

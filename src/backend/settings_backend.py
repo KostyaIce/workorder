@@ -7,6 +7,7 @@ SettingsPage Backend
 from qt_compat import QObject, pyqtProperty, pyqtSignal, pyqtSlot
 
 from app_paths import data_dir
+from app_version import get_version
 from utils.db_storage import load_app_settings, save_app_settings
 
 
@@ -22,7 +23,7 @@ class SettingsBackend(QObject):
         super().__init__(parent)
         
         # Приватные свойства
-        self._app_version = "1.0.0"
+        self._app_version = get_version()
         self._app_name = "WorkOrder"
         self._build_date = "2024-01-15"
         self._developer = "WorkOrder Team"
