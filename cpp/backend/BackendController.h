@@ -9,6 +9,7 @@
 namespace workorder
 {
 
+class CloudDiskBackend;
 class DatabaseBackend;
 class InvoiceBackend;
 class ReportBackend;
@@ -26,16 +27,11 @@ public:
     bool initialize();
     void exposeToQml(QQmlContext *context) const;
 
-    // SettingsBackend *settingsBackend() const;
-    // ReportOptionsBackend *reportOptionsBackend() const;
-    // DatabaseBackend *databaseBackend() const;
-    // ReportBackend *reportBackend() const;
-    // InvoiceBackend *invoiceBackend() const;
-
 private:
     QQmlApplicationEngine *m_engine = nullptr;
     std::unique_ptr<SettingsBackend> m_settingsBackend;
     std::unique_ptr<ReportOptionsBackend> m_reportOptionsBackend;
+    std::unique_ptr<CloudDiskBackend> m_cloudDiskBackend;
     std::unique_ptr<DatabaseBackend> m_databaseBackend;
     std::unique_ptr<ReportBackend> m_reportBackend;
     std::unique_ptr<InvoiceBackend> m_invoiceBackend;

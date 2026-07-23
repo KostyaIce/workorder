@@ -14,6 +14,7 @@ SettingsActionRow 1.0 SettingsActionRow.qml
 SettingsFormRow 1.0 SettingsFormRow.qml
 SelectionDialog 1.0 SelectionDialog.qml
 ConfirmDialog 1.0 ConfirmDialog.qml
+CloudDiskDialog 1.0 CloudDiskDialog.qml
 SettingsAboutSection 1.0 SettingsAboutSection.qml
 SettingsContent 1.0 SettingsContent.qml
 ServiceSearchField 1.0 ServiceSearchField.qml

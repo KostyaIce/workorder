@@ -1,5 +1,6 @@
 #include "BackendController.h"
 
+#include "CloudDiskBackend.h"
 #include "DatabaseBackend.h"
 #include "InvoiceBackend.h"
 #include "ReportBackend.h"
@@ -14,6 +15,7 @@ BackendController::BackendController(QQmlApplicationEngine *engine, QObject *par
     , m_engine(engine)
     , m_settingsBackend(std::make_unique<SettingsBackend>())
     , m_reportOptionsBackend(std::make_unique<ReportOptionsBackend>())
+    , m_cloudDiskBackend(std::make_unique<CloudDiskBackend>())
     , m_databaseBackend(std::make_unique<DatabaseBackend>())
     , m_reportBackend(std::make_unique<ReportBackend>(
           m_settingsBackend.get(),
@@ -40,32 +42,8 @@ void BackendController::exposeToQml(QQmlContext *context) const
     context->setContextProperty("databaseBackend", m_databaseBackend.get());
     context->setContextProperty("settingsBackend", m_settingsBackend.get());
     context->setContextProperty("reportOptionsBackend", m_reportOptionsBackend.get());
+    context->setContextProperty("cloudDiskBackend", m_cloudDiskBackend.get());
     context->setContextProperty("reportBackend", m_reportBackend.get());
 }
-
-// SettingsBackend *BackendController::settingsBackend() const
-// {
-//     return m_settingsBackend.get();
-// }
-
-// ReportOptionsBackend *BackendController::reportOptionsBackend() const
-// {
-//     return m_reportOptionsBackend.get();
-// }
-
-// DatabaseBackend *BackendController::databaseBackend() const
-// {
-//     return m_databaseBackend.get();
-// }
-
-// ReportBackend *BackendController::reportBackend() const
-// {
-//     return m_reportBackend.get();
-// }
-
-// InvoiceBackend *BackendController::invoiceBackend() const
-// {
-//     return m_invoiceBackend.get();
-// }
 
 } // namespace workorder

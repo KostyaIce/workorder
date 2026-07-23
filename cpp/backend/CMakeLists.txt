@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 set(WORKORDER_BACKEND_SOURCES
     ../app/ApplicationBootstrap.cpp
     BackendController.cpp
+    CloudDiskBackend.cpp
     DatabaseBackend.cpp
     InvoiceBackend.cpp
     ReportBackend.cpp
@@ -13,6 +14,7 @@ set(WORKORDER_BACKEND_SOURCES
 set(WORKORDER_BACKEND_HEADERS
     ../app/ApplicationBootstrap.h
     BackendController.h
+    CloudDiskBackend.h
     DatabaseBackend.h
     InvoiceBackend.h
     ReportBackend.h
@@ -35,6 +37,7 @@ target_link_libraries(workorder_backend
         WorkOrder::Utils
         Qt6::Core
         Qt6::Gui
+        Qt6::Network
         Qt6::Qml
         Qt6::Quick
 )

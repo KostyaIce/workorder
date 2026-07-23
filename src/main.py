@@ -36,14 +36,13 @@ from qt_compat import (
     QQmlContext,
     QQuickWindow,
     Qt,
-    QtMsgType,
     QUrl,
-    qInstallMessageHandler,
     qt_qml_path,
 )
 
 from backend.invoice_backend import InvoiceBackend
 from backend.database_backend import DatabaseBackend
+from backend.cloud_disk_backend import CloudDiskBackend
 from backend.report_options_backend import ReportOptionsBackend
 from backend.settings_backend import SettingsBackend
 from backend.report_backend import ReportBackend
@@ -61,23 +60,6 @@ elif sys.platform == "darwin":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 else:
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
-
-
-def _install_qt_message_handler() -> None:
-    def handler(mode, context, message):
-        if mode == QtMsgType.QtDebugMsg:
-            level = logging.DEBUG
-        elif mode == QtMsgType.QtInfoMsg:
-            level = logging.INFO
-        elif mode == QtMsgType.QtWarningMsg:
-            level = logging.WARNING
-        elif mode == QtMsgType.QtCriticalMsg:
-            level = logging.ERROR
-        else:
-            level = logging.CRITICAL
-        logger.log(level, "Qt: %s", message)
-
-    qInstallMessageHandler(handler)
 
 
 def _set_qml_theme_context(context: QQmlContext) -> None:
@@ -152,10 +134,9 @@ def main():
     args, _unknown = parser.parse_known_args()
 
     app_type = resolve_app_type(args.type)
-    _install_qt_message_handler()
     logger.info("Starting WorkOrder, type=%s, qt=%s", app_type, QT_BINDING)
     if _log_file is not None:
-        logger.info("Android debug log: %s", _log_file)
+        logger.info("Log file: %s", _log_file)
     try:
         QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
             Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -193,6 +174,7 @@ def main():
         database_backend = DatabaseBackend()
         settings_backend = SettingsBackend()
         report_options_backend = ReportOptionsBackend()
+        cloud_disk_backend = CloudDiskBackend()
         report_backend = ReportBackend(settings_backend, report_options_backend, engine)
         report_backend.initializeData()
         invoice_backend.bind_report_backend(report_backend)
@@ -204,6 +186,7 @@ def main():
     context.setContextProperty("databaseBackend", database_backend)
     context.setContextProperty("settingsBackend", settings_backend)
     context.setContextProperty("reportOptionsBackend", report_options_backend)
+    context.setContextProperty("cloudDiskBackend", cloud_disk_backend)
     context.setContextProperty("reportBackend", report_backend)
 
     context.setContextProperty("appType", app_type)

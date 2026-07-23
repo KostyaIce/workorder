@@ -13,6 +13,7 @@ include("${WORKORDER_ROOT}/cmake/IdeCommon.cmake")
 include("${WORKORDER_ROOT}/cmake/CppProject.cmake")
 include("${WORKORDER_ROOT}/cmake/CppResources.cmake")
 include("${WORKORDER_ROOT}/cmake/CppAndroid.cmake")
+include("${WORKORDER_ROOT}/cmake/WorkOrderLogging.cmake")
 
 if(ANDROID)
     set(Type "mobile" CACHE STRING "Application UI type on Android" FORCE)

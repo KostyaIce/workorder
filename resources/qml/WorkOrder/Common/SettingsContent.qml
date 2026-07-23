@@ -62,6 +62,20 @@ ColumnLayout {
         onAccepted: settingsBackend.resetDatabase()
     }
 
+    ConfirmDialog {
+        id: clearCloudDiskDialog
+        title: qsTr("Удалить данные диска?")
+        compact: root.compact
+        danger: true
+        message: qsTr("Токен и ссылка на диск будут удалены с устройства.")
+        onAccepted: cloudDiskBackend.clearDiskData()
+    }
+
+    CloudDiskDialog {
+        id: cloudDiskDialog
+        compact: root.compact
+    }
+
     Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -298,6 +312,71 @@ ColumnLayout {
                             }
                             onClicked: resetDbDialog.open()
                         }
+                    }
+                }
+            }
+
+            SettingsSection {
+                title: qsTr("Облачный диск")
+                compact: root.compact
+
+                Label {
+                    Layout.fillWidth: true
+                    text: cloudDiskBackend.connected
+                          ? qsTr("Подключён: %1").arg(cloudDiskBackend.diskUrl)
+                          : qsTr("Диск не подключён")
+                    font.pixelSize: compact ? 13 : 14
+                    color: textSecondaryColor
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    visible: cloudDiskBackend.statusMessage.length > 0
+                    text: cloudDiskBackend.statusMessage
+                    font.pixelSize: 12
+                    color: textSecondaryColor
+                    wrapMode: Text.WordWrap
+                }
+
+                SettingsActionRow {
+                    visible: compact
+                    label: cloudDiskBackend.connected
+                           ? qsTr("Управление диском")
+                           : qsTr("Подключить диск")
+                    icon: ">"
+                    onActivated: cloudDiskDialog.open()
+                }
+
+                SettingsActionRow {
+                    visible: compact && cloudDiskBackend.connected
+                    label: qsTr("Удалить данные диска")
+                    danger: true
+                    onActivated: clearCloudDiskDialog.open()
+                }
+
+                RowLayout {
+                    visible: !compact
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PrimaryButton {
+                        text: cloudDiskBackend.connected
+                              ? qsTr("Управление диском")
+                              : qsTr("Подключить диск")
+                        Layout.preferredWidth: 200
+                        onClicked: cloudDiskDialog.open()
+                    }
+
+                    Button {
+                        visible: cloudDiskBackend.connected
+                        text: qsTr("Удалить данные диска")
+                        flat: true
+                        contentItem: Label {
+                            text: parent.text
+                            color: "#F44336"
+                        }
+                        onClicked: clearCloudDiskDialog.open()
                     }
                 }
             }

@@ -1,6 +1,6 @@
 macro(workorder_find_qt6_cpp)
     workorder_apply_qt_prefix_path()
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Sql Gui Qml Quick)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Sql Gui Network Qml Quick)
     if(NOT ANDROID)
         find_package(Qt6 6.5 QUIET COMPONENTS Pdf)
     endif()

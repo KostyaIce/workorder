@@ -54,6 +54,8 @@ target_link_libraries(workorder_utils
 target_include_directories(workorder_utils
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE
+        ${WORKORDER_LOGGING_GENERATED_INCLUDE_DIR}
 )
 
 set_target_properties(workorder_utils PROPERTIES

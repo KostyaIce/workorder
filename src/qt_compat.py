@@ -24,6 +24,7 @@ try:
     )
     from PySide6.QtGui import (
         QColor,
+        QDesktopServices,
         QFont,
         QFontDatabase,
         QGuiApplication,
@@ -58,6 +59,7 @@ except ImportError:
     )
     from PyQt6.QtGui import (
         QColor,
+        QDesktopServices,
         QFont,
         QFontDatabase,
         QGuiApplication,

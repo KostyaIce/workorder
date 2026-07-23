@@ -45,7 +45,18 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "WORKORDER_CMAKE_PRESET": "cpp",
-                "Type": "desktop"
+                "Type": "desktop",
+                "WORKORDER_QT_LOGGING_VERBOSE": "OFF"
+            }
+        },
+        {
+            "name": "cpp-logging-verbose",
+            "displayName": "WorkOrder C++ (verbose Qt logging)",
+            "description": "Same as cpp, with WORKORDER_QT_LOGGING_VERBOSE=ON for client Qt/QML debugging.",
+            "inherits": "cpp",
+            "binaryDir": "${sourceDir}/build/cpp-logging-verbose",
+            "cacheVariables": {
+                "WORKORDER_QT_LOGGING_VERBOSE": "ON"
             }
         },
         {
@@ -113,6 +124,12 @@
             "name": "cpp-build",
             "displayName": "C++ Build",
             "configurePreset": "cpp",
+            "targets": ["WorkOrder"]
+        },
+        {
+            "name": "cpp-logging-verbose-build",
+            "displayName": "C++ Build (verbose Qt logging)",
+            "configurePreset": "cpp-logging-verbose",
             "targets": ["WorkOrder"]
         },
         {

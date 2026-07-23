@@ -1,6 +1,7 @@
 #include "AppLogging.h"
 
 #include "AppPaths.h"
+#include "WorkOrderLoggingRules.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -25,10 +26,11 @@
 namespace workorder
 {
 
-Q_LOGGING_CATEGORY(logWorkorder, "workorder")
-
 namespace
 {
+
+QString g_pathToLog;
+QString g_pathToFile;
 
 const char *messageLevel(QtMsgType type)
 {
@@ -45,23 +47,6 @@ const char *messageLevel(QtMsgType type)
     default:
         return "DEB";
     }
-}
-
-bool isProjectLogCategory(const char *category)
-{
-    if(category == nullptr || category[0] == '\0')
-        return true;
-
-    if(qstrncmp(category, "default", 7) == 0 && (category[7] == '\0' || category[7] == '.'))
-        return true;
-    if(qstrncmp(category, "workorder", 9) == 0 && (category[9] == '\0' || category[9] == '.'))
-        return true;
-    if(qstrncmp(category, "qml", 3) == 0 && (category[3] == '\0' || category[3] == '.'))
-        return true;
-    if(qstrncmp(category, "js", 2) == 0 && (category[2] == '\0' || category[2] == '.'))
-        return true;
-
-    return false;
 }
 
 bool stderrIsRegularFile()
@@ -128,30 +113,13 @@ QString coloredLevelTag(QtMsgType type)
     return QString::fromLatin1(colorStart) + levelTag + QString::fromLatin1(consoleColorReset());
 }
 
-QString formatLogLine(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+QString formatLogLine(QtMsgType type, const QMessageLogContext &context, const QString &msg, bool colored)
 {
     const QString category = context.category ? QString::fromUtf8(context.category) : QStringLiteral("default");
     QString line = QStringLiteral(" [") + QDateTime::currentDateTime().toString(Qt::ISODate) + QStringLiteral("]")
-            + coloredLevelTag(type) + QStringLiteral(" ")
-            + category + QStringLiteral(": ") + msg;
-
-    if(context.file != nullptr && context.file[0] != '\0')
-    {
-        const QString filePath = QString::fromUtf8(context.file);
-        const int slashIndex = qMax(filePath.lastIndexOf(QLatin1Char('/')),
-                                    filePath.lastIndexOf(QLatin1Char('\\')));
-        const QString fileName = slashIndex >= 0 ? filePath.mid(slashIndex + 1) : filePath;
-        line += QStringLiteral(" (") + fileName + QLatin1Char(':') + QString::number(context.line) + QLatin1Char(')');
-    }
-
-    return line;
-}
-
-QString formatFileLine(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-    const QString category = context.category ? QString::fromUtf8(context.category) : QStringLiteral("default");
-    QString line = QStringLiteral(" [") + QDateTime::currentDateTime().toString(Qt::ISODate) + QStringLiteral("]")
-            + QStringLiteral(" [") + QLatin1String(messageLevel(type)) + QStringLiteral("] ")
+            + (colored ? coloredLevelTag(type)
+                       : (QStringLiteral(" [") + QLatin1String(messageLevel(type)) + QStringLiteral("]")))
+            + QStringLiteral(" ")
             + category + QStringLiteral(": ") + msg;
 
     if(context.file != nullptr && context.file[0] != '\0')
@@ -282,16 +250,17 @@ private:
 
 FileLogWriter *g_fileWriter = nullptr;
 
+// Qt message hook (same entry point as DapLogger::messageHandler).
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    if(!isProjectLogCategory(context.category))
-        return;
-
-    const QString consoleLine = formatLogLine(type, context, msg);
-    const QString fileLine = formatFileLine(type, context, msg);
+    const QString consoleLine = formatLogLine(type, context, msg, true);
+    const QString fileLine = formatLogLine(type, context, msg, false);
 
     if(g_fileWriter != nullptr)
+    {
         g_fileWriter->write(fileLine);
+        g_pathToFile = g_fileWriter->currentLogFilePath();
+    }
 
 #ifdef Q_OS_ANDROID
     writeToAndroidLog(type, fileLine);
@@ -309,37 +278,40 @@ QString AppLogging::setupAppLogging()
 {
     static bool installed = false;
     if(installed)
-        return g_fileWriter != nullptr ? g_fileWriter->currentLogFilePath() : QString();
+        return g_pathToFile;
     installed = true;
 
-    QLoggingCategory::setFilterRules(QStringLiteral(
-        "qt.*.debug=false\n"
-        "qt.*.info=false\n"
-        "qt.*.warning=false\n"
-        "qt.*.critical=false\n"
-        "default.debug=true\n"
-        "default.info=true\n"
-        "default.warning=true\n"
-        "default.critical=true\n"
-        "workorder.debug=true\n"
-        "workorder.info=true\n"
-        "workorder.warning=true\n"
-        "workorder.critical=true\n"
-        "qml.debug=true\n"
-        "qml.info=true\n"
-        "qml.warning=true\n"
-        "qml.critical=true\n"
-        "js.debug=true\n"
-        "js.info=true\n"
-        "js.warning=true\n"
-        "js.critical=true"));
+    // Rules come from CMake (WorkOrderLogging.cmake). Runtime override: QT_LOGGING_RULES.
+    const QByteArray envRules = qgetenv("QT_LOGGING_RULES");
+    const bool useEnvRules = !envRules.isEmpty();
+    if(useEnvRules)
+        QLoggingCategory::setFilterRules(QString::fromUtf8(envRules));
+    else
+        QLoggingCategory::setFilterRules(QString::fromUtf8(WORKORDER_QT_LOGGING_RULES));
 
-    const QString logDir = QDir(AppPaths::dataDir()).filePath(QStringLiteral("logs"));
-    clearOldLogs(logDir, 2);
-    g_fileWriter = new FileLogWriter(logDir);
+    g_pathToLog = QDir(AppPaths::dataDir()).filePath(QStringLiteral("logs"));
+    clearOldLogs(g_pathToLog, 2);
+    g_fileWriter = new FileLogWriter(g_pathToLog);
+    g_pathToFile = g_fileWriter->currentLogFilePath();
 
+    // Intercept all qDebug/qInfo/qWarning/qCritical/qFatal.
     qInstallMessageHandler(&messageHandler);
-    return g_fileWriter->currentLogFilePath();
+
+    if(useEnvRules)
+        qInfo("AppLogging: handler installed (QT_LOGGING_RULES), log=%s", qPrintable(g_pathToFile));
+    else
+        qInfo("AppLogging: handler installed, log=%s", qPrintable(g_pathToFile));
+    return g_pathToFile;
+}
+
+QString AppLogging::pathToLog()
+{
+    return g_pathToLog;
+}
+
+QString AppLogging::pathToFile()
+{
+    return g_pathToFile;
 }
 
 } // namespace workorder

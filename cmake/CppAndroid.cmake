@@ -26,6 +26,9 @@ function(workorder_setup_android_target target)
 
     if(COMMAND qt_add_android_permission)
         qt_add_android_permission(${target}
+            NAME android.permission.INTERNET
+        )
+        qt_add_android_permission(${target}
             NAME android.permission.READ_EXTERNAL_STORAGE
         )
         qt_add_android_permission(${target}
