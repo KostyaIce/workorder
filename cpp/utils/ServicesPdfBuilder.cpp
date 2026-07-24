@@ -1,5 +1,6 @@
 #include "ServicesPdfBuilder.h"
 
+#include "FileIo.h"
 #include "PdfReportBuilder.h"
 #include "ServiceUnits.h"
 #include "ServicesDatabase.h"
@@ -143,6 +144,10 @@ QString ServicesPdfBuilder::resolvePdfPath(const QString &fileUrl)
     if(path.isEmpty())
         return QString();
 
+    // Do not mutate Android SAF content:// document URIs.
+    if(FileIo::isContentUri(path))
+        return path;
+
     if(path.endsWith(".xlsx", Qt::CaseInsensitive))
         path.chop(5);
 
@@ -174,15 +179,15 @@ QByteArray ServicesPdfBuilder::buildPdfBytes(const StringMapList &services, cons
 QString ServicesPdfBuilder::savePdf(const QString &filePath, const StringMapList &services,
                                       const QString &title) const
 {
-    QDir().mkpath(QFileInfo(filePath).absolutePath());
     const QByteArray pdfBytes = buildPdfBytes(services, title);
-
-    QFile file(filePath);
-    if(!file.open(QIODevice::WriteOnly))
+    QString error;
+    if(!FileIo::writeBytes(filePath, pdfBytes, &error))
+    {
+        qWarning("ServicesPdfBuilder::savePdf failed: %s", qPrintable(error));
         return QString();
+    }
 
-    file.write(pdfBytes);
-    return QFileInfo(filePath).absoluteFilePath();
+    return FileIo::nativeTarget(filePath);
 }
 
 QString exportServicesPdf(const QString &fileUrl, const StringMapList &services, const QString &title)

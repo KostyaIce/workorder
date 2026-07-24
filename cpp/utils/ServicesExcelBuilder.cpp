@@ -1,5 +1,6 @@
 #include "ServicesExcelBuilder.h"
 
+#include "FileIo.h"
 #include "ServicesDatabase.h"
 
 #include <QDir>
@@ -324,6 +325,9 @@ QString ServicesExcelBuilder::resolveExcelPath(const QString &fileUrl, bool ensu
     if(value.isEmpty())
         return QString();
 
+    if(FileIo::isContentUri(value))
+        return value;
+
     QString path;
     if(value.startsWith("file:", Qt::CaseInsensitive))
         path = QUrl(value).toLocalFile();
@@ -367,14 +371,14 @@ int ServicesExcelBuilder::parseExcelPrice(const QVariant &value)
 
 StringMapList ServicesExcelBuilder::readServices(const QString &filePath)
 {
-    QFile file(filePath);
-    if(!file.exists())
-        throw std::runtime_error(QString("Services import file not found: %1").arg(filePath).toStdString());
+    QString error;
+    const QByteArray data = FileIo::readBytes(filePath, &error);
+    if(data.isEmpty())
+        throw std::runtime_error(QString("Failed to open services import file: %1 (%2)")
+                                     .arg(filePath, error)
+                                     .toStdString());
 
-    if(!file.open(QIODevice::ReadOnly))
-        throw std::runtime_error(QString("Failed to open services import file: %1").arg(filePath).toStdString());
-
-    MinimalZipReader zip(file.readAll());
+    MinimalZipReader zip(data);
     if(!zip.isValid())
         throw std::runtime_error("Invalid XLSX archive");
 
@@ -388,8 +392,6 @@ StringMapList ServicesExcelBuilder::readServices(const QString &filePath)
 
 QString ServicesExcelBuilder::writeExport(const QString &filePath, const StringMapList &services)
 {
-    QDir().mkpath(QFileInfo(filePath).absolutePath());
-
     const QByteArray contentTypes =
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
@@ -422,10 +424,13 @@ QString ServicesExcelBuilder::writeExport(const QString &filePath, const StringM
     zip.addFile("xl/_rels/workbook.xml.rels", workbookRels);
     zip.addFile("xl/worksheets/sheet1.xml", buildSheetXml(services).toUtf8());
 
-    if(!zip.writeToFile(filePath))
-        throw std::runtime_error(QString("Failed to write services export file: %1").arg(filePath).toStdString());
+    QString error;
+    if(!FileIo::writeBytes(filePath, zip.writeToBytes(), &error))
+        throw std::runtime_error(QString("Failed to write services export file: %1 (%2)")
+                                     .arg(filePath, error)
+                                     .toStdString());
 
-    return QFileInfo(filePath).absoluteFilePath();
+    return FileIo::nativeTarget(filePath);
 }
 
 StringMapList importServicesFromExcel(const QString &fileUrl)

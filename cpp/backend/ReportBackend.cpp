@@ -12,6 +12,7 @@
 
 #include "ClientsDatabase.h"
 #include "DatabaseStorage.h"
+#include "FileIo.h"
 #include "ObjectsDatabase.h"
 #include "PdfReportBuilder.h"
 #include "QSettingsStore.h"
@@ -676,8 +677,39 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
         m_reportOptionsBackend->asDict(),
         targetPath);
 
+    if(result.first.isEmpty())
+    {
+        // Android SAF content:// write can fail; fall back to app reports directory.
+        if(saveToFile && !targetPath.isEmpty() && FileIo::isContentUri(targetPath))
+        {
+            qWarning("ReportBackend: content URI save failed, falling back to app reports dir");
+            const auto fallback = saveWorkReportPdf(
+                m_settingsBackend->personalInfo(),
+                client,
+                objectData,
+                mapsToVariantList(works),
+                m_reportOptionsBackend->asDict(),
+                QString());
+            if(!fallback.first.isEmpty())
+            {
+                m_lastReportPath = fallback.first;
+                m_lastReportUrl = QUrl::fromLocalFile(fallback.first).toString();
+                emit reportGenerated(m_lastReportPath, m_lastReportUrl);
+                emit errorOccurred(tr("Не удалось записать в выбранный файл. Отчёт сохранён в: %1")
+                                       .arg(fallback.first));
+                return true;
+            }
+        }
+
+        emit errorOccurred(QStringLiteral("Не удалось сохранить PDF"));
+        return false;
+    }
+
     m_lastReportPath = saveToFile ? result.first : QString();
-    m_lastReportUrl = QUrl::fromLocalFile(result.first).toString();
+    if(FileIo::isContentUri(result.first))
+        m_lastReportUrl = result.first;
+    else
+        m_lastReportUrl = QUrl::fromLocalFile(result.first).toString();
     emit reportGenerated(m_lastReportPath, m_lastReportUrl);
     return true;
 }
@@ -704,6 +736,10 @@ QString ReportBackend::resolveLocalFilePath(const QString &fileUrl)
     QString value = fileUrl.trimmed();
     if(value.isEmpty())
         return QString();
+
+    // Android SAF: keep content:// as-is for QFile.
+    if(FileIo::isContentUri(value))
+        return value;
 
     QString path;
     if(value.startsWith("file:", Qt::CaseInsensitive))

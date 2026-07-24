@@ -2,6 +2,7 @@
 
 #include "AppPaths.h"
 #include "DatabaseStorage.h"
+#include "FileIo.h"
 #include "ReportBuilder.h"
 
 #include <QBuffer>
@@ -462,7 +463,10 @@ QPair<QString, QByteArray> PdfReportBuilder::saveWorkReport(const QString &perso
     QString target;
     if(!filePath.isEmpty())
     {
-        target = QFileInfo(filePath).absoluteFilePath();
+        // Keep content:// URIs intact; absoluteFilePath() breaks SAF targets on Android.
+        target = FileIo::nativeTarget(filePath);
+        if(target.isEmpty())
+            target = filePath.trimmed();
     }
     else
     {
@@ -470,10 +474,14 @@ QPair<QString, QByteArray> PdfReportBuilder::saveWorkReport(const QString &perso
         target = QDir(reportsDir).filePath(QStringLiteral("report_%1_%2.pdf").arg(safeClientName(client), stamp));
     }
 
-    QDir().mkpath(QFileInfo(target).absolutePath());
-    QFile file(target);
-    if(file.open(QIODevice::WriteOnly))
-        file.write(pdfBytes);
+    QString error;
+    if(!FileIo::writeBytes(target, pdfBytes, &error))
+    {
+        qWarning("PdfReportBuilder: failed to save PDF to %s: %s",
+                 qPrintable(target),
+                 qPrintable(error));
+        return {QString(), pdfBytes};
+    }
 
     return {target, pdfBytes};
 }

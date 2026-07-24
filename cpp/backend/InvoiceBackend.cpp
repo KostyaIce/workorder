@@ -9,6 +9,7 @@
 #include "ServicesPdfBuilder.h"
 
 #include <QQmlContext>
+#include <stdexcept>
 
 namespace workorder
 {
@@ -78,19 +79,43 @@ bool InvoiceBackend::deleteService(const QString &serviceId)
 
 bool InvoiceBackend::importServicesFromFile(const QString &fileUrl)
 {
-    const StringMapList services = importServicesFromExcel(fileUrl);
-    if(services.isEmpty())
-        return false;
-
-    int savedCount = 0;
-    for(const QVariant &item : services)
+    try
     {
-        if(ServicesDatabase::addService(item.toMap()))
-            ++savedCount;
-    }
+        const StringMapList services = importServicesFromExcel(fileUrl);
+        if(services.isEmpty())
+        {
+            qWarning("InvoiceBackend: import produced no services from %s",
+                     qPrintable(fileUrl));
+            return false;
+        }
 
-    loadServices();
-    return savedCount > 0;
+        int savedCount = 0;
+        for(const QVariant &item : services)
+        {
+            if(ServicesDatabase::addService(item.toMap()))
+                ++savedCount;
+        }
+
+        loadServices();
+        qInfo("InvoiceBackend: imported %d of %d services from %s",
+              savedCount,
+              static_cast<int>(services.size()),
+              qPrintable(fileUrl));
+        return savedCount > 0;
+    }
+    catch(const std::exception &ex)
+    {
+        qWarning("InvoiceBackend: import failed from %s: %s",
+                 qPrintable(fileUrl),
+                 ex.what());
+        return false;
+    }
+    catch(...)
+    {
+        qWarning("InvoiceBackend: import failed from %s: unknown error",
+                 qPrintable(fileUrl));
+        return false;
+    }
 }
 
 bool InvoiceBackend::exportServicesToFile(const QString &fileUrl)

@@ -114,8 +114,7 @@ class InvoiceBackend(QObject):
     @pyqtSlot(str, result=bool)
     def importServicesFromFile(self, file_url):
         """Import services from Excel file into services database."""
-        # try:
-        if True:
+        try:
             services = import_services_from_excel(file_url)
             if not services:
                 logger.warning("Services import: no services found in %s", file_url)
@@ -136,9 +135,9 @@ class InvoiceBackend(QObject):
                 file_url,
             )
             return saved_count > 0
-        # except Exception:
-        #     logger.exception("Failed to import services from %s", file_url)
-        #     return False
+        except Exception:
+            logger.exception("Failed to import services from %s", file_url)
+            return False
 
     @pyqtSlot(str, result=bool)
     def exportServicesToFile(self, file_url):
