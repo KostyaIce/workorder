@@ -74,5 +74,11 @@ int main(int argc, char *argv[])
     }
 
     workorder::ApplicationBootstrap::applyWindowIcons(app, engine);
-    return app.exec();
+    const int exitCode = app.exec();
+
+    // Tear down QML while backends are still alive. Otherwise context properties
+    // become null and bindings spam TypeError on shutdown.
+    qDeleteAll(engine.rootObjects());
+
+    return exitCode;
 }

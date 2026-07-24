@@ -204,7 +204,12 @@ def main():
 
     _apply_window_icons(app, engine)
 
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    # Tear down QML while backends are still alive to avoid null binding spam.
+    for root in list(engine.rootObjects()):
+        root.deleteLater()
+    app.processEvents()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

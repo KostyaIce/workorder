@@ -366,7 +366,7 @@ ListView {
 
             Label {
                 text: qsTr("Услуги (%1)")
-                        .arg(servicesModel.rowCount)
+                        .arg(servicesModel.count)
 
                 font.bold: true
                 color: textSecondaryColor

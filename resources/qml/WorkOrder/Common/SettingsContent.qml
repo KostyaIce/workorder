@@ -64,10 +64,10 @@ ColumnLayout {
 
     ConfirmDialog {
         id: clearCloudDiskDialog
-        title: qsTr("Удалить данные диска?")
+        title: qsTr("Удалить данные Яндекс.Диска?")
         compact: root.compact
         danger: true
-        message: qsTr("Токен и ссылка на диск будут удалены с устройства.")
+        message: qsTr("Токен Яндекс.Диска будет удалён с устройства.")
         onAccepted: cloudDiskBackend.clearDiskData()
     }
 
@@ -317,14 +317,14 @@ ColumnLayout {
             }
 
             SettingsSection {
-                title: qsTr("Облачный диск")
+                title: qsTr("Яндекс.Диск")
                 compact: root.compact
 
                 Label {
                     Layout.fillWidth: true
                     text: cloudDiskBackend.connected
                           ? qsTr("Подключён: %1").arg(cloudDiskBackend.diskUrl)
-                          : qsTr("Диск не подключён")
+                          : qsTr("Яндекс.Диск не подключён")
                     font.pixelSize: compact ? 13 : 14
                     color: textSecondaryColor
                     wrapMode: Text.WordWrap
@@ -342,15 +342,15 @@ ColumnLayout {
                 SettingsActionRow {
                     visible: compact
                     label: cloudDiskBackend.connected
-                           ? qsTr("Управление диском")
-                           : qsTr("Подключить диск")
+                           ? qsTr("Управление Яндекс.Диском")
+                           : qsTr("Подключить Яндекс.Диск")
                     icon: ">"
                     onActivated: cloudDiskDialog.open()
                 }
 
                 SettingsActionRow {
                     visible: compact && cloudDiskBackend.connected
-                    label: qsTr("Удалить данные диска")
+                    label: qsTr("Удалить данные Яндекс.Диска")
                     danger: true
                     onActivated: clearCloudDiskDialog.open()
                 }
@@ -362,15 +362,15 @@ ColumnLayout {
 
                     PrimaryButton {
                         text: cloudDiskBackend.connected
-                              ? qsTr("Управление диском")
-                              : qsTr("Подключить диск")
-                        Layout.preferredWidth: 200
+                              ? qsTr("Управление Яндекс.Диском")
+                              : qsTr("Подключить Яндекс.Диск")
+                        Layout.preferredWidth: 240
                         onClicked: cloudDiskDialog.open()
                     }
 
                     Button {
                         visible: cloudDiskBackend.connected
-                        text: qsTr("Удалить данные диска")
+                        text: qsTr("Удалить данные Яндекс.Диска")
                         flat: true
                         contentItem: Label {
                             text: parent.text

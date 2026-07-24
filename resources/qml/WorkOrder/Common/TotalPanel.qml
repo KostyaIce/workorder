@@ -64,12 +64,4 @@ ColumnLayout
         enabled: reportBackend.workCount > 0 && reportBackend.selectedClientId !== ""
         onClicked: root.reportOptionsRequested()
     }
-
-    PrimaryButton
-    {
-        Layout.fillWidth: true
-        text: compact ? qsTr("Очистить") : qsTr("Очистить форму")
-        filled: false
-        onClicked: root.clearRequested()
-    }
 }

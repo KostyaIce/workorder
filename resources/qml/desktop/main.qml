@@ -66,7 +66,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Создать счет"
-                    iconText: "+"
+                    iconText: "\u270F"
                     active: currentPage === 0
                     onClicked: currentPage = 0
                 }
@@ -74,7 +74,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "База услуг"
-                    iconText: "#"
+                    iconText: "\u2630"
                     active: currentPage === 1
                     onClicked: currentPage = 1
                 }
@@ -82,7 +82,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Отчёты"
-                    iconText: "%"
+                    iconText: "\u2637"
                     active: currentPage === 2
                     onClicked: currentPage = 2
                 }
@@ -90,7 +90,7 @@ ApplicationWindow
                 SidebarButton
                 {
                     text: "Настройки"
-                    iconText: "*"
+                    iconText: "\u2699"
                     active: currentPage === 3
                     onClicked: currentPage = 3
                 }
