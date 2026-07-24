@@ -15,6 +15,8 @@ public:
     static bool addClientEntry(const StringMap &data, const QString &dbPath = QString());
     static StringMapList loadClients(const QString &dbPath = QString());
     static bool delClientEntry(const StringMap &data, const QString &dbPath = QString());
+    // Insert rows from source that are missing in target (by primary key id).
+    static int mergeFromDatabase(const QString &sourceDbPath, const QString &targetDbPath = QString());
 
 private:
     static QString resolveDbPath(const QString &dbPath);

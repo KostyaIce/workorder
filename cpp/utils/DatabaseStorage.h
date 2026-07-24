@@ -18,6 +18,10 @@ public:
     static QString defaultSettingsPath();
     static QString defaultReportsDir();
     static QString resolveDbPath(const QString &filePath, const QString &defaultPath);
+    // Parse "{clientName}_{clientId}.db" (clientId is the segment after the last '_').
+    static bool parseObjectDbFileName(const QString &fileName,
+                                      QString *clientName,
+                                      QString *clientId);
 
     static QPair<QString, int> createWorksDatabase(const QString &clientName, const QString &clientId);
     static bool addWorkEntry(const QString &clientName, const QString &clientId, const StringMap &data);

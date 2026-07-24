@@ -254,3 +254,42 @@ def search_services(query):
         }
         for row in rows
     ]
+
+
+def merge_from_database(source_db_path):
+    """Insert services from source that are missing locally (by id)."""
+    source = Path(source_db_path)
+    if not source.exists():
+        return 0
+
+    create_services_table()
+    inserted = 0
+    with sqlite3.connect(source) as src, _connect() as dst:
+        src.row_factory = sqlite3.Row
+        rows = src.execute(
+            """SELECT id, name, note, paragraph, price, unit, keywords, created_at, updated_at
+               FROM services"""
+        ).fetchall()
+        for row in rows:
+            cursor = dst.execute(
+                """
+                INSERT OR IGNORE INTO services (
+                    id, name, note, paragraph, price, unit, keywords, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["name"],
+                    row["note"],
+                    row["paragraph"],
+                    row["price"],
+                    row["unit"],
+                    row["keywords"],
+                    row["created_at"],
+                    row["updated_at"],
+                ),
+            )
+            if cursor.rowcount and cursor.rowcount > 0:
+                inserted += 1
+        dst.commit()
+    return inserted

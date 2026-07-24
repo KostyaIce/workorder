@@ -392,3 +392,48 @@ def _row_to_result(row):
         "coefficients": row["coefficients"],
         "percent_sum": row["percent_sum"],
     }
+
+
+def merge_from_database(source_db_path, client_name, client_id):
+    """Insert works from source db that are missing in target (by id)."""
+    from pathlib import Path
+
+    source = Path(source_db_path)
+    if not source.exists() or not client_name or not client_id:
+        return 0
+
+    create_works_table(client_name, client_id)
+    inserted = 0
+    with sqlite3.connect(source) as src, _connect(client_name, client_id) as dst:
+        src.row_factory = sqlite3.Row
+        rows = src.execute(
+            f"SELECT {_WORKS_SELECT_COLUMNS} FROM completed_works"
+        ).fetchall()
+        for row in rows:
+            cursor = dst.execute(
+                """
+                INSERT OR IGNORE INTO completed_works (
+                    id, object_id, service_id, subobject_name, name, price, unit, quantity,
+                    created_at, updated_at, start_order_at, coefficients, percent_sum
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["object_id"],
+                    row["service_id"],
+                    row["subobject_name"],
+                    row["name"],
+                    row["price"],
+                    row["unit"],
+                    row["quantity"],
+                    row["created_at"],
+                    row["updated_at"],
+                    row["start_order_at"],
+                    row["coefficients"],
+                    row["percent_sum"],
+                ),
+            )
+            if cursor.rowcount and cursor.rowcount > 0:
+                inserted += 1
+        dst.commit()
+    return inserted

@@ -284,4 +284,59 @@ StringMapList ServicesDatabase::searchServices(const QString &queryText)
     return result;
 }
 
+int ServicesDatabase::mergeFromDatabase(const QString &sourceDbPath)
+{
+    if(sourceDbPath.isEmpty() || !QFileInfo::exists(sourceDbPath))
+        return 0;
+
+    createServicesTable();
+    const QString srcConn = QStringLiteral("services_merge_src_%1").arg(sourceDbPath);
+
+    int inserted = 0;
+    {
+        QSqlDatabase src = QSqlDatabase::contains(srcConn)
+            ? QSqlDatabase::database(srcConn)
+            : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), srcConn);
+        src.setDatabaseName(sourceDbPath);
+        if(!src.isOpen() && !src.open())
+        {
+            qWarning("ServicesDatabase::mergeFromDatabase failed to open source: %s",
+                     qPrintable(src.lastError().text()));
+        }
+        else
+        {
+            QSqlDatabase dst = openDatabase();
+            QSqlQuery select(src);
+            if(!select.exec(QStringLiteral(
+                    "SELECT id, name, note, paragraph, price, unit, keywords, created_at, updated_at"
+                    " FROM services")))
+            {
+                qWarning("ServicesDatabase::mergeFromDatabase select failed: %s",
+                         qPrintable(select.lastError().text()));
+            }
+            else
+            {
+                while(select.next())
+                {
+                    QSqlQuery insert(dst);
+                    insert.prepare(QStringLiteral(
+                        "INSERT OR IGNORE INTO services ("
+                        "id, name, note, paragraph, price, unit, keywords, created_at, updated_at"
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+                    for(int i = 0; i < 9; ++i)
+                        insert.addBindValue(select.value(i));
+                    if(insert.exec() && insert.numRowsAffected() > 0)
+                        ++inserted;
+                }
+            }
+        }
+    }
+
+    QSqlDatabase::removeDatabase(srcConn);
+    qInfo("ServicesDatabase::mergeFromDatabase inserted=%d from %s",
+          inserted,
+          qPrintable(sourceDbPath));
+    return inserted;
+}
+
 } // namespace workorder

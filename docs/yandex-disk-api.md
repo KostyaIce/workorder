@@ -318,7 +318,7 @@ Authorization: OAuth <token>
 | Каталог приложения | `app:/workOrder` через GET + PUT |
 | Force upload баз | очистка папки (`DELETE`) + upload каждого `*.db` |
 | Download баз | download каждого `*.db` из `app:/workOrder` на устройство |
-| Синхронизация | заглушка `syncDatabases()` |
+| Синхронизация | download во temp → merge по `id` → force upload |
 | Код | `CloudDiskBackend` (C++ / Python), см. [cloud-disk.md](cloud-disk.md) |
 
 Планируемые операции (ещё не в UI): upload/download отчётов в `app:/workOrder/` по схемам выше.

@@ -133,4 +133,64 @@ bool ClientsDatabase::delClientEntry(const StringMap &data, const QString &dbPat
     return query.exec();
 }
 
+int ClientsDatabase::mergeFromDatabase(const QString &sourceDbPath, const QString &targetDbPath)
+{
+    if(sourceDbPath.isEmpty() || !QFileInfo::exists(sourceDbPath))
+        return 0;
+
+    createClientTable(targetDbPath);
+    const QString targetPath = resolveDbPath(targetDbPath);
+    const QString srcConn = QStringLiteral("clients_merge_src_%1").arg(sourceDbPath);
+
+    int inserted = 0;
+    {
+        QSqlDatabase src = QSqlDatabase::contains(srcConn)
+            ? QSqlDatabase::database(srcConn)
+            : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), srcConn);
+        src.setDatabaseName(sourceDbPath);
+        if(!src.isOpen() && !src.open())
+        {
+            qWarning("ClientsDatabase::mergeFromDatabase failed to open source: %s",
+                     qPrintable(src.lastError().text()));
+        }
+        else
+        {
+            QSqlDatabase dst = openDatabase(targetPath);
+            QSqlQuery select(src);
+            if(!select.exec(QStringLiteral(
+                    "SELECT id, kind, name, address, contact, notes, created_at FROM clients")))
+            {
+                qWarning("ClientsDatabase::mergeFromDatabase select failed: %s",
+                         qPrintable(select.lastError().text()));
+            }
+            else
+            {
+                while(select.next())
+                {
+                    QSqlQuery insert(dst);
+                    insert.prepare(QStringLiteral(
+                        "INSERT OR IGNORE INTO clients"
+                        "(id, kind, name, address, contact, notes, created_at)"
+                        " VALUES (?, ?, ?, ?, ?, ?, ?)"));
+                    insert.addBindValue(select.value(0));
+                    insert.addBindValue(select.value(1));
+                    insert.addBindValue(select.value(2));
+                    insert.addBindValue(select.value(3));
+                    insert.addBindValue(select.value(4));
+                    insert.addBindValue(select.value(5));
+                    insert.addBindValue(select.value(6));
+                    if(insert.exec() && insert.numRowsAffected() > 0)
+                        ++inserted;
+                }
+            }
+        }
+    }
+
+    QSqlDatabase::removeDatabase(srcConn);
+    qInfo("ClientsDatabase::mergeFromDatabase inserted=%d from %s",
+          inserted,
+          qPrintable(sourceDbPath));
+    return inserted;
+}
+
 } // namespace workorder

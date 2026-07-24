@@ -18,6 +18,10 @@ public:
     static bool delObjectEntry(const QString &clientName, const QString &clientId, const StringMap &data);
     static bool updateObjectName(const QString &clientName, const QString &clientId, const StringMap &data);
     static bool updateObjectLastOrderAt(const QString &clientName, const QString &clientId, const QString &objectId);
+    // Insert objects from source db file that are missing in target (by id).
+    static int mergeFromDatabase(const QString &sourceDbPath,
+                                 const QString &clientName,
+                                 const QString &clientId);
 };
 
 } // namespace workorder

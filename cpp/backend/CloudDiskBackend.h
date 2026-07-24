@@ -44,7 +44,7 @@ public:
     Q_INVOKABLE void clearDiskData();
     Q_INVOKABLE void refreshContents();
     Q_INVOKABLE void ensureWorkOrderDirectory();
-    // Stub: two-way sync of database files (not implemented yet).
+    // Download cloud DBs to temp, merge missing rows into local, then force-upload.
     Q_INVOKABLE void syncDatabases();
     // Clear app:/workOrder files, then upload all local *.db.
     Q_INVOKABLE void forceUploadDatabases();
@@ -64,7 +64,8 @@ private:
         EnsureOnly,
         Refresh,
         ForceUpload,
-        Download
+        Download,
+        Sync
     };
 
     struct TransferItem
@@ -77,7 +78,7 @@ private:
     void loadPersisted();
     void persistCredentials();
     void setBusy(bool value);
-    void setStatusMessage(const QString &message);
+    void setStatusMessage(const QString &message, const QString &logMessage);
     void setEntries(const QVariantList &entries);
     QString normalizeDiskUrl(const QString &value) const;
     QString extractToken(const QString &tokenOrUrl) const;
@@ -86,7 +87,7 @@ private:
     QString uploadUrl(const QString &remotePath, bool overwrite = true) const;
     QString downloadUrl(const QString &remotePath) const;
     QNetworkRequest authorizedRequest(const QUrl &url) const;
-    bool beginOperation(PendingOp op, const QString &busyMessage);
+    bool beginOperation(PendingOp op, const QString &busyMessage, const QString &logMessage);
     void onEnsureReady();
     void startEnsureGet();
     void startEnsurePut();
@@ -107,8 +108,12 @@ private:
     void beginUploadQueue();
     void processNextUpload();
     void processNextDownload();
-    void finishTransferSuccess(const QString &message);
-    void finishWithError(const QString &message);
+    void finishDownloadPhase();
+    bool mergeIncomingDatabases();
+    void clearSyncIncomingDir() const;
+    QString syncIncomingDir() const;
+    void finishTransferSuccess(const QString &message, const QString &logMessage);
+    void finishWithError(const QString &message, const QString &logMessage);
     void closeAllSqlConnections() const;
     QStringList localDatabaseFileNames() const;
     bool clearLocalDatabaseFiles();

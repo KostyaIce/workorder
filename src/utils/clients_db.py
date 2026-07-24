@@ -112,3 +112,38 @@ def del_client_entry(data, db_path=None):
         )
         conn.commit()
     return True
+
+
+def merge_from_database(source_db_path, target_db_path=None):
+    """Insert clients from source that are missing in target (by id)."""
+    source = Path(source_db_path)
+    if not source.exists():
+        return 0
+
+    create_client_table(target_db_path)
+    inserted = 0
+    with _connect(source) as src, _connect(target_db_path) as dst:
+        rows = src.execute(
+            "SELECT id, kind, name, address, contact, notes, created_at FROM clients"
+        ).fetchall()
+        for row in rows:
+            cursor = dst.execute(
+                """
+                INSERT OR IGNORE INTO clients
+                (id, kind, name, address, contact, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["kind"],
+                    row["name"],
+                    row["address"],
+                    row["contact"],
+                    row["notes"],
+                    row["created_at"],
+                ),
+            )
+            if cursor.rowcount and cursor.rowcount > 0:
+                inserted += 1
+        dst.commit()
+    return inserted

@@ -166,21 +166,70 @@ Dialog
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: cloudDiskBackend.connected
-            padding: 0
+            padding: 8
+
+            background: Rectangle
+            {
+                color: cardColor
+                border.color: "#E0E0E0"
+                radius: 4
+            }
 
             ListView
             {
                 id: entriesView
                 anchors.fill: parent
                 clip: true
+                spacing: 2
                 model: cloudDiskBackend.entries
+                ScrollBar.vertical: ScrollBar
+                {
+                    policy: ScrollBar.AsNeeded
+                }
 
-                delegate: ItemDelegate
+                delegate: Item
                 {
                     width: entriesView.width
-                    text: (modelData.type === "dir" ? qsTr("[папка] ") : qsTr("[файл] "))
-                          + modelData.name
-                          + (modelData.path ? "  (" + modelData.path + ")" : "")
+                    height: 36
+
+                    Rectangle
+                    {
+                        anchors.fill: parent
+                        color: cardColor
+                    }
+
+                    Flickable
+                    {
+                        id: entryFlick
+                        anchors.fill: parent
+                        anchors.leftMargin: 4
+                        anchors.rightMargin: 4
+                        contentWidth: Math.max(width, entryLabel.implicitWidth)
+                        contentHeight: height
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickableDirection: Flickable.HorizontalFlick
+                        interactive: contentWidth > width
+
+                        Label
+                        {
+                            id: entryLabel
+                            height: entryFlick.height
+                            verticalAlignment: Text.AlignVCenter
+                            color: textColor
+                            font.pixelSize: compact ? 13 : 14
+                            text: (modelData.type === "dir" ? qsTr("[папка] ") : qsTr("[файл] "))
+                                  + modelData.name
+                                  + (modelData.path ? "  (" + modelData.path + ")" : "")
+                        }
+
+                        ScrollBar.horizontal: ScrollBar
+                        {
+                            policy: entryFlick.contentWidth > entryFlick.width
+                                    ? ScrollBar.AsNeeded
+                                    : ScrollBar.AlwaysOff
+                        }
+                    }
                 }
 
                 Label

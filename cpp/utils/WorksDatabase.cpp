@@ -477,4 +477,64 @@ StringMapList WorksDatabase::getResultWorks(const QString &clientName, const QSt
     return result;
 }
 
+int WorksDatabase::mergeFromDatabase(const QString &sourceDbPath,
+                                     const QString &clientName,
+                                     const QString &clientId)
+{
+    if(sourceDbPath.isEmpty() || !QFileInfo::exists(sourceDbPath)
+       || clientName.isEmpty() || clientId.isEmpty())
+    {
+        return 0;
+    }
+
+    createWorksTable(clientName, clientId);
+    const QString srcConn = QStringLiteral("works_merge_src_%1").arg(sourceDbPath);
+
+    int inserted = 0;
+    {
+        QSqlDatabase src = QSqlDatabase::contains(srcConn)
+            ? QSqlDatabase::database(srcConn)
+            : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), srcConn);
+        src.setDatabaseName(sourceDbPath);
+        if(!src.isOpen() && !src.open())
+        {
+            qWarning("WorksDatabase::mergeFromDatabase failed to open source: %s",
+                     qPrintable(src.lastError().text()));
+        }
+        else
+        {
+            QSqlDatabase dst = openDatabase(clientName, clientId);
+            QSqlQuery select(src);
+            if(!select.exec(QStringLiteral(
+                    "SELECT %1 FROM completed_works").arg(QLatin1String(kWorksSelectColumns))))
+            {
+                qWarning("WorksDatabase::mergeFromDatabase select failed: %s",
+                         qPrintable(select.lastError().text()));
+            }
+            else
+            {
+                while(select.next())
+                {
+                    QSqlQuery insert(dst);
+                    insert.prepare(QStringLiteral(
+                        "INSERT OR IGNORE INTO completed_works ("
+                        "id, object_id, service_id, subobject_name, name, price, unit, quantity,"
+                        " created_at, updated_at, start_order_at, coefficients, percent_sum"
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+                    for(int i = 0; i < 13; ++i)
+                        insert.addBindValue(select.value(i));
+                    if(insert.exec() && insert.numRowsAffected() > 0)
+                        ++inserted;
+                }
+            }
+        }
+    }
+
+    QSqlDatabase::removeDatabase(srcConn);
+    qInfo("WorksDatabase::mergeFromDatabase inserted=%d from %s",
+          inserted,
+          qPrintable(sourceDbPath));
+    return inserted;
+}
+
 } // namespace workorder

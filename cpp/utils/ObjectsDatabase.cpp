@@ -152,4 +152,63 @@ bool ObjectsDatabase::updateObjectLastOrderAt(const QString &clientName, const Q
     return query.numRowsAffected() > 0;
 }
 
+int ObjectsDatabase::mergeFromDatabase(const QString &sourceDbPath,
+                                       const QString &clientName,
+                                       const QString &clientId)
+{
+    if(sourceDbPath.isEmpty() || !QFileInfo::exists(sourceDbPath)
+       || clientName.isEmpty() || clientId.isEmpty())
+    {
+        return 0;
+    }
+
+    createObjectDatabase(clientName, clientId);
+    const QString srcConn = QStringLiteral("objects_merge_src_%1").arg(sourceDbPath);
+
+    int inserted = 0;
+    {
+        QSqlDatabase src = QSqlDatabase::contains(srcConn)
+            ? QSqlDatabase::database(srcConn)
+            : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), srcConn);
+        src.setDatabaseName(sourceDbPath);
+        if(!src.isOpen() && !src.open())
+        {
+            qWarning("ObjectsDatabase::mergeFromDatabase failed to open source: %s",
+                     qPrintable(src.lastError().text()));
+        }
+        else
+        {
+            QSqlDatabase dst = openDatabase(clientName, clientId);
+            QSqlQuery select(src);
+            if(!select.exec(QStringLiteral(
+                    "SELECT id, name, address, updated_at, last_order_at FROM objects")))
+            {
+                qWarning("ObjectsDatabase::mergeFromDatabase select failed: %s",
+                         qPrintable(select.lastError().text()));
+            }
+            else
+            {
+                while(select.next())
+                {
+                    QSqlQuery insert(dst);
+                    insert.prepare(QStringLiteral(
+                        "INSERT OR IGNORE INTO objects"
+                        "(id, name, address, updated_at, last_order_at)"
+                        " VALUES (?, ?, ?, ?, ?)"));
+                    for(int i = 0; i < 5; ++i)
+                        insert.addBindValue(select.value(i));
+                    if(insert.exec() && insert.numRowsAffected() > 0)
+                        ++inserted;
+                }
+            }
+        }
+    }
+
+    QSqlDatabase::removeDatabase(srcConn);
+    qInfo("ObjectsDatabase::mergeFromDatabase inserted=%d from %s",
+          inserted,
+          qPrintable(sourceDbPath));
+    return inserted;
+}
+
 } // namespace workorder

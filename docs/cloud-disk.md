@@ -49,11 +49,21 @@ Local DB files live in `AppPaths::dataDir()` / `data_dir()`:
 
 | QML / method | Behavior |
 |--------------|----------|
-| `syncDatabases()` | Stub — status «Синхронизация пока не реализована» |
+| `syncDatabases()` | Download cloud `*.db` to temp → merge missing rows into local (by `id`) → force-upload |
 | `forceUploadDatabases()` | Delete all items in `app:/workOrder`, then upload every local `*.db` |
 | `downloadDatabases()` | Delete local `*.db` / `*.db-wal` / `*.db-shm`, then download every remote `*.db` from `app:/workOrder` |
 
-Before upload/download the C++ backend closes all `QSqlDatabase` connections so files can be replaced safely.
+### Sync merge rules
+
+- Missing local file → copy cloud file as-is.
+- Existing file → `INSERT OR IGNORE` by primary key `id` via:
+  - `ClientsDatabase::mergeFromDatabase`
+  - `ServicesDatabase::mergeFromDatabase`
+  - `ObjectsDatabase::mergeFromDatabase` + `WorksDatabase::mergeFromDatabase` (same client db file)
+- Existing rows keep local data; only absent ids are added.
+- Then cloud folder is cleared and all local `*.db` are uploaded.
+
+Before upload/download/merge the C++ backend closes all `QSqlDatabase` connections so files can be replaced safely.
 
 Upload API: `GET .../resources/upload?path=app:/workOrder/<file>&overwrite=true` → `PUT` to `href`.  
 Download API: `GET .../resources/download?path=...` → `GET` `href` (follow redirects).  

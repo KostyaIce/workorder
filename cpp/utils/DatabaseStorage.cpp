@@ -44,6 +44,32 @@ QString DatabaseStorage::resolveDbPath(const QString &filePath, const QString &d
     return QFileInfo(defaultPath).absoluteFilePath();
 }
 
+bool DatabaseStorage::parseObjectDbFileName(const QString &fileName,
+                                            QString *clientName,
+                                            QString *clientId)
+{
+    if(!clientName || !clientId)
+        return false;
+
+    QString name = fileName.trimmed();
+    if(name.endsWith(QLatin1String(".db"), Qt::CaseInsensitive))
+        name.chop(3);
+
+    if(name.compare(QLatin1String("clients"), Qt::CaseInsensitive) == 0
+       || name.compare(QLatin1String("services"), Qt::CaseInsensitive) == 0)
+    {
+        return false;
+    }
+
+    const int sep = name.lastIndexOf(QLatin1Char('_'));
+    if(sep <= 0 || sep + 1 >= name.size())
+        return false;
+
+    *clientName = name.left(sep);
+    *clientId = name.mid(sep + 1);
+    return !clientName->isEmpty() && !clientId->isEmpty();
+}
+
 QPair<QString, int> DatabaseStorage::createWorksDatabase(const QString &clientName, const QString &clientId)
 {
     const QString path = objectDbPath(clientName, clientId);

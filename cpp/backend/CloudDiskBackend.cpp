@@ -1,7 +1,12 @@
 #include "CloudDiskBackend.h"
 
 #include "AppPaths.h"
+#include "ClientsDatabase.h"
+#include "DatabaseStorage.h"
+#include "ObjectsDatabase.h"
 #include "QSettingsStore.h"
+#include "ServicesDatabase.h"
+#include "WorksDatabase.h"
 
 #include <QDesktopServices>
 #include <QDir>
@@ -55,13 +60,13 @@ CloudDiskBackend::CloudDiskBackend(QObject *parent)
     loadPersisted();
     if(m_token.isEmpty())
     {
-        setStatusMessage(tr("Диск не подключён"));
+        setStatusMessage(tr("Диск не подключён"), QStringLiteral("Disk not connected"));
         qInfo("CloudDiskBackend: started, disk not connected, url=%s",
               qPrintable(m_diskUrl));
     }
     else
     {
-        setStatusMessage(tr("Диск подключён"));
+        setStatusMessage(tr("Диск подключён"), QStringLiteral("Disk connected"));
         qInfo("CloudDiskBackend: started, disk connected, url=%s, tokenLen=%d",
               qPrintable(m_diskUrl),
               static_cast<int>(m_token.size()));
@@ -128,11 +133,12 @@ bool CloudDiskBackend::openAuthInBrowser()
     if(!QDesktopServices::openUrl(QUrl(url)))
     {
         qWarning("CloudDiskBackend: failed to open browser");
-        setStatusMessage(tr("Не удалось открыть браузер"));
+        setStatusMessage(tr("Не удалось открыть браузер"), QStringLiteral("Failed to open browser"));
         return false;
     }
 
-    setStatusMessage(tr("Откройте ссылку в браузере, войдите и вставьте токен"));
+    setStatusMessage(tr("Откройте ссылку в браузере, войдите и вставьте токен"),
+                     QStringLiteral("Open the link in browser, sign in and paste the token"));
     return true;
 }
 
@@ -142,7 +148,8 @@ bool CloudDiskBackend::connectWithToken(const QString &tokenOrUrl)
     if(token.isEmpty())
     {
         qWarning("CloudDiskBackend: connectWithToken failed, token empty or not recognized");
-        setStatusMessage(tr("Токен пустой или не распознан"));
+        setStatusMessage(tr("Токен пустой или не распознан"),
+                     QStringLiteral("Token is empty or not recognized"));
         return false;
     }
 
@@ -150,7 +157,7 @@ bool CloudDiskBackend::connectWithToken(const QString &tokenOrUrl)
     m_diskUrl = normalizeDiskUrl(m_diskUrl);
     persistCredentials();
     setEntries({});
-    setStatusMessage(tr("Диск подключён"));
+    setStatusMessage(tr("Диск подключён"), QStringLiteral("Disk connected"));
     emit connectionChanged();
     qInfo("CloudDiskBackend: connected, url=%s, tokenLen=%d",
           qPrintable(m_diskUrl),
@@ -173,45 +180,45 @@ void CloudDiskBackend::clearDiskData()
     store.remove(QString::fromUtf8(KEY_DISK_URL));
     store.sync();
     setBusy(false);
-    setStatusMessage(tr("Данные диска удалены"));
+    setStatusMessage(tr("Данные диска удалены"), QStringLiteral("Disk credentials cleared"));
     emit entriesChanged();
     emit connectionChanged();
 }
 
 void CloudDiskBackend::refreshContents()
 {
-    if(!beginOperation(PendingOp::Refresh, tr("Загрузка содержимого...")))
+    if(!beginOperation(PendingOp::Refresh,
+                     tr("Загрузка содержимого..."),
+                     QStringLiteral("Loading contents...")))
         return;
     startEnsureGet();
 }
 
 void CloudDiskBackend::ensureWorkOrderDirectory()
 {
-    if(!beginOperation(PendingOp::EnsureOnly, tr("Проверка каталога workOrder...")))
+    if(!beginOperation(PendingOp::EnsureOnly,
+                     tr("Проверка каталога workOrder..."),
+                     QStringLiteral("Checking workOrder directory...")))
         return;
     startEnsureGet();
 }
 
 void CloudDiskBackend::syncDatabases()
 {
-    if(m_token.isEmpty())
-    {
-        setStatusMessage(tr("Сначала подключите диск"));
+    if(!beginOperation(PendingOp::Sync,
+                     tr("Синхронизация баз..."),
+                     QStringLiteral("Syncing databases...")))
         return;
-    }
-    if(m_busy)
-    {
-        qInfo("CloudDiskBackend: syncDatabases skipped, busy");
-        return;
-    }
-
-    qInfo("CloudDiskBackend: syncDatabases stub");
-    setStatusMessage(tr("Синхронизация пока не реализована"));
+    qInfo("CloudDiskBackend: syncDatabases started");
+    clearSyncIncomingDir();
+    startEnsureGet();
 }
 
 void CloudDiskBackend::forceUploadDatabases()
 {
-    if(!beginOperation(PendingOp::ForceUpload, tr("Выгрузка баз на диск...")))
+    if(!beginOperation(PendingOp::ForceUpload,
+                     tr("Выгрузка баз на диск..."),
+                     QStringLiteral("Force uploading databases to disk...")))
         return;
     qInfo("CloudDiskBackend: forceUploadDatabases started");
     startEnsureGet();
@@ -219,17 +226,20 @@ void CloudDiskBackend::forceUploadDatabases()
 
 void CloudDiskBackend::downloadDatabases()
 {
-    if(!beginOperation(PendingOp::Download, tr("Загрузка баз с диска...")))
+    if(!beginOperation(PendingOp::Download,
+                     tr("Загрузка баз с диска..."),
+                     QStringLiteral("Downloading databases from disk...")))
         return;
     qInfo("CloudDiskBackend: downloadDatabases started");
     startEnsureGet();
 }
 
-bool CloudDiskBackend::beginOperation(PendingOp op, const QString &busyMessage)
+bool CloudDiskBackend::beginOperation(PendingOp op, const QString &busyMessage, const QString &logMessage)
 {
     if(m_token.isEmpty())
     {
-        setStatusMessage(tr("Сначала подключите диск"));
+        setStatusMessage(tr("Сначала подключите диск"),
+                         QStringLiteral("Connect the disk first"));
         return false;
     }
     if(m_busy)
@@ -243,7 +253,7 @@ bool CloudDiskBackend::beginOperation(PendingOp op, const QString &busyMessage)
     m_transferQueue.clear();
     m_transferIndex = 0;
     setBusy(true);
-    setStatusMessage(busyMessage);
+    setStatusMessage(busyMessage, logMessage);
     return true;
 }
 
@@ -257,24 +267,28 @@ void CloudDiskBackend::onEnsureReady()
     case PendingOp::EnsureOnly:
         setBusy(false);
         m_pendingOp = PendingOp::None;
-        setStatusMessage(tr("Каталог workOrder готов"));
+        setStatusMessage(tr("Каталог workOrder готов"),
+                     QStringLiteral("workOrder directory is ready"));
         break;
     case PendingOp::ForceUpload:
         startListForCloudClear();
         break;
     case PendingOp::Download:
+    case PendingOp::Sync:
         startListForDownload();
         break;
     case PendingOp::None:
     default:
-        finishWithError(tr("Внутренняя ошибка операции"));
+        finishWithError(tr("Внутренняя ошибка операции"),
+                    QStringLiteral("Internal operation error"));
         break;
     }
 }
 
 void CloudDiskBackend::startEnsureGet()
 {
-    setStatusMessage(tr("Проверка каталога workOrder..."));
+    setStatusMessage(tr("Проверка каталога workOrder..."),
+                     QStringLiteral("Checking workOrder directory..."));
     const QUrl metaUrl(resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), 0));
     qInfo("CloudDiskBackend: ensure GET %s", qPrintable(metaUrl.toString()));
     QNetworkReply *reply = m_network->get(authorizedRequest(metaUrl));
@@ -287,7 +301,8 @@ void CloudDiskBackend::startEnsureGet()
 
 void CloudDiskBackend::startEnsurePut()
 {
-    setStatusMessage(tr("Создание каталога workOrder..."));
+    setStatusMessage(tr("Создание каталога workOrder..."),
+                     QStringLiteral("Creating workOrder directory..."));
     const QUrl metaUrl(resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), 0));
     qInfo("CloudDiskBackend: ensure PUT %s", qPrintable(metaUrl.toString()));
     QNetworkReply *reply = m_network->sendCustomRequest(authorizedRequest(metaUrl), "PUT");
@@ -300,7 +315,8 @@ void CloudDiskBackend::startEnsurePut()
 
 void CloudDiskBackend::startListRequest()
 {
-    setStatusMessage(tr("Загрузка содержимого..."));
+    setStatusMessage(tr("Загрузка содержимого..."),
+                     QStringLiteral("Loading contents..."));
     const QString url = resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), LIST_LIMIT);
     qInfo("CloudDiskBackend: list GET %s", qPrintable(url));
     QNetworkReply *reply = m_network->get(authorizedRequest(QUrl(url)));
@@ -313,7 +329,8 @@ void CloudDiskBackend::startListRequest()
 
 void CloudDiskBackend::startListForCloudClear()
 {
-    setStatusMessage(tr("Очистка облачного каталога..."));
+    setStatusMessage(tr("Очистка облачного каталога..."),
+                     QStringLiteral("Clearing cloud directory..."));
     const QString url = resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), LIST_LIMIT);
     qInfo("CloudDiskBackend: clear-list GET %s", qPrintable(url));
     QNetworkReply *reply = m_network->get(authorizedRequest(QUrl(url)));
@@ -326,7 +343,8 @@ void CloudDiskBackend::startListForCloudClear()
 
 void CloudDiskBackend::startListForDownload()
 {
-    setStatusMessage(tr("Чтение списка баз на диске..."));
+    setStatusMessage(tr("Чтение списка баз на диске..."),
+                     QStringLiteral("Reading database list on disk..."));
     const QString url = resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), LIST_LIMIT);
     qInfo("CloudDiskBackend: download-list GET %s", qPrintable(url));
     QNetworkReply *reply = m_network->get(authorizedRequest(QUrl(url)));
@@ -349,7 +367,8 @@ void CloudDiskBackend::handleEnsureGetReply(QNetworkReply *reply)
         const QString type = root.value(QStringLiteral("type")).toString();
         if(type != QLatin1String("dir"))
         {
-            finishWithError(tr("Путь workOrder существует, но это не каталог"));
+            finishWithError(tr("Путь workOrder существует, но это не каталог"),
+                    QStringLiteral("workOrder path exists but is not a directory"));
             qWarning("CloudDiskBackend: path %s exists but type=%s",
                      WORKORDER_FOLDER_PATH,
                      qPrintable(type));
@@ -371,9 +390,11 @@ void CloudDiskBackend::handleEnsureGetReply(QNetworkReply *reply)
              status,
              qPrintable(QString::fromUtf8(body.left(300))));
     if(status == 403)
-        finishWithError(tr("Нет доступа (403). Нужен scope app_folder и путь app:/workOrder"));
+        finishWithError(tr("Нет доступа (403). Нужен scope app_folder и путь app:/workOrder"),
+                    QStringLiteral("Access denied (403). Need app_folder scope and app:/workOrder path"));
     else
-        finishWithError(tr("Не удалось проверить каталог workOrder (%1)").arg(status));
+        finishWithError(tr("Не удалось проверить каталог workOrder (%1)").arg(status),
+                    QStringLiteral("Failed to check workOrder directory (%1)").arg(status));
 }
 
 void CloudDiskBackend::handleEnsurePutReply(QNetworkReply *reply)
@@ -394,7 +415,8 @@ void CloudDiskBackend::handleEnsurePutReply(QNetworkReply *reply)
     qWarning("CloudDiskBackend: ensure PUT failed status=%d body=%s",
              status,
              qPrintable(QString::fromUtf8(body.left(300))));
-    finishWithError(tr("Не удалось создать каталог workOrder (%1)").arg(status));
+    finishWithError(tr("Не удалось создать каталог workOrder (%1)").arg(status),
+                    QStringLiteral("Failed to create workOrder directory (%1)").arg(status));
 }
 
 void CloudDiskBackend::handleListReply(QNetworkReply *reply)
@@ -405,7 +427,7 @@ void CloudDiskBackend::handleListReply(QNetworkReply *reply)
     if(!reply)
     {
         qWarning("CloudDiskBackend: handleListReply null reply");
-        setStatusMessage(tr("Ошибка сети"));
+        setStatusMessage(tr("Ошибка сети"), QStringLiteral("Network error"));
         return;
     }
 
@@ -418,13 +440,18 @@ void CloudDiskBackend::handleListReply(QNetworkReply *reply)
                  qPrintable(reply->errorString()),
                  qPrintable(QString::fromUtf8(body.left(300))));
         if(httpStatus == 403)
-            setStatusMessage(tr("Нет доступа (403). Нужен scope app_folder и путь app:/workOrder"));
+            setStatusMessage(tr("Нет доступа (403). Нужен scope app_folder и путь app:/workOrder"),
+                         QStringLiteral("Access denied (403). Need app_folder scope and app:/workOrder path"));
         else if(httpStatus == 404)
-            setStatusMessage(tr("Каталог app:/workOrder не найден"));
+            setStatusMessage(tr("Каталог app:/workOrder не найден"),
+                         QStringLiteral("Directory app:/workOrder not found"));
         else
             setStatusMessage(tr("Ошибка запроса (%1): %2")
                                  .arg(httpStatus)
-                                 .arg(reply->errorString()));
+                                 .arg(reply->errorString()),
+                         QStringLiteral("Request error (%1): %2")
+                             .arg(httpStatus)
+                             .arg(reply->errorString()));
         return;
     }
 
@@ -432,7 +459,7 @@ void CloudDiskBackend::handleListReply(QNetworkReply *reply)
     if(!doc.isObject())
     {
         qWarning("CloudDiskBackend: list response is not a JSON object");
-        setStatusMessage(tr("Некорректный ответ API"));
+        setStatusMessage(tr("Некорректный ответ API"), QStringLiteral("Invalid API response"));
         return;
     }
 
@@ -453,7 +480,8 @@ void CloudDiskBackend::handleListReply(QNetworkReply *reply)
     }
 
     setEntries(entries);
-    setStatusMessage(tr("Найдено элементов: %1").arg(entries.size()));
+    setStatusMessage(tr("Найдено элементов: %1").arg(entries.size()),
+                     QStringLiteral("Found entries: %1").arg(entries.size()));
     qInfo("CloudDiskBackend: listed %d entries", static_cast<int>(entries.size()));
 }
 
@@ -466,7 +494,8 @@ void CloudDiskBackend::handleCloudClearListReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: clear-list failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось прочитать облачный каталог (%1)").arg(status));
+        finishWithError(tr("Не удалось прочитать облачный каталог (%1)").arg(status),
+                    QStringLiteral("Failed to read cloud directory (%1)").arg(status));
         return;
     }
 
@@ -498,6 +527,9 @@ void CloudDiskBackend::processNextCloudDelete()
     const QString path = m_deletePaths.takeFirst();
     setStatusMessage(tr("Удаление на диске: %1 (осталось %2)")
                          .arg(path)
+                         .arg(m_deletePaths.size()),
+                     QStringLiteral("Deleting on disk: %1 (remaining %2)")
+                         .arg(path)
                          .arg(m_deletePaths.size()));
 
     QUrl url(m_diskUrl + QStringLiteral("/resources"));
@@ -525,7 +557,8 @@ void CloudDiskBackend::handleCloudDeleteReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: DELETE failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось очистить облако (%1)").arg(status));
+        finishWithError(tr("Не удалось очистить облако (%1)").arg(status),
+                    QStringLiteral("Failed to clear cloud (%1)").arg(status));
         return;
     }
 
@@ -551,7 +584,8 @@ void CloudDiskBackend::beginUploadQueue()
 
     if(m_transferQueue.isEmpty())
     {
-        finishWithError(tr("Локальные файлы баз данных не найдены"));
+        finishWithError(tr("Локальные файлы баз данных не найдены"),
+                    QStringLiteral("Local database files not found"));
         return;
     }
 
@@ -564,13 +598,29 @@ void CloudDiskBackend::processNextUpload()
 {
     if(m_transferIndex >= m_transferQueue.size())
     {
-        finishTransferSuccess(tr("Выгрузка завершена: %1 файл(ов)")
-                                  .arg(m_transferQueue.size()));
+        if(m_pendingOp == PendingOp::Sync)
+        {
+            finishTransferSuccess(tr("Синхронизация завершена: выгружено %1 файл(ов)")
+                                      .arg(m_transferQueue.size()),
+                                  QStringLiteral("Sync finished: uploaded %1 file(s)")
+                                      .arg(m_transferQueue.size()));
+        }
+        else
+        {
+            finishTransferSuccess(tr("Выгрузка завершена: %1 файл(ов)")
+                                      .arg(m_transferQueue.size()),
+                                  QStringLiteral("Upload finished: %1 file(s)")
+                                      .arg(m_transferQueue.size()));
+        }
         return;
     }
 
     const TransferItem &item = m_transferQueue.at(m_transferIndex);
     setStatusMessage(tr("Выгрузка %1/%2: %3")
+                         .arg(m_transferIndex + 1)
+                         .arg(m_transferQueue.size())
+                         .arg(item.name),
+                     QStringLiteral("Uploading %1/%2: %3")
                          .arg(m_transferIndex + 1)
                          .arg(m_transferQueue.size())
                          .arg(item.name));
@@ -594,7 +644,8 @@ void CloudDiskBackend::handleUploadHrefReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: upload href failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось получить URL загрузки (%1)").arg(status));
+        finishWithError(tr("Не удалось получить URL загрузки (%1)").arg(status),
+                    QStringLiteral("Failed to get upload URL (%1)").arg(status));
         return;
     }
 
@@ -602,13 +653,14 @@ void CloudDiskBackend::handleUploadHrefReply(QNetworkReply *reply)
     const QString href = root.value(QStringLiteral("href")).toString();
     if(href.isEmpty())
     {
-        finishWithError(tr("Пустой URL загрузки"));
+        finishWithError(tr("Пустой URL загрузки"), QStringLiteral("Empty upload URL"));
         return;
     }
 
     if(m_transferIndex < 0 || m_transferIndex >= m_transferQueue.size())
     {
-        finishWithError(tr("Внутренняя ошибка очереди выгрузки"));
+        finishWithError(tr("Внутренняя ошибка очереди выгрузки"),
+                    QStringLiteral("Internal upload queue error"));
         return;
     }
 
@@ -618,7 +670,8 @@ void CloudDiskBackend::handleUploadHrefReply(QNetworkReply *reply)
     {
         const QString error = file->errorString();
         delete file;
-        finishWithError(tr("Не удалось открыть %1: %2").arg(item.name, error));
+        finishWithError(tr("Не удалось открыть %1: %2").arg(item.name, error),
+                    QStringLiteral("Failed to open %1: %2").arg(item.name, error));
         return;
     }
 
@@ -646,7 +699,8 @@ void CloudDiskBackend::handleUploadPutReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: upload PUT failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Ошибка выгрузки файла (%1)").arg(status));
+        finishWithError(tr("Ошибка выгрузки файла (%1)").arg(status),
+                    QStringLiteral("File upload error (%1)").arg(status));
         return;
     }
 
@@ -663,7 +717,8 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: download-list failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось прочитать облачный каталог (%1)").arg(status));
+        finishWithError(tr("Не удалось прочитать облачный каталог (%1)").arg(status),
+                    QStringLiteral("Failed to read cloud directory (%1)").arg(status));
         return;
     }
 
@@ -671,7 +726,19 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
     const QJsonArray items = root.value(QStringLiteral("_embedded")).toObject()
                                  .value(QStringLiteral("items")).toArray();
 
-    const QString dataDir = AppPaths::dataDir();
+    const bool syncMode = (m_pendingOp == PendingOp::Sync);
+    const QString targetDir = syncMode ? syncIncomingDir() : AppPaths::dataDir();
+    if(syncMode)
+    {
+        clearSyncIncomingDir();
+        if(!QDir().mkpath(targetDir))
+        {
+            finishWithError(tr("Не удалось создать временный каталог синхронизации"),
+                    QStringLiteral("Failed to create sync temp directory"));
+            return;
+        }
+    }
+
     m_transferQueue.clear();
     m_transferIndex = 0;
     for(const QJsonValue &value : items)
@@ -689,25 +756,39 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
         item.remotePath = itemObj.value(QStringLiteral("path")).toString();
         if(item.remotePath.isEmpty())
             item.remotePath = remoteDbPath(name);
-        item.localPath = QDir(dataDir).filePath(name);
+        item.localPath = QDir(targetDir).filePath(name);
         m_transferQueue.push_back(item);
     }
 
     if(m_transferQueue.isEmpty())
     {
-        finishWithError(tr("На диске нет файлов баз данных (*.db)"));
+        if(syncMode)
+        {
+            qInfo("CloudDiskBackend: sync cloud has no db files, upload local only");
+            setStatusMessage(tr("На диске нет баз, выгружаем локальные..."),
+                             QStringLiteral("No databases on disk, uploading local ones..."));
+            startListForCloudClear();
+            return;
+        }
+        finishWithError(tr("На диске нет файлов баз данных (*.db)"),
+                    QStringLiteral("No database files (*.db) on disk"));
         return;
     }
 
-    closeAllSqlConnections();
-    if(!clearLocalDatabaseFiles())
+    if(!syncMode)
     {
-        finishWithError(tr("Не удалось очистить локальные базы данных"));
-        return;
+        closeAllSqlConnections();
+        if(!clearLocalDatabaseFiles())
+        {
+            finishWithError(tr("Не удалось очистить локальные базы данных"),
+                    QStringLiteral("Failed to clear local databases"));
+            return;
+        }
     }
 
-    qInfo("CloudDiskBackend: download queue size=%d",
-          static_cast<int>(m_transferQueue.size()));
+    qInfo("CloudDiskBackend: download queue size=%d sync=%d",
+          static_cast<int>(m_transferQueue.size()),
+          syncMode ? 1 : 0);
     processNextDownload();
 }
 
@@ -715,13 +796,16 @@ void CloudDiskBackend::processNextDownload()
 {
     if(m_transferIndex >= m_transferQueue.size())
     {
-        finishTransferSuccess(tr("Загрузка завершена: %1 файл(ов)")
-                                  .arg(m_transferQueue.size()));
+        finishDownloadPhase();
         return;
     }
 
     const TransferItem &item = m_transferQueue.at(m_transferIndex);
     setStatusMessage(tr("Загрузка %1/%2: %3")
+                         .arg(m_transferIndex + 1)
+                         .arg(m_transferQueue.size())
+                         .arg(item.name),
+                     QStringLiteral("Downloading %1/%2: %3")
                          .arg(m_transferIndex + 1)
                          .arg(m_transferQueue.size())
                          .arg(item.name));
@@ -745,7 +829,8 @@ void CloudDiskBackend::handleDownloadHrefReply(QNetworkReply *reply)
         qWarning("CloudDiskBackend: download href failed status=%d body=%s",
                  status,
                  qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось получить URL скачивания (%1)").arg(status));
+        finishWithError(tr("Не удалось получить URL скачивания (%1)").arg(status),
+                    QStringLiteral("Failed to get download URL (%1)").arg(status));
         return;
     }
 
@@ -753,7 +838,7 @@ void CloudDiskBackend::handleDownloadHrefReply(QNetworkReply *reply)
     const QString href = root.value(QStringLiteral("href")).toString();
     if(href.isEmpty())
     {
-        finishWithError(tr("Пустой URL скачивания"));
+        finishWithError(tr("Пустой URL скачивания"), QStringLiteral("Empty download URL"));
         return;
     }
 
@@ -774,7 +859,8 @@ void CloudDiskBackend::handleDownloadContentReply(QNetworkReply *reply)
 {
     if(m_transferIndex < 0 || m_transferIndex >= m_transferQueue.size())
     {
-        finishWithError(tr("Внутренняя ошибка очереди загрузки"));
+        finishWithError(tr("Внутренняя ошибка очереди загрузки"),
+                    QStringLiteral("Internal download queue error"));
         return;
     }
 
@@ -787,7 +873,10 @@ void CloudDiskBackend::handleDownloadContentReply(QNetworkReply *reply)
                  reply ? qPrintable(reply->errorString()) : "null");
         finishWithError(tr("Ошибка скачивания %1 (%2)")
                             .arg(item.name)
-                            .arg(status ? status : -1));
+                            .arg(status ? status : -1),
+                    QStringLiteral("Download error %1 (%2)")
+                        .arg(item.name)
+                        .arg(status ? status : -1));
         return;
     }
 
@@ -797,12 +886,15 @@ void CloudDiskBackend::handleDownloadContentReply(QNetworkReply *reply)
     if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
         finishWithError(tr("Не удалось записать %1: %2")
-                            .arg(item.name, file.errorString()));
+                            .arg(item.name, file.errorString()),
+                    QStringLiteral("Failed to write %1: %2")
+                        .arg(item.name, file.errorString()));
         return;
     }
     if(file.write(data) != data.size())
     {
-        finishWithError(tr("Неполная запись файла %1").arg(item.name));
+        finishWithError(tr("Неполная запись файла %1").arg(item.name),
+                    QStringLiteral("Incomplete write of file %1").arg(item.name));
         return;
     }
     file.close();
@@ -814,26 +906,132 @@ void CloudDiskBackend::handleDownloadContentReply(QNetworkReply *reply)
     processNextDownload();
 }
 
-void CloudDiskBackend::finishTransferSuccess(const QString &message)
+void CloudDiskBackend::finishTransferSuccess(const QString &message, const QString &logMessage)
 {
     m_pendingOp = PendingOp::None;
     m_deletePaths.clear();
     m_transferQueue.clear();
     m_transferIndex = 0;
-    setStatusMessage(message);
-    qInfo("CloudDiskBackend: transfer success: %s", qPrintable(message));
+    setStatusMessage(message, logMessage);
+    qInfo("CloudDiskBackend: transfer success: %s", qPrintable(logMessage));
     // Keep busy until list refresh finishes.
     startListRequest();
 }
 
-void CloudDiskBackend::finishWithError(const QString &message)
+void CloudDiskBackend::finishWithError(const QString &message, const QString &logMessage)
 {
+    clearSyncIncomingDir();
     m_pendingOp = PendingOp::None;
     m_deletePaths.clear();
     m_transferQueue.clear();
     m_transferIndex = 0;
     setBusy(false);
-    setStatusMessage(message);
+    setStatusMessage(message, logMessage);
+}
+
+void CloudDiskBackend::finishDownloadPhase()
+{
+    if(m_pendingOp == PendingOp::Sync)
+    {
+        setStatusMessage(tr("Объединение локальных баз..."),
+                     QStringLiteral("Merging local databases..."));
+        if(!mergeIncomingDatabases())
+        {
+            finishWithError(tr("Ошибка объединения баз данных"),
+                    QStringLiteral("Database merge error"));
+            return;
+        }
+        clearSyncIncomingDir();
+        setStatusMessage(tr("Выгрузка объединённых баз на диск..."),
+                         QStringLiteral("Uploading merged databases to disk..."));
+        startListForCloudClear();
+        return;
+    }
+
+    finishTransferSuccess(tr("Загрузка завершена: %1 файл(ов)")
+                              .arg(m_transferQueue.size()),
+                          QStringLiteral("Download finished: %1 file(s)")
+                              .arg(m_transferQueue.size()));
+}
+
+QString CloudDiskBackend::syncIncomingDir() const
+{
+    return QDir(AppPaths::dataDir()).filePath(QStringLiteral("_cloud_sync_incoming"));
+}
+
+void CloudDiskBackend::clearSyncIncomingDir() const
+{
+    QDir dir(syncIncomingDir());
+    if(!dir.exists())
+        return;
+    const QStringList names = dir.entryList(QDir::Files | QDir::NoDotAndDotDot);
+    for(const QString &name : names)
+        QFile::remove(dir.filePath(name));
+    dir.rmdir(dir.absolutePath());
+}
+
+bool CloudDiskBackend::mergeIncomingDatabases()
+{
+    closeAllSqlConnections();
+
+    QDir incoming(syncIncomingDir());
+    if(!incoming.exists())
+        return true;
+
+    const QString dataDir = AppPaths::dataDir();
+    const QStringList names = incoming.entryList({QStringLiteral("*.db")}, QDir::Files, QDir::Name);
+    for(const QString &name : names)
+    {
+        const QString sourcePath = incoming.filePath(name);
+        const QString targetPath = QDir(dataDir).filePath(name);
+        if(!QFileInfo::exists(targetPath))
+        {
+            if(!QFile::copy(sourcePath, targetPath))
+            {
+                qWarning("CloudDiskBackend: failed to copy new db %s", qPrintable(name));
+                return false;
+            }
+            qInfo("CloudDiskBackend: sync added missing file %s", qPrintable(name));
+            continue;
+        }
+
+        if(name.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
+        {
+            const int inserted = ClientsDatabase::mergeFromDatabase(sourcePath, targetPath);
+            qInfo("CloudDiskBackend: merge %s clients inserted=%d",
+                  qPrintable(name),
+                  inserted);
+            continue;
+        }
+        if(name.compare(QLatin1String("services.db"), Qt::CaseInsensitive) == 0)
+        {
+            const int inserted = ServicesDatabase::mergeFromDatabase(sourcePath);
+            qInfo("CloudDiskBackend: merge %s services inserted=%d",
+                  qPrintable(name),
+                  inserted);
+            continue;
+        }
+
+        QString clientName;
+        QString clientId;
+        if(!DatabaseStorage::parseObjectDbFileName(name, &clientName, &clientId))
+        {
+            qWarning("CloudDiskBackend: skip unknown db file %s", qPrintable(name));
+            continue;
+        }
+
+        const int objectsInserted = ObjectsDatabase::mergeFromDatabase(
+            sourcePath, clientName, clientId);
+        const int worksInserted = WorksDatabase::mergeFromDatabase(
+            sourcePath, clientName, clientId);
+        qInfo("CloudDiskBackend: merge %s objects inserted=%d works inserted=%d",
+              qPrintable(name),
+              objectsInserted,
+              worksInserted);
+    }
+
+    closeAllSqlConnections();
+    return true;
 }
 
 void CloudDiskBackend::closeAllSqlConnections() const
@@ -913,8 +1111,9 @@ void CloudDiskBackend::setBusy(bool value)
     emit busyChanged();
 }
 
-void CloudDiskBackend::setStatusMessage(const QString &message)
+void CloudDiskBackend::setStatusMessage(const QString &message, const QString &logMessage)
 {
+    qDebug() << "[CloudDiskBackend][setStatusMessage]" << logMessage;
     if(m_statusMessage == message)
         return;
     m_statusMessage = message;

@@ -19,6 +19,8 @@ public:
     static StringMapList loadServices();
     static StringMap getServiceById(const QString &serviceId);
     static StringMapList searchServices(const QString &query);
+    // Insert rows from source that are missing locally (by primary key id).
+    static int mergeFromDatabase(const QString &sourceDbPath);
 
 private:
     static int parsePriceCents(const QVariant &value);

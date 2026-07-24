@@ -409,7 +409,101 @@ class CloudDiskBackend(QObject):
             return
         if self._busy:
             return
-        self._set_status_message("Синхронизация пока не реализована")
+
+        self._set_busy(True)
+        self._set_status_message("Синхронизация баз...")
+        try:
+            if not self._ensure_folder():
+                self._set_busy(False)
+                return
+
+            incoming = data_dir() / "_cloud_sync_incoming"
+            if incoming.exists():
+                for path in incoming.iterdir():
+                    if path.is_file():
+                        path.unlink()
+            else:
+                incoming.mkdir(parents=True, exist_ok=True)
+
+            status, items = self._list_folder_items()
+            if status != 200:
+                self._set_busy(False)
+                self._set_status_message(f"Не удалось прочитать облачный каталог ({status})")
+                return
+
+            files = []
+            for item in items:
+                if item.get("type") != "file":
+                    continue
+                name = item.get("name") or ""
+                if not name.lower().endswith(".db"):
+                    continue
+                files.append(
+                    {
+                        "name": name,
+                        "path": item.get("path") or self._remote_db_path(name),
+                    }
+                )
+
+            for index, item in enumerate(files, start=1):
+                name = item["name"]
+                self._set_status_message(f"Загрузка {index}/{len(files)}: {name}")
+                local_path = str(incoming / name)
+                if not self._download_file(item["path"], local_path):
+                    self._set_busy(False)
+                    return
+
+            self._set_status_message("Объединение локальных баз...")
+            if not self._merge_incoming_databases(incoming):
+                self._set_busy(False)
+                self._set_status_message("Ошибка объединения баз данных")
+                return
+
+            for path in list(incoming.iterdir()):
+                if path.is_file():
+                    path.unlink()
+            if incoming.exists():
+                try:
+                    incoming.rmdir()
+                except OSError:
+                    pass
+
+            self._set_busy(False)
+            self._set_status_message("Выгрузка объединённых баз на диск...")
+            self.forceUploadDatabases()
+        except Exception as exc:
+            self._set_busy(False)
+            self._set_status_message(f"Ошибка синхронизации: {exc}")
+
+    def _merge_incoming_databases(self, incoming):
+        from utils import clients_db, objects_db, services_db, works_db
+        from utils.db_storage import parse_object_db_file_name
+
+        if not incoming.exists():
+            return True
+
+        root = data_dir()
+        for source in sorted(incoming.glob("*.db")):
+            name = source.name
+            target = root / name
+            if not target.exists():
+                target.write_bytes(source.read_bytes())
+                continue
+
+            if name.lower() == "clients.db":
+                clients_db.merge_from_database(source, target)
+                continue
+            if name.lower() == "services.db":
+                services_db.merge_from_database(source)
+                continue
+
+            parsed = parse_object_db_file_name(name)
+            if not parsed:
+                continue
+            client_name, client_id = parsed
+            objects_db.merge_from_database(source, client_name, client_id)
+            works_db.merge_from_database(source, client_name, client_id)
+        return True
 
     @pyqtSlot()
     def forceUploadDatabases(self):

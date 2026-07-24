@@ -37,6 +37,23 @@ def resolve_db_path(file_path, default_path):
     return default_path.resolve()
 
 
+def parse_object_db_file_name(file_name):
+    """Parse '{clientName}_{clientId}.db' -> (client_name, client_id) or None."""
+    name = (file_name or "").strip()
+    if name.lower().endswith(".db"):
+        name = name[:-3]
+    if name.lower() in ("clients", "services"):
+        return None
+    sep = name.rfind("_")
+    if sep <= 0 or sep + 1 >= len(name):
+        return None
+    client_name = name[:sep]
+    client_id = name[sep + 1 :]
+    if not client_name or not client_id:
+        return None
+    return client_name, client_id
+
+
 def _connect(db_path):
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)

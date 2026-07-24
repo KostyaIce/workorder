@@ -124,3 +124,39 @@ def update_object_last_order_at(client_name, client_id, object_id):
         """, (current_time, object_id))
         conn.commit()
         return cursor.rowcount > 0
+
+
+def merge_from_database(source_db_path, client_name, client_id):
+    """Insert objects from source db that are missing in target (by id)."""
+    from pathlib import Path
+
+    source = Path(source_db_path)
+    if not source.exists() or not client_name or not client_id:
+        return 0
+
+    create_object_database(client_name, client_id)
+    inserted = 0
+    with sqlite3.connect(source) as src, _connect(client_name, client_id) as dst:
+        src.row_factory = sqlite3.Row
+        rows = src.execute(
+            "SELECT id, name, address, updated_at, last_order_at FROM objects"
+        ).fetchall()
+        for row in rows:
+            cursor = dst.execute(
+                """
+                INSERT OR IGNORE INTO objects
+                (id, name, address, updated_at, last_order_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["name"],
+                    row["address"],
+                    row["updated_at"],
+                    row["last_order_at"],
+                ),
+            )
+            if cursor.rowcount and cursor.rowcount > 0:
+                inserted += 1
+        dst.commit()
+    return inserted
