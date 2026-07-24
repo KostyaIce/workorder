@@ -9,10 +9,14 @@ Dialog {
     property bool compact: true
 
     title: qsTr("Добавить работу")
-    standardButtons: Dialog.Save | Dialog.Cancel
+    standardButtons: Dialog.Ok | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 420
+
+    Component.onCompleted: {
+        standardButton(Dialog.Cancel).text = qsTr("Отмена")
+    }
 
     onOpened: {
         serviceField.text = ""

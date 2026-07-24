@@ -15,11 +15,15 @@ Dialog {
     property string paragraph: ""
 
     title: service_id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
-    standardButtons: Dialog.Save | Dialog.Cancel
+    standardButtons: Dialog.Ok | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
     height: compact ? parent.height * 0.85 : 560
+
+    Component.onCompleted: {
+        standardButton(Dialog.Cancel).text = qsTr("Отмена")
+    }
 
     onOpened: {
         nameField.text = name

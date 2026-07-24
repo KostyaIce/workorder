@@ -8,11 +8,15 @@ Dialog {
     property bool compact: true
 
     title: qsTr("Новый заказчик / объект")
-    standardButtons: Dialog.Save | Dialog.Cancel
+    standardButtons: Dialog.Ok | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 460
     height: 410
+
+    Component.onCompleted: {
+        standardButton(Dialog.Cancel).text = qsTr("Отмена")
+    }
 
     onOpened: {
         nameField.text = ""

@@ -12,10 +12,14 @@ Dialog {
     property bool compact: true
 
     title: mode === "add" ? qsTr("Добавить услугу") : qsTr("Редактировать услугу")
-    standardButtons: Dialog.Save | Dialog.Cancel
+    standardButtons: Dialog.Ok | Dialog.Cancel
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
+
+    Component.onCompleted: {
+        standardButton(Dialog.Cancel).text = qsTr("Отмена")
+    }
 
     onOpened: {
         if(mode === "edit") {
