@@ -83,6 +83,7 @@ QStringList ApplicationBootstrap::qmlImportPaths(const QString &appType)
 
 void ApplicationBootstrap::setupEnvironment()
 {
+    AppPaths::createPaths();
     AppLogging::setupAppLogging();
 
     if(AppPaths::isAndroidRuntime())

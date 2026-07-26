@@ -569,7 +569,7 @@ void CloudDiskBackend::beginUploadQueue()
 {
     closeAllSqlConnections();
 
-    const QString dataDir = AppPaths::dataDir();
+    const QString dataDir = AppPaths::dbDir();
     const QStringList names = localDatabaseFileNames();
     m_transferQueue.clear();
     m_transferIndex = 0;
@@ -727,7 +727,7 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
                                  .value(QStringLiteral("items")).toArray();
 
     const bool syncMode = (m_pendingOp == PendingOp::Sync);
-    const QString targetDir = syncMode ? syncIncomingDir() : AppPaths::dataDir();
+    const QString targetDir = syncMode ? syncIncomingDir() : AppPaths::dbDir();
     if(syncMode)
     {
         clearSyncIncomingDir();
@@ -978,7 +978,7 @@ bool CloudDiskBackend::mergeIncomingDatabases()
     if(!incoming.exists())
         return true;
 
-    const QString dataDir = AppPaths::dataDir();
+    const QString dataDir = AppPaths::dbDir();
     const QStringList names = incoming.entryList({QStringLiteral("*.db")}, QDir::Files, QDir::Name);
     for(const QString &name : names)
     {
@@ -1051,13 +1051,13 @@ void CloudDiskBackend::closeAllSqlConnections() const
 
 QStringList CloudDiskBackend::localDatabaseFileNames() const
 {
-    QDir dir(AppPaths::dataDir());
+    QDir dir(AppPaths::dbDir());
     return dir.entryList({QStringLiteral("*.db")}, QDir::Files, QDir::Name);
 }
 
 bool CloudDiskBackend::clearLocalDatabaseFiles()
 {
-    QDir dir(AppPaths::dataDir());
+    QDir dir(AppPaths::dbDir());
     const QStringList names = dir.entryList(
         {QStringLiteral("*.db"), QStringLiteral("*.db-wal"), QStringLiteral("*.db-shm")},
         QDir::Files);

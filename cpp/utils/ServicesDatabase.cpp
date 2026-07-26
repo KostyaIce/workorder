@@ -67,7 +67,7 @@ StringMap rowToService(const QSqlQuery &query)
 
 QString ServicesDatabase::defaultServicesDbPath()
 {
-    return QDir(AppPaths::projectDataDir()).filePath("services.db");
+    return QDir(AppPaths::dbDir()).filePath("services.db");
 }
 
 int ServicesDatabase::parsePriceCents(const QVariant &value)

@@ -289,7 +289,7 @@ QString AppLogging::setupAppLogging()
     else
         QLoggingCategory::setFilterRules(QString::fromUtf8(WORKORDER_QT_LOGGING_RULES));
 
-    g_pathToLog = QDir(AppPaths::dataDir()).filePath(QStringLiteral("logs"));
+    g_pathToLog = AppPaths::logDir();
     clearOldLogs(g_pathToLog, 2);
     g_fileWriter = new FileLogWriter(g_pathToLog);
     g_pathToFile = g_fileWriter->currentLogFilePath();

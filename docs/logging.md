@@ -20,12 +20,14 @@ Do **not** introduce a parallel logger API or wrappers that bypass Qt.
 `AppLogging::setupAppLogging()` (from `ApplicationBootstrap::setupEnvironment`):
 
 1. Applies `QLoggingCategory` filter rules from CMake (`cmake/WorkOrderLogging.cmake`)
-2. Opens rotating file `logs/WorkOrder_DD-MM-YYYY.log` under data dir
+2. Opens rotating file `data/log/WorkOrder_DD-MM-YYYY.log` under app storage
 3. Calls `qInstallMessageHandler(...)`
 
 Sink: stderr (or Android logcat) + log file.
 
 Helpers: `AppLogging::pathToLog()`, `AppLogging::pathToFile()`.
+
+See [app-paths.md](app-paths.md) for the full storage layout.
 
 ### CMake (client / debug builds)
 

@@ -76,6 +76,8 @@ public:
     Q_INVOKABLE void updateLastTimeObject();
     Q_INVOKABLE void selectObject(const QString &objectId);
     Q_INVOKABLE void selectOrder(int startOrderAt);
+    Q_INVOKABLE void activateInvoiceContext();
+    Q_INVOKABLE void activateReportsContext();
     Q_INVOKABLE void clearWorks();
     Q_INVOKABLE void selectService(const QString &serviceId, const QString &name, const QString &unit, int price);
     Q_INVOKABLE void setCurrentServicePrice(int price);
@@ -84,7 +86,13 @@ public:
     Q_INVOKABLE void searchSubObjects(const QString &query);
     Q_INVOKABLE void clearSubObjectSuggestions();
     Q_INVOKABLE void clearCurrentService();
-    Q_INVOKABLE bool addWork(double quantity);
+    Q_INVOKABLE void setCurrentServiceName(const QString &name);
+    Q_INVOKABLE void setCurrentCoefficients(const QString &coefficients);
+    Q_INVOKABLE void setCurrentPercentSum(int percentSum);
+    Q_INVOKABLE bool loadWorkIntoCurrentService(const QString &workId);
+    // startOrderAt > 0: use that order (reports); otherwise object's latest invoice order.
+    Q_INVOKABLE bool addWork(double quantity, int startOrderAt = 0);
+    Q_INVOKABLE bool updateCurrentWork(const QString &workId, double quantity);
     Q_INVOKABLE bool updateWork(const QVariantMap &data);
     Q_INVOKABLE bool deleteWork(const QString &workId);
     Q_INVOKABLE bool addObject(const QVariantMap &data);
@@ -152,6 +160,8 @@ private:
     void restoreSelection();
     void updateCurrentObjectData();
     void clearSelectedOrder();
+    void reloadSelectedOrderWorks();
+    bool addWorkAt(double quantity, qint64 startOrderAt);
     bool generateReportInternal(bool saveToFile, const QString &filePath = QString());
     static int coefficientPercentPoints(int price);
     static QStringList parseCoefficientNames(const QString &value);

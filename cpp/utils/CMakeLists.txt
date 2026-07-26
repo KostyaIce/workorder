@@ -16,6 +16,7 @@ set(WORKORDER_UTILS_SOURCES
     ServicesExcelBuilder.cpp
     ServicesPdfBuilder.cpp
     WorksDatabase.cpp
+    WorkOrderPathDefines.cpp
 )
 
 set(WORKORDER_UTILS_HEADERS
@@ -35,6 +36,7 @@ set(WORKORDER_UTILS_HEADERS
     ServicesPdfBuilder.h
     Types.h
     WorksDatabase.h
+    WorkOrderPathDefines.h
 )
 
 add_library(workorder_utils STATIC

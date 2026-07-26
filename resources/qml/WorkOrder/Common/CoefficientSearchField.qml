@@ -8,6 +8,8 @@ ColumnLayout
 
     property bool compact: true
     property bool useRowLayout: false
+    // When true: clear search field after picking a coefficient from suggestions.
+    property bool clearAfterSelect: false
 
     property int countField: 0
     property bool isValueGrowing: false
@@ -181,7 +183,7 @@ ColumnLayout
     Label
     {
         visible: !useRowLayout
-        text: qsTr("Коэффициенты")
+        text: root.clearAfterSelect ? qsTr("Выбрать другой коэффициент") : qsTr("Коэффициенты")
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -194,7 +196,7 @@ ColumnLayout
 
         Label
         {
-            text: qsTr("Коэффициенты")
+            text: root.clearAfterSelect ? qsTr("Выбрать другой коэффициент") : qsTr("Коэффициенты")
             font.pixelSize: 12
             color: textSecondaryColor
         }
@@ -203,7 +205,9 @@ ColumnLayout
         {
             id: coefficientInputRow
             Layout.fillWidth: true
-            placeholderText: qsTr("Введите название коэффициента...")
+            placeholderText: root.clearAfterSelect
+                             ? qsTr("Выбрать другой коэффициент...")
+                             : qsTr("Введите название коэффициента...")
             onTextChanged: root.runSearch()
             onDisplayTextChanged:
             {
@@ -223,7 +227,9 @@ ColumnLayout
         id: coefficientInput
         visible: !useRowLayout
         Layout.fillWidth: true
-        placeholderText: qsTr("Введите название коэффициента...")
+        placeholderText: root.clearAfterSelect
+                         ? qsTr("Выбрать другой коэффициент...")
+                         : qsTr("Введите название коэффициента...")
         onTextChanged: root.runSearch()
         onDisplayTextChanged:
         {
@@ -321,7 +327,7 @@ ColumnLayout
                 onClicked:
                 {
                     reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
-                    applyInputValue(reportBackend.currentCoefficients, false)
+                    applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
                 }
             }
         }

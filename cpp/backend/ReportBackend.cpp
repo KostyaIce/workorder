@@ -174,13 +174,57 @@ void ReportBackend::selectOrder(int startOrderAt)
         return;
 
     m_selectedStartOrderAt = value;
-    const QVariantMap order = m_orders->itemData(value);
-    m_selectedOrderTotalPrice = order.isEmpty() ? 0 : order.value("total_price").toInt();
-    emit orderSelected();
+    reloadSelectedOrderWorks();
+}
 
-    const StringMapList items = WorksDatabase::loadWorksBySelectAt(
-        m_currentClient.name, m_currentClient.id, m_currentObject.id, value);
-    m_workReport->updateModelFromMaps(mapsToVariantList(items));
+void ReportBackend::activateInvoiceContext()
+{
+    // Invoice tab always edits the object's latest order (last_order_at).
+    // Reports selection (selectedStartOrderAt) is left untouched.
+    clearCurrentService();
+
+    if(m_currentClient.id.isEmpty())
+        return;
+
+    if(m_currentObject.id.isEmpty())
+    {
+        m_works->clearModel();
+        emit worksChanged();
+        return;
+    }
+
+    loadObjects();
+    updateCurrentObjectData();
+    reloadWorks();
+}
+
+void ReportBackend::activateReportsContext()
+{
+    // Reports tab keeps its own selected order independently from invoice.
+    clearCurrentService();
+
+    const int preservedOrder = m_selectedStartOrderAt;
+
+    if(m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty())
+    {
+        m_orders->updateModelFromMaps({});
+        clearSelectedOrder();
+        return;
+    }
+
+    const StringMapList orders = WorksDatabase::getOrders(
+        m_currentClient.name, m_currentClient.id, m_currentObject.id);
+    m_orders->updateModelFromMaps(mapsToVariantList(orders));
+
+    if(preservedOrder > 0 && !m_orders->itemData(preservedOrder).isEmpty())
+    {
+        m_selectedStartOrderAt = preservedOrder;
+        reloadSelectedOrderWorks();
+    }
+    else
+    {
+        clearSelectedOrder();
+    }
 }
 
 void ReportBackend::clearWorks()
@@ -260,9 +304,103 @@ void ReportBackend::clearCurrentService()
     emit subObjectChanged(QString());
 }
 
-bool ReportBackend::addWork(double quantity)
+void ReportBackend::setCurrentServiceName(const QString &name)
 {
-    if(m_currentService.id.isEmpty())
+    const QString value = name.trimmed();
+    if(m_currentService.name == value)
+        return;
+    m_currentService.name = value;
+    emit serviceSelected();
+}
+
+void ReportBackend::setCurrentCoefficients(const QString &coefficients)
+{
+    if(m_currentService.coefficients == coefficients)
+        return;
+    m_currentService.coefficients = coefficients;
+    emit serviceSelected();
+}
+
+void ReportBackend::setCurrentPercentSum(int percentSum)
+{
+    const int value = qMax(100, percentSum);
+    if(m_currentService.percentSum == value)
+        return;
+    m_currentService.percentSum = value;
+    emit serviceSelected();
+}
+
+bool ReportBackend::loadWorkIntoCurrentService(const QString &workId)
+{
+    if(workId.isEmpty())
+        return false;
+
+    QVariantMap item = m_workReport->itemData(workId);
+    if(item.isEmpty())
+        item = m_works->itemData(workId);
+    if(item.isEmpty())
+        return false;
+
+    m_currentService = {};
+    m_currentService.id = item.value(QStringLiteral("service_id")).toString();
+    m_currentService.name = item.value(QStringLiteral("name")).toString();
+    m_currentService.unit = item.value(QStringLiteral("unit")).toString();
+    m_currentService.price = item.value(QStringLiteral("price")).toInt();
+    m_currentService.subObject = item.value(QStringLiteral("subobject_name")).toString();
+    m_currentService.coefficients = item.value(QStringLiteral("coefficients")).toString();
+    m_currentService.percentSum = item.value(QStringLiteral("percent_sum")).toInt();
+    if(m_currentService.percentSum < 100)
+        m_currentService.percentSum = 100;
+
+    emit serviceSelected();
+    emit subObjectChanged(m_currentService.subObject);
+    return true;
+}
+
+void ReportBackend::reloadSelectedOrderWorks()
+{
+    if(m_selectedStartOrderAt <= 0
+       || m_currentClient.id.isEmpty()
+       || m_currentObject.id.isEmpty())
+    {
+        m_workReport->clearModel();
+        m_selectedOrderTotalPrice = 0;
+        emit orderSelected();
+        return;
+    }
+
+    const StringMapList items = WorksDatabase::loadWorksBySelectAt(
+        m_currentClient.name,
+        m_currentClient.id,
+        m_currentObject.id,
+        m_selectedStartOrderAt);
+    m_workReport->updateModelFromMaps(mapsToVariantList(items));
+
+    const QVariantMap order = m_orders->itemData(m_selectedStartOrderAt);
+    m_selectedOrderTotalPrice = order.isEmpty() ? 0 : order.value(QStringLiteral("total_price")).toInt();
+
+    // Refresh order totals from DB without dropping selection.
+    const StringMapList orders = WorksDatabase::getOrders(
+        m_currentClient.name, m_currentClient.id, m_currentObject.id);
+    m_orders->updateModelFromMaps(mapsToVariantList(orders));
+    const QVariantMap refreshed = m_orders->itemData(m_selectedStartOrderAt);
+    if(!refreshed.isEmpty())
+        m_selectedOrderTotalPrice = refreshed.value(QStringLiteral("total_price")).toInt();
+
+    emit orderSelected();
+}
+
+bool ReportBackend::addWork(double quantity, int startOrderAt)
+{
+    const qint64 orderAt = startOrderAt > 0
+                               ? static_cast<qint64>(startOrderAt)
+                               : m_currentObject.lastOrderAt;
+    return addWorkAt(quantity, orderAt);
+}
+
+bool ReportBackend::addWorkAt(double quantity, qint64 startOrderAt)
+{
+    if(m_currentService.id.isEmpty() && m_currentService.name.trimmed().isEmpty())
         return false;
     if(m_currentClient.id.isEmpty())
     {
@@ -274,6 +412,11 @@ bool ReportBackend::addWork(double quantity)
         emit errorOccurred(QStringLiteral("Выберите объект"));
         return false;
     }
+    if(startOrderAt <= 0)
+    {
+        emit errorOccurred(QStringLiteral("Выберите счёт или начните новый отчёт"));
+        return false;
+    }
 
     QVariantMap data;
     data.insert("object_id", m_currentObject.id);
@@ -283,7 +426,7 @@ bool ReportBackend::addWork(double quantity)
     data.insert("price", m_currentService.price);
     data.insert("unit", m_currentService.unit);
     data.insert("quantity", quantity);
-    data.insert("start_order_at", m_currentObject.lastOrderAt);
+    data.insert("start_order_at", static_cast<int>(startOrderAt));
     data.insert("coefficients", m_currentService.coefficients);
     data.insert("percent_sum", m_currentService.percentSum);
 
@@ -295,9 +438,36 @@ bool ReportBackend::addWork(double quantity)
         return false;
     }
 
-    m_works->addItem(result);
+    if(startOrderAt == m_currentObject.lastOrderAt)
+        m_works->addItem(result);
+    if(startOrderAt == m_selectedStartOrderAt)
+        reloadSelectedOrderWorks();
+
     m_subobjects->addItem(m_currentService.subObject);
     emit worksChanged();
+    clearCurrentService();
+    return true;
+}
+
+bool ReportBackend::updateCurrentWork(const QString &workId, double quantity)
+{
+    if(workId.isEmpty())
+        return false;
+
+    QVariantMap data;
+    data.insert(QStringLiteral("id"), workId);
+    data.insert(QStringLiteral("name"), m_currentService.name);
+    data.insert(QStringLiteral("subobject_name"), m_currentService.subObject);
+    data.insert(QStringLiteral("coefficients"), m_currentService.coefficients);
+    data.insert(QStringLiteral("unit"), m_currentService.unit);
+    data.insert(QStringLiteral("quantity"), quantity);
+    data.insert(QStringLiteral("price"), m_currentService.price);
+    data.insert(QStringLiteral("percent_sum"), m_currentService.percentSum);
+    data.insert(QStringLiteral("service_id"), m_currentService.id);
+
+    if(!updateWork(data))
+        return false;
+
     clearCurrentService();
     return true;
 }
@@ -318,6 +488,9 @@ bool ReportBackend::updateWork(const QVariantMap &data)
         m_subobjects->addItem(subobjectName);
 
     m_works->updateItem(data);
+    m_workReport->updateItem(data);
+    if(m_selectedStartOrderAt > 0)
+        reloadSelectedOrderWorks();
     emit worksChanged();
     return true;
 }
@@ -334,6 +507,9 @@ bool ReportBackend::deleteWork(const QString &workId)
     }
 
     m_works->removeItem(workId);
+    m_workReport->removeItem(workId);
+    if(m_selectedStartOrderAt > 0)
+        reloadSelectedOrderWorks();
     emit worksChanged();
     return true;
 }
@@ -603,10 +779,14 @@ void ReportBackend::updateCurrentObjectData()
 void ReportBackend::clearSelectedOrder()
 {
     if(m_selectedStartOrderAt == 0)
+    {
+        m_workReport->clearModel();
         return;
+    }
 
     m_selectedStartOrderAt = 0;
     m_selectedOrderTotalPrice = 0;
+    m_workReport->clearModel();
     emit orderSelected();
 }
 

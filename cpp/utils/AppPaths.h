@@ -10,12 +10,15 @@ class AppPaths
 {
 public:
     static QString projectRoot();
+    static QString storageDir();
     static QString dataDir();
+    static QString logDir();
+    static QString dbDir();
+    static QString configDir();
+    // Alias for dataDir() kept for older call sites.
     static QString projectDataDir();
     static bool isAndroidRuntime();
-
-private:
-    static QString resolveDataDir();
+    static void createPaths();
 };
 
 } // namespace workorder

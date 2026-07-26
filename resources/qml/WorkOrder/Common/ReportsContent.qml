@@ -22,6 +22,7 @@ Item {
     WorkFormDialog {
         id: workDialog
         compact: root.compact
+        parent: Overlay.overlay
     }
 
     ReportOptionsDialog {
@@ -196,10 +197,7 @@ Item {
                         PrimaryButton {
                             text: qsTr("+ Работа")
                             filled: false
-                            onClicked: {
-                                workDialog.clientId = reportBackend.selectedClientId
-                                workDialog.open()
-                            }
+                            onClicked: workDialog.openForAdd()
                         }
 
                         Item { Layout.fillWidth: true }
@@ -225,6 +223,12 @@ Item {
                             height: 64
                             radius: 6
                             color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.rightMargin: 48
+                                onClicked: workDialog.openForEdit(id)
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
@@ -260,6 +264,11 @@ Item {
                                     text: (((quantity * price) / 100) * (percent_sum / 100)).toFixed(2) + " \u20BD"
                                     font.bold: true
                                     color: primaryColor
+                                }
+
+                                ToolButton {
+                                    text: "\u2715"
+                                    onClicked: reportBackend.deleteWork(id)
                                 }
                             }
                         }
@@ -471,10 +480,7 @@ Item {
                         PrimaryButton {
                             text: qsTr("+ Работа")
                             filled: false
-                            onClicked: {
-                                workDialog.clientId = reportBackend.selectedClientId
-                                workDialog.open()
-                            }
+                            onClicked: workDialog.openForAdd()
                         }
 
                         Item { Layout.fillWidth: true }
@@ -499,6 +505,12 @@ Item {
                             height: 64
                             radius: 6
                             color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.rightMargin: 48
+                                onClicked: workDialog.openForEdit(id)
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
@@ -535,6 +547,11 @@ Item {
                                     font.bold: true
                                     color: primaryColor
                                 }
+
+                                ToolButton {
+                                    text: "\u2715"
+                                    onClicked: reportBackend.deleteWork(id)
+                                }
                             }
                         }
                     }
@@ -558,7 +575,7 @@ Item {
 
     function activate()
     {
-        reportBackend.refreshOrders()
+        reportBackend.activateReportsContext()
     }
 
     Component.onCompleted: activate()

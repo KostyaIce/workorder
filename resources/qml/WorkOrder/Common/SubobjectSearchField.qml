@@ -8,12 +8,24 @@ ColumnLayout
 
     property bool compact: true
     property bool useRowLayout: false
+    // When true: search field is for picking only; current value is edited elsewhere.
+    property bool selectionOnly: false
 
     readonly property Item activeInput: useRowLayout ? subobjectInputRow : subobjectInput
     readonly property int suggestionRowHeight: compact ? 44 : 32
 
     spacing: useRowLayout ? 0 : 8
     Layout.fillWidth: true
+
+    function syncFromBackend()
+    {
+        if(selectionOnly)
+            return
+        if(subobjectInput.text !== reportBackend.currentSubObject)
+            subobjectInput.text = reportBackend.currentSubObject
+        if(subobjectInputRow.text !== reportBackend.currentSubObject)
+            subobjectInputRow.text = reportBackend.currentSubObject
+    }
 
     function updateSuggestions()
     {
@@ -31,10 +43,23 @@ ColumnLayout
         }
     }
 
+    function applySelection(name)
+    {
+        closeSuggestionsTimer.stop()
+        reportBackend.setCurrentSubObject(name)
+        reportBackend.clearSubObjectSuggestions()
+        suggestionsPopup.close()
+        if(selectionOnly)
+        {
+            subobjectInput.text = ""
+            subobjectInputRow.text = ""
+        }
+    }
+
     Label
     {
         visible: !useRowLayout
-        text: qsTr("Субобъект")
+        text: root.selectionOnly ? qsTr("Выбрать другой объект") : qsTr("Субобъект")
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -47,7 +72,7 @@ ColumnLayout
 
         Label
         {
-            text: qsTr("Субобъект")
+            text: root.selectionOnly ? qsTr("Выбрать другой объект") : qsTr("Субобъект")
             font.pixelSize: 12
             color: textSecondaryColor
         }
@@ -56,11 +81,18 @@ ColumnLayout
         {
             id: subobjectInputRow
             Layout.fillWidth: true
-            placeholderText: qsTr("Комната 1, Кухня")
-            text: reportBackend.currentSubObject
+            placeholderText: root.selectionOnly
+                             ? qsTr("Выбрать другой объект...")
+                             : qsTr("Комната 1, Кухня")
+            Component.onCompleted:
+            {
+                if(!root.selectionOnly)
+                    text = reportBackend.currentSubObject
+            }
             onTextChanged:
             {
-                reportBackend.setCurrentSubObject(text)
+                if(!root.selectionOnly)
+                    reportBackend.setCurrentSubObject(text)
                 reportBackend.searchSubObjects(text)
                 updateSuggestions()
             }
@@ -79,11 +111,18 @@ ColumnLayout
         id: subobjectInput
         visible: !useRowLayout
         Layout.fillWidth: true
-        placeholderText: qsTr("Комната 1, Кухня")
-        text: reportBackend.currentSubObject
+        placeholderText: root.selectionOnly
+                         ? qsTr("Выбрать другой объект...")
+                         : qsTr("Комната 1, Кухня")
+        Component.onCompleted:
+        {
+            if(!root.selectionOnly)
+                text = reportBackend.currentSubObject
+        }
         onTextChanged:
         {
-            reportBackend.setCurrentSubObject(text)
+            if(!root.selectionOnly)
+                reportBackend.setCurrentSubObject(text)
             reportBackend.searchSubObjects(text)
             updateSuggestions()
         }
@@ -132,10 +171,7 @@ ColumnLayout
                 hoverEnabled: !compact
                 onClicked:
                 {
-                    closeSuggestionsTimer.stop()
-                    reportBackend.setCurrentSubObject(model.name)
-                    reportBackend.clearSubObjectSuggestions()
-                    suggestionsPopup.close()
+                    applySelection(model.name)
                 }
             }
         }
@@ -159,6 +195,16 @@ ColumnLayout
         {
             if(activeInput.activeFocus)
                 updateSuggestions()
+        }
+    }
+
+    Connections
+    {
+        target: reportBackend
+        enabled: !root.selectionOnly
+        function onSubObjectChanged(value)
+        {
+            syncFromBackend()
         }
     }
 }

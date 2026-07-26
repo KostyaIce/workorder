@@ -1,9 +1,10 @@
 #include "AppPaths.h"
 
+#include "WorkOrderPathDefines.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
-#include <QStandardPaths>
 #include <QSysInfo>
 
 namespace workorder
@@ -52,44 +53,44 @@ bool AppPaths::isAndroidRuntime()
     return QSysInfo::productType().compare(QLatin1String("android"), Qt::CaseInsensitive) == 0;
 }
 
-QString AppPaths::resolveDataDir()
+void AppPaths::createPaths()
 {
-    if(isAndroidRuntime())
-    {
-        QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        if(base.isEmpty())
-            base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-        if(base.isEmpty())
-            base = qEnvironmentVariable("ANDROID_PRIVATE");
-        if(base.isEmpty())
-            base = qEnvironmentVariable("ANDROID_APP_PATH");
-        if(base.isEmpty())
-            return QDir(AppPaths::projectRoot()).filePath("data");
+    WorkOrderPathDefines::createPaths();
+}
 
-        return QDir(base).filePath("data");
-    }
-
-    const QString overridePath = qEnvironmentVariable("WORKORDER_DATA_DIR");
-    if(!overridePath.isEmpty())
-        return QDir(overridePath).absolutePath();
-
-    return QDir(AppPaths::projectRoot()).filePath("data");
+QString AppPaths::storageDir()
+{
+    createPaths();
+    return WorkOrderPathDefines::storagePath();
 }
 
 QString AppPaths::dataDir()
 {
-    static QString cached;
-    if(cached.isEmpty())
-    {
-        cached = QDir(resolveDataDir()).absolutePath();
-        QDir().mkpath(cached);
-    }
-    return cached;
+    createPaths();
+    return WorkOrderPathDefines::dataPath();
+}
+
+QString AppPaths::logDir()
+{
+    createPaths();
+    return WorkOrderPathDefines::logPath();
+}
+
+QString AppPaths::dbDir()
+{
+    createPaths();
+    return WorkOrderPathDefines::dbPath();
+}
+
+QString AppPaths::configDir()
+{
+    createPaths();
+    return WorkOrderPathDefines::configPath();
 }
 
 QString AppPaths::projectDataDir()
 {
-    return dataDir();
+    return dbDir();
 }
 
 } // namespace workorder

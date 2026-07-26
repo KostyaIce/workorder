@@ -291,6 +291,15 @@ Item
         searchFieldDesktop.clearField()
     }
 
+    function activate()
+    {
+        reportBackend.activateInvoiceContext()
+        searchFieldMobile.clearField()
+        searchFieldDesktop.clearField()
+    }
+
+    Component.onCompleted: activate()
+
     ReportOptionsDialog
     {
         id: reportOptionsDialog

@@ -1,5 +1,7 @@
 #include "QSettingsStore.h"
 
+#include "WorkOrderPathDefines.h"
+
 #include <QCoreApplication>
 
 namespace workorder
@@ -17,17 +19,13 @@ QSettingsStore::~QSettingsStore()
 
 QSettings QSettingsStore::createSettings()
 {
-    QCoreApplication *app = QCoreApplication::instance();
-    if(app != nullptr)
-    {
-        if(app->organizationName().isEmpty())
-            app->setOrganizationName(QLatin1String(kOrganization));
-        if(app->applicationName().isEmpty())
-            app->setApplicationName(QLatin1String(kApplication));
-        return QSettings();
-    }
+    if(QCoreApplication::organizationName().isEmpty())
+        QCoreApplication::setOrganizationName(QLatin1String(kOrganization));
+    if(QCoreApplication::applicationName().isEmpty())
+        QCoreApplication::setApplicationName(QLatin1String(kApplication));
 
-    return QSettings(QLatin1String(kOrganization), QLatin1String(kApplication));
+    WorkOrderPathDefines::createPaths();
+    return QSettings(WorkOrderPathDefines::configFilePath(), QSettings::IniFormat);
 }
 
 QVariant QSettingsStore::read(const QString &key, const QVariant &defaultValue) const

@@ -13,6 +13,7 @@ ColumnLayout
     property int actionButtonSize: 44
 
     readonly property int objectLastOrder: reportBackend.selectedObjectLastOrder
+    readonly property bool clientSelected: reportBackend.selectedClientId !== ""
     readonly property bool noActiveReport: objectLastOrder === 0
     readonly property bool reportIsStale: objectLastOrder > 0
         && (Math.floor(Date.now() / 1000) - objectLastOrder) > 12 * 3600
@@ -106,6 +107,8 @@ ColumnLayout
         {
             id: objectBox
             Layout.fillWidth: true
+            enabled: root.clientSelected
+            opacity: enabled ? 1.0 : 0.45
             model: objectsModel
             textRole: "name"
             valueRole: "id"
@@ -118,6 +121,8 @@ ColumnLayout
 
             popup.onVisibleChanged:
             {
+                if(!enabled)
+                    return
                 if(popup.visible && objectsModel.count === 0)
                     objectDialog.open()
             }
@@ -128,6 +133,7 @@ ColumnLayout
             Layout.preferredWidth: actionButtonSize
             Layout.preferredHeight: actionButtonSize
             radius: 8
+            opacity: root.clientSelected ? 1.0 : 0.45
             color: objectAddMouse.pressed ? Qt.darker(primaryColor, 1.15) : primaryColor
 
             Label
@@ -143,6 +149,7 @@ ColumnLayout
             {
                 id: objectAddMouse
                 anchors.fill: parent
+                enabled: root.clientSelected
                 onClicked: objectDialog.open()
             }
         }

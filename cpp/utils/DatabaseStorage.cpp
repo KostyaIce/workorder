@@ -1,6 +1,7 @@
 #include "DatabaseStorage.h"
 
 #include "AppPaths.h"
+#include "WorkOrderPathDefines.h"
 #include "WorksDatabase.h"
 
 #include <QDir>
@@ -14,7 +15,7 @@ namespace workorder
 
 QString DatabaseStorage::projectDataDir()
 {
-    return AppPaths::projectDataDir();
+    return AppPaths::dbDir();
 }
 
 QString DatabaseStorage::defaultClientsDbPath()
@@ -29,12 +30,12 @@ QString DatabaseStorage::objectDbPath(const QString &clientName, const QString &
 
 QString DatabaseStorage::defaultSettingsPath()
 {
-    return QDir(projectDataDir()).filePath("app_settings.json");
+    return QDir(AppPaths::configDir()).filePath("app_settings.json");
 }
 
 QString DatabaseStorage::defaultReportsDir()
 {
-    return QDir(projectDataDir()).filePath("reports");
+    return WorkOrderPathDefines::reportsPath();
 }
 
 QString DatabaseStorage::resolveDbPath(const QString &filePath, const QString &defaultPath)

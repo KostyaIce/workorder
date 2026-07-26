@@ -11,7 +11,7 @@ namespace workorder
 
 SettingsBackend::SettingsBackend(QObject *parent)
     : QObject(parent)
-    , m_dbPath(QDir(AppPaths::dataDir()).filePath("services.db"))
+    , m_dbPath(QDir(AppPaths::dbDir()).filePath("services.db"))
 {
     loadPersistedSettings();
 }
@@ -98,7 +98,7 @@ void SettingsBackend::setDbPath(const QString &value)
 
 QString SettingsBackend::defaultImportPath() const
 {
-    return QDir(AppPaths::dataDir()).filePath("import.json");
+    return QDir(AppPaths::configDir()).filePath("import.json");
 }
 
 QString SettingsBackend::personalInfo() const { return m_personalInfo; }
@@ -140,7 +140,7 @@ bool SettingsBackend::resetSettings()
     m_currency = QStringLiteral("RUB");
     m_vatRate = 20;
     m_invoicePrefix = QStringLiteral("INV");
-    m_dbPath = QDir(AppPaths::dataDir()).filePath("services.db");
+    m_dbPath = QDir(AppPaths::dbDir()).filePath("services.db");
     m_personalInfo.clear();
     emit settingsChanged();
     emit themeChanged();

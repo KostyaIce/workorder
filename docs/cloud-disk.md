@@ -41,7 +41,7 @@ Results are shown in the dialog list.
 
 ## Database transfer
 
-Local DB files live in `AppPaths::dataDir()` / `data_dir()`:
+Local DB files live in `AppPaths::dbDir()` (`{STORAGE}/data/db`):
 
 - `clients.db`
 - `services.db`

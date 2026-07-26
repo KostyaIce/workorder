@@ -63,7 +63,7 @@ Package C++ APK: **`com.workorder`**. Python APK (pysidedeploy): `com.workorder.
 
 Если приложение сразу закрывается — проверьте logcat на `Failed to load QML` (частая причина: неверный URL для `qrc:`).
 
-Данные приложения: `QStandardPaths::AppDataLocation/data/`.
+Данные приложения: `{AppDataLocation}/data/` (`log/`, `db/`, `config/`). См. [app-paths.md](app-paths.md).
 
 ## Desktop vs Android
 

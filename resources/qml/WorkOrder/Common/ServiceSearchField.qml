@@ -11,6 +11,9 @@ ColumnLayout
     property int countField: 0
     property bool isValueGrowing: false
     property int layoutSpacing: 8
+    // Invoice tab: require active report. Dialog/report edit: always enabled.
+    property bool requireReportReady: true
+    property string labelText: qsTr("Услуга")
 
     readonly property int suggestionRowHeight: compact ? 56 : 36
     readonly property int suggestionMaxRowHeight: compact ? 56 : 48
@@ -25,7 +28,7 @@ ColumnLayout
     property string pendingInputValue: ""
     property bool restoreFocusAfterReset: false
 
-    readonly property bool reportReady: reportBackend.selectedObjectLastOrder !== 0
+    readonly property bool reportReady: !requireReportReady || reportBackend.selectedObjectLastOrder !== 0
 
     function currentQuery()
     {
@@ -163,7 +166,7 @@ ColumnLayout
 
     Label
     {
-        text: qsTr("Услуга")
+        text: root.labelText
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -181,7 +184,9 @@ ColumnLayout
             enabled: root.reportReady
             placeholderText: root.reportReady
                 ? qsTr("Введите название услуги...")
-                : qsTr("Сначала начните новый отчет")
+                : (root.requireReportReady
+                   ? qsTr("Сначала начните новый отчет")
+                   : qsTr("Введите название услуги..."))
             onTextChanged: runSearch()
             onDisplayTextChanged:
             {
