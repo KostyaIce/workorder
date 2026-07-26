@@ -404,6 +404,51 @@ ColumnLayout {
             }
 
             SettingsSection {
+                title: qsTr("Данные приложения")
+                compact: root.compact
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Открыть каталоги с логами и базами данных")
+                    font.pixelSize: compact ? 13 : 14
+                    color: textSecondaryColor
+                    wrapMode: Text.WordWrap
+                }
+
+                SettingsActionRow {
+                    visible: compact
+                    label: qsTr("Каталог логов")
+                    icon: ">"
+                    onActivated: settingsBackend.openLogDirectory()
+                }
+
+                SettingsActionRow {
+                    visible: compact
+                    label: qsTr("Каталог баз данных")
+                    icon: ">"
+                    onActivated: settingsBackend.openDbDirectory()
+                }
+
+                RowLayout {
+                    visible: !compact
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PrimaryButton {
+                        text: qsTr("Каталог логов")
+                        Layout.preferredWidth: 200
+                        onClicked: settingsBackend.openLogDirectory()
+                    }
+
+                    PrimaryButton {
+                        text: qsTr("Каталог баз данных")
+                        Layout.preferredWidth: 220
+                        onClicked: settingsBackend.openDbDirectory()
+                    }
+                }
+            }
+
+            SettingsSection {
                 title: qsTr("О приложении")
                 compact: root.compact
                 SettingsAboutSection {

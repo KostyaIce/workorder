@@ -3,7 +3,9 @@
 #include "AppPaths.h"
 #include "DatabaseStorage.h"
 
+#include <QDesktopServices>
 #include <QDir>
+#include <QUrl>
 #include <QVariantMap>
 
 namespace workorder
@@ -163,6 +165,20 @@ bool SettingsBackend::importData(const QString &filePath)
 bool SettingsBackend::resetDatabase()
 {
     return true;
+}
+
+bool SettingsBackend::openLogDirectory()
+{
+    const QString path = AppPaths::logDir();
+    QDir().mkpath(path);
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+bool SettingsBackend::openDbDirectory()
+{
+    const QString path = AppPaths::dbDir();
+    QDir().mkpath(path);
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 QVariantList SettingsBackend::getAvailableThemes() const

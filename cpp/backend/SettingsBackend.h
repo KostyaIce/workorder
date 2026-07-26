@@ -75,6 +75,8 @@ public:
     Q_INVOKABLE bool exportData();
     Q_INVOKABLE bool importData(const QString &filePath);
     Q_INVOKABLE bool resetDatabase();
+    Q_INVOKABLE bool openLogDirectory();
+    Q_INVOKABLE bool openDbDirectory();
     Q_INVOKABLE QVariantList getAvailableThemes() const;
     Q_INVOKABLE QVariantList getAvailableLanguages() const;
     Q_INVOKABLE QVariantList getAvailableCurrencies() const;
