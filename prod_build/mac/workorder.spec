@@ -6,7 +6,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 SPEC_DIR = Path(SPECPATH)
-PROJECT_ROOT = SPEC_DIR.parent
+PROJECT_ROOT = SPEC_DIR.parent.parent
 WORK_DIR = SPEC_DIR / "work"
 ICON_PATH = PROJECT_ROOT / "resources" / "icons" / "appIcons" / "icon_macos.icns"
 

@@ -76,7 +76,22 @@ set_target_properties(WorkOrder PROPERTIES
     FOLDER "qtc_runnable"
 )
 
+if(WIN32 AND NOT ANDROID)
+    set_target_properties(WorkOrder PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
 workorder_setup_qrc_resources(WorkOrder)
+
+if(WIN32 AND NOT ANDROID)
+    set(WORKORDER_WIN_ICON "${WORKORDER_ROOT}/resources/icons/appIcons/icon_win32.ico")
+    file(TO_CMAKE_PATH "${WORKORDER_WIN_ICON}" WORKORDER_WIN_ICON)
+    configure_file(
+        "${WORKORDER_ROOT}/cmake/windows/WorkOrder.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/WorkOrder.rc"
+        @ONLY
+    )
+    target_sources(WorkOrder PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/WorkOrder.rc")
+endif()
 
 if(ANDROID)
     workorder_setup_android_target(WorkOrder)

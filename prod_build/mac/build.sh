@@ -1,30 +1,39 @@
 #!/usr/bin/env bash
-# Build WorkOrder.app with PyInstaller and wrap it in a DMG (macOS only).
+# Build WorkOrder.app with PyInstaller (macOS only). Run pack.sh after this.
 #
 # Usage:
-#   ./prod_build/build_macos.sh [desktop|mobile] [version]
-#
-# Examples:
-#   ./prod_build/build_macos.sh
-#   ./prod_build/build_macos.sh desktop 1.0.0
-#   ./prod_build/build_macos.sh mobile 1.0.0
+#   ./prod_build/mac/build.sh [desktop|mobile] [version]
 #
 # Output:
-#   prod_build/dist/WorkOrder.app
-#   prod_build/dist/WorkOrder-<type>-<version>.dmg
+#   prod_build/mac/dist/WorkOrder.app
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 APP_TYPE="${1:-desktop}"
-VERSION="${2:-1.0.0}"
+VERSION="${2:-}"
 DIST_DIR="${SCRIPT_DIR}/dist"
 WORK_DIR="${SCRIPT_DIR}/work"
-DMG_STAGE_DIR="${SCRIPT_DIR}/dmg_staging"
+BUILD_DIR="${SCRIPT_DIR}/build"
 APP_BUNDLE="${DIST_DIR}/WorkOrder.app"
-DMG_NAME="WorkOrder-${APP_TYPE}-${VERSION}.dmg"
-DMG_PATH="${DIST_DIR}/${DMG_NAME}"
+
+read_version() {
+    local major=1 minor=0 patch=0
+    while IFS= read -r line; do
+        case "$line" in
+            VERSION_MAJOR=*) major="${line#VERSION_MAJOR=}" ;;
+            VERSION_MINOR=*) minor="${line#VERSION_MINOR=}" ;;
+            VERSION_PATCH=*) patch="${line#VERSION_PATCH=}" ;;
+        esac
+    done < "${PROJECT_ROOT}/version.mk"
+    echo "${major}.${minor}.${patch}"
+}
+
+if [[ -z "${VERSION}" ]]
+then
+    VERSION="$(read_version)"
+fi
 
 if [[ "$(uname -s)" != "Darwin" ]]
 then
@@ -58,6 +67,14 @@ echo "==> Installing build dependencies"
 "${PYTHON}" -m pip install -q -r "${PROJECT_ROOT}/requirements.txt"
 "${PYTHON}" -m pip install -q -r "${SCRIPT_DIR}/requirements-build.txt"
 
+rm -rf "${DIST_DIR}" "${WORK_DIR}" "${BUILD_DIR}"
+mkdir -p "${DIST_DIR}" "${WORK_DIR}" "${BUILD_DIR}"
+
+cat > "${SCRIPT_DIR}/build.env" <<EOF
+WORKORDER_APP_TYPE=${APP_TYPE}
+WORKORDER_VERSION=${VERSION}
+EOF
+
 echo "==> Building WorkOrder.app"
 export WORKORDER_APP_TYPE="${APP_TYPE}"
 export WORKORDER_VERSION="${VERSION}"
@@ -75,22 +92,6 @@ then
     exit 1
 fi
 
-echo "==> Creating DMG"
-rm -rf "${DMG_STAGE_DIR}"
-mkdir -p "${DMG_STAGE_DIR}"
-cp -R "${APP_BUNDLE}" "${DMG_STAGE_DIR}/"
-ln -s /Applications "${DMG_STAGE_DIR}/Applications"
-
-rm -f "${DMG_PATH}"
-hdiutil create \
-    -volname "WorkOrder" \
-    -srcfolder "${DMG_STAGE_DIR}" \
-    -ov \
-    -format UDZO \
-    "${DMG_PATH}" >/dev/null
-
-rm -rf "${DMG_STAGE_DIR}"
-
-echo "==> Done"
+echo "==> Build done"
 echo "App: ${APP_BUNDLE}"
-echo "DMG: ${DMG_PATH}"
+echo "Next: ./prod_build/mac/pack.sh"

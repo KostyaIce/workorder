@@ -46,9 +46,23 @@ data/
 *.apk
 
 # Production build artifacts
-prod_build/dist/
-prod_build/work/
-prod_build/dmg_staging/
+prod_build/windows/build/
+prod_build/windows/dist/
+prod_build/windows/WorkOrder/
+prod_build/windows/nsis/
+prod_build/windows/cmake-build/
+prod_build/windows/build.env.ps1
+prod_build/windows/*.zip
+prod_build/windows/*-setup.exe
+prod_build/mac/build/
+prod_build/mac/dist/
+prod_build/mac/WorkOrder.app/
+prod_build/mac/WorkOrder/
+prod_build/mac/work/
+prod_build/mac/dmg_staging/
+prod_build/mac/build.env
+prod_build/mac/*.dmg
+build-*
 
 # Android deploy (symlinks + buildozer cache)
 android/src
