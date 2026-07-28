@@ -93,7 +93,7 @@ private:
     QString m_appVersion = QLatin1String(WORKORDER_VERSION);
     QString m_appName = QStringLiteral("WorkOrder");
     QString m_buildDate = QStringLiteral("2024-01-15");
-    QString m_developer = QStringLiteral("WorkOrder Team");
+    QString m_developer = QStringLiteral("Konstantin.K");
     QString m_theme = QStringLiteral("light");
     QString m_language = QStringLiteral("ru");
     bool m_autoSave = true;

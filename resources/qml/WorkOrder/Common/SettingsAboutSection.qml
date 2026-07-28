@@ -25,19 +25,12 @@ ColumnLayout {
         Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
     }
 
-    Label {
-        text: settingsBackend.developer
-        font.pixelSize: 12
-        color: textSecondaryColor
-        visible: !centered
-    }
-
-    Label {
-        text: settingsBackend.fullVersion
-        font.pixelSize: 12
-        color: textSecondaryColor
-        Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
-    }
+    // Label {
+    //     text: settingsBackend.developer
+    //     font.pixelSize: 12
+    //     color: textSecondaryColor
+    //     visible: !centered
+    // }
 
     Label {
         text: qsTr("Приложение для создания счетов и управления базой услуг.")
@@ -51,7 +44,18 @@ ColumnLayout {
     }
 
     Label {
-        text: "\u00A9 2024 " + settingsBackend.developer
+        Layout.fillWidth: true
+        Layout.topMargin: 4
+        text: qsTr("Замечания и пожелания по улучшению присылайте на почту:\nworkorderapp@mail.ru")
+        font.pixelSize: 13
+        color: textSecondaryColor
+        wrapMode: Text.WordWrap
+        horizontalAlignment: centered ? Text.AlignHCenter : Text.AlignLeft
+        Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
+    }
+
+    Label {
+        text: "\u00A9 2026 " + settingsBackend.developer
         font.pixelSize: 12
         color: textSecondaryColor
         visible: !centered

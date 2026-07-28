@@ -456,14 +456,14 @@ ColumnLayout {
                 }
             }
 
-            PrimaryButton {
-                visible: compact
-                Layout.fillWidth: true
-                Layout.margins: 16
-                Layout.topMargin: 0
-                text: qsTr("Сохранить настройки")
-                onClicked: settingsBackend.saveSettings()
-            }
+            // PrimaryButton {
+            //     visible: compact
+            //     Layout.fillWidth: true
+            //     Layout.margins: 16
+            //     Layout.topMargin: 0
+            //     text: qsTr("Сохранить настройки")
+            //     onClicked: settingsBackend.saveSettings()
+            // }
 
             Item {
                 visible: compact
