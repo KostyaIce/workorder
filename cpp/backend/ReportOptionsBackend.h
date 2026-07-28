@@ -20,6 +20,7 @@ class ReportOptionsBackend : public QObject
     Q_PROPERTY(bool includeReportHeader READ includeReportHeader WRITE setIncludeReportHeader NOTIFY optionsChanged)
     Q_PROPERTY(QString reportHeaderText READ reportHeaderText WRITE setReportHeaderText NOTIFY optionsChanged)
     Q_PROPERTY(bool groupBySubobjects READ groupBySubobjects WRITE setGroupBySubobjects NOTIFY optionsChanged)
+    Q_PROPERTY(bool includeCoefficients READ includeCoefficients WRITE setIncludeCoefficients NOTIFY optionsChanged)
 
 public:
     explicit ReportOptionsBackend(QObject *parent = nullptr);
@@ -46,6 +47,9 @@ public:
     bool groupBySubobjects() const;
     void setGroupBySubobjects(bool value);
 
+    bool includeCoefficients() const;
+    void setIncludeCoefficients(bool value);
+
     QVariantMap asDict() const;
 
     Q_INVOKABLE bool saveSettings();
@@ -69,6 +73,7 @@ private:
     bool m_includeReportHeader = true;
     QString m_reportHeaderText;
     bool m_groupBySubobjects = true;
+    bool m_includeCoefficients = true;
     QSet<int> m_selectedOrders;
 };
 

@@ -15,6 +15,7 @@ const char *kIncludePersonalInfo = "report_options/include_personal_info";
 const char *kIncludeReportHeader = "report_options/include_report_header";
 const char *kReportHeaderText = "report_options/report_header_text";
 const char *kGroupBySubobjects = "report_options/group_by_subobjects";
+const char *kIncludeCoefficients = "report_options/include_coefficients";
 const char *kDefaultReportHeader = "Отчет о проделанной работе по установке сантехники";
 
 } // namespace
@@ -91,6 +92,15 @@ void ReportOptionsBackend::setGroupBySubobjects(bool value)
     emit optionsChanged();
 }
 
+bool ReportOptionsBackend::includeCoefficients() const { return m_includeCoefficients; }
+void ReportOptionsBackend::setIncludeCoefficients(bool value)
+{
+    if(m_includeCoefficients == value)
+        return;
+    m_includeCoefficients = value;
+    emit optionsChanged();
+}
+
 QVariantMap ReportOptionsBackend::asDict() const
 {
     QVariantMap map;
@@ -101,6 +111,7 @@ QVariantMap ReportOptionsBackend::asDict() const
     map.insert("include_report_header", m_includeReportHeader);
     map.insert("report_header_text", m_reportHeaderText);
     map.insert("group_by_subobjects", m_groupBySubobjects);
+    map.insert("include_coefficients", m_includeCoefficients);
     return map;
 }
 
@@ -159,6 +170,7 @@ void ReportOptionsBackend::loadSettings()
     if(m_reportHeaderText.isEmpty())
         m_reportHeaderText = QString::fromUtf8(kDefaultReportHeader);
     m_groupBySubobjects = store.read(kGroupBySubobjects, true).toBool();
+    m_includeCoefficients = store.read(kIncludeCoefficients, true).toBool();
 }
 
 void ReportOptionsBackend::persistSettings()
@@ -171,6 +183,7 @@ void ReportOptionsBackend::persistSettings()
     store.write(kIncludeReportHeader, m_includeReportHeader);
     store.write(kReportHeaderText, m_reportHeaderText);
     store.write(kGroupBySubobjects, m_groupBySubobjects);
+    store.write(kIncludeCoefficients, m_includeCoefficients);
     store.sync();
 }
 

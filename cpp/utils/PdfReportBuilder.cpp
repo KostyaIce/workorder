@@ -119,12 +119,15 @@ QString PdfReportBuilder::formatMultiplier(int percentSum) const
     return text;
 }
 
-QString PdfReportBuilder::formatWorkName(const StringMap &work) const
+QString PdfReportBuilder::formatWorkName(const StringMap &work, bool includeCoefficients) const
 {
     QString name = work.value("name").toString();
-    const QString coefficients = work.value("coefficients").toString().trimmed();
-    if(!coefficients.isEmpty())
-        name += QStringLiteral(" (%1)").arg(coefficients);
+    if(includeCoefficients)
+    {
+        const QString coefficients = work.value("coefficients").toString().trimmed();
+        if(!coefficients.isEmpty())
+            name += QStringLiteral(" (%1)").arg(coefficients);
+    }
 
     return escapeHtml(name);
 }
@@ -269,37 +272,60 @@ QString PdfReportBuilder::buildPartiesHtml(const QString &personalInfo, const St
     return html;
 }
 
-QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList &rows, bool includeTotal) const
+QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
+                                                             const StringMap &options) const
 {
     QString html;
     double total = 0.0;
+    const bool includeCoefficients = optionEnabled(options, "include_coefficients");
     const QString cellStyle = worksTableStyle();
     const QString headerStyle = worksTableHeaderStyle();
-    const QString workColWidth = QStringLiteral("50%");
+    const QString workColWidth = includeCoefficients ? QStringLiteral("50%") : QStringLiteral("55%");
     const QString qtyColWidth = QStringLiteral("14%");
-    const QString priceColWidth = QStringLiteral("14%");
+    const QString priceColWidth = includeCoefficients ? QStringLiteral("14%") : QStringLiteral("16%");
     const QString coeffColWidth = QStringLiteral("7%");
-    const QString sumColWidth = QStringLiteral("15%");
+    const QString sumColWidth = includeCoefficients ? QStringLiteral("15%") : QStringLiteral("15%");
 
     html += QStringLiteral("<table border=\"1\" cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">");
-    html += QStringLiteral("<tr>"
-                           "<td style=\"%1\" width=\"%2\">%3</td>"
-                           "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
-                           "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
-                           "<td style=\"%1\" width=\"%8\" align=\"center\">%9</td>"
-                           "<td style=\"%1\" width=\"%10\" align=\"right\">%11</td>"
-                           "</tr>")
-        .arg(headerStyle,
-             workColWidth,
-             wrapWorksTableText(QStringLiteral("<b>Работа</b>")),
-             qtyColWidth,
-             wrapWorksTableText(QStringLiteral("<b>Кол-во</b>")),
-             priceColWidth,
-             wrapWorksTableText(QStringLiteral("<b>Цена</b>")),
-             coeffColWidth,
-             wrapWorksTableText(QStringLiteral("<b>К.</b>")),
-             sumColWidth,
-             wrapWorksTableText(QStringLiteral("<b>Сумма</b>")));
+    if(includeCoefficients)
+    {
+        html += QStringLiteral("<tr>"
+                               "<td style=\"%1\" width=\"%2\">%3</td>"
+                               "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
+                               "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
+                               "<td style=\"%1\" width=\"%8\" align=\"center\">%9</td>"
+                               "<td style=\"%1\" width=\"%10\" align=\"right\">%11</td>"
+                               "</tr>")
+            .arg(headerStyle,
+                 workColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Работа</b>")),
+                 qtyColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Кол-во</b>")),
+                 priceColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Цена</b>")),
+                 coeffColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>К.</b>")),
+                 sumColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Сумма</b>")));
+    }
+    else
+    {
+        html += QStringLiteral("<tr>"
+                               "<td style=\"%1\" width=\"%2\">%3</td>"
+                               "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
+                               "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
+                               "<td style=\"%1\" width=\"%8\" align=\"right\">%9</td>"
+                               "</tr>")
+            .arg(headerStyle,
+                 workColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Работа</b>")),
+                 qtyColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Кол-во</b>")),
+                 priceColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Цена</b>")),
+                 sumColWidth,
+                 wrapWorksTableText(QStringLiteral("<b>Сумма</b>")));
+    }
 
     QMap<QString, StringMap> merged;
     QStringList order;
@@ -329,37 +355,62 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
         const double price = work.value("price").toDouble() / 100.0;
         const double quantity = work.value("quantity", 1).toDouble();
         const int percentSum = work.value("percent_sum", 100).toInt();
-        const double lineTotal = price * quantity * (percentSum / 100.0);
+        const double multiplier = percentSum / 100.0;
+        const double displayPrice = includeCoefficients ? price : price * multiplier;
+        const double lineTotal = price * quantity * multiplier;
         total += lineTotal;
 
-        html += QStringLiteral("<tr>"
-                               "<td style=\"%1\" width=\"%2\">%3</td>"
-                               "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
-                               "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
-                               "<td style=\"%1\" width=\"%8\" align=\"center\">%9</td>"
-                               "<td style=\"%1\" width=\"%10\" align=\"right\">%11</td>"
-                               "</tr>")
-            .arg(cellStyle,
-                 workColWidth,
-                 wrapWorksTableText(formatWorkName(work)),
-                 qtyColWidth,
-                 wrapWorksTableText(formatQuantity(quantity, work.value("unit").toString())),
-                 priceColWidth,
-                 wrapWorksTableText(escapeHtml(formatMoney(price))),
-                 coeffColWidth,
-                 wrapWorksTableText(escapeHtml(formatMultiplier(percentSum))),
-                 sumColWidth,
-                 wrapWorksTableText(escapeHtml(formatMoney(lineTotal))));
+        if(includeCoefficients)
+        {
+            html += QStringLiteral("<tr>"
+                                   "<td style=\"%1\" width=\"%2\">%3</td>"
+                                   "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
+                                   "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
+                                   "<td style=\"%1\" width=\"%8\" align=\"center\">%9</td>"
+                                   "<td style=\"%1\" width=\"%10\" align=\"right\">%11</td>"
+                                   "</tr>")
+                .arg(cellStyle,
+                     workColWidth,
+                     wrapWorksTableText(formatWorkName(work, true)),
+                     qtyColWidth,
+                     wrapWorksTableText(formatQuantity(quantity, work.value("unit").toString())),
+                     priceColWidth,
+                     wrapWorksTableText(escapeHtml(formatMoney(price))),
+                     coeffColWidth,
+                     wrapWorksTableText(escapeHtml(formatMultiplier(percentSum))),
+                     sumColWidth,
+                     wrapWorksTableText(escapeHtml(formatMoney(lineTotal))));
+        }
+        else
+        {
+            html += QStringLiteral("<tr>"
+                                   "<td style=\"%1\" width=\"%2\">%3</td>"
+                                   "<td style=\"%1\" width=\"%4\" align=\"right\">%5</td>"
+                                   "<td style=\"%1\" width=\"%6\" align=\"right\">%7</td>"
+                                   "<td style=\"%1\" width=\"%8\" align=\"right\">%9</td>"
+                                   "</tr>")
+                .arg(cellStyle,
+                     workColWidth,
+                     wrapWorksTableText(formatWorkName(work, false)),
+                     qtyColWidth,
+                     wrapWorksTableText(formatQuantity(quantity, work.value("unit").toString())),
+                     priceColWidth,
+                     wrapWorksTableText(escapeHtml(formatMoney(displayPrice))),
+                     sumColWidth,
+                     wrapWorksTableText(escapeHtml(formatMoney(lineTotal))));
+        }
     }
 
     if(includeTotal)
     {
+        const int labelColspan = includeCoefficients ? 4 : 3;
         html += QStringLiteral("<tr>"
-                               "<td style=\"%1\" colspan=\"4\" align=\"right\">%2</td>"
-                               "<td style=\"%1\" align=\"right\">%3</td>"
+                               "<td style=\"%1\" colspan=\"%2\" align=\"right\">%3</td>"
+                               "<td style=\"%1\" align=\"right\">%4</td>"
                                "</tr>")
-            .arg(headerStyle,
-                 wrapWorksTableText(QStringLiteral("<b>Итого:</b>")),
+            .arg(headerStyle)
+            .arg(labelColspan)
+            .arg(wrapWorksTableText(QStringLiteral("<b>Итого:</b>")),
                  wrapWorksTableText(QStringLiteral("<b>%1</b>").arg(escapeHtml(formatMoney(total)))));
     }
 
@@ -367,7 +418,7 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
     return {html, total};
 }
 
-QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works) const
+QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works, const StringMap &options) const
 {
     QMap<QString, StringMapList> groups;
     for(const QVariant &item : works)
@@ -390,7 +441,7 @@ QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works) cons
         if(!subobjectName.isEmpty())
             html += QStringLiteral("<h4>%1:</h4>").arg(escapeHtml(subobjectName));
 
-        const QPair<QString, double> table = buildWorksTableHtml(groups.value(subobjectName), false);
+        const QPair<QString, double> table = buildWorksTableHtml(groups.value(subobjectName), false, options);
         html += table.first;
         grandTotal += table.second;
     }
@@ -399,9 +450,9 @@ QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works) cons
     return html;
 }
 
-QString PdfReportBuilder::buildFlatWorksHtml(const StringMapList &works) const
+QString PdfReportBuilder::buildFlatWorksHtml(const StringMapList &works, const StringMap &options) const
 {
-    return buildWorksTableHtml(works, true).first;
+    return buildWorksTableHtml(works, true, options).first;
 }
 
 QString PdfReportBuilder::buildWorksHtml(const StringMapList &works, const StringMap &options) const
@@ -415,9 +466,9 @@ QString PdfReportBuilder::buildWorksHtml(const StringMapList &works, const Strin
     }
 
     if(optionEnabled(options, "group_by_subobjects"))
-        html += buildGroupedWorksHtml(works);
+        html += buildGroupedWorksHtml(works, options);
     else
-        html += buildFlatWorksHtml(works);
+        html += buildFlatWorksHtml(works, options);
 
     return html;
 }

@@ -45,29 +45,55 @@ QString ReportBuilder::formatMoney(double value)
     return QString::number(value, 'f', 2);
 }
 
-QPair<QString, double> ReportBuilder::workLine(const StringMap &work)
+QPair<QString, double> ReportBuilder::workLine(const StringMap &work, bool includeCoefficients)
 {
     const double price = work.value("price").toDouble() / 100.0;
     const double quantity = work.value("quantity", 1).toDouble();
-    const double total = price * quantity;
+    const int percentSum = work.value("percent_sum", 100).toInt();
+    const double multiplier = percentSum / 100.0;
+    const double displayPrice = includeCoefficients ? price : price * multiplier;
+    const double total = price * quantity * multiplier;
     const QString unit = work.value("unit").toString();
     const QString unitSuffix = unit.isEmpty() ? QString() : QStringLiteral(" %1").arg(unit);
-    const QString line = QStringLiteral("- %1: %2%3 x %4 = %5")
-        .arg(work.value("name").toString())
-        .arg(quantity, 0, 'g', 12)
-        .arg(unitSuffix)
-        .arg(formatMoney(price))
-        .arg(formatMoney(total));
+
+    QString name = work.value("name").toString();
+    if(includeCoefficients)
+    {
+        const QString coefficients = work.value("coefficients").toString().trimmed();
+        if(!coefficients.isEmpty())
+            name += QStringLiteral(" (%1)").arg(coefficients);
+    }
+
+    QString line;
+    if(includeCoefficients)
+    {
+        line = QStringLiteral("- %1: %2%3 x %4 x %5 = %6")
+            .arg(name)
+            .arg(quantity, 0, 'g', 12)
+            .arg(unitSuffix)
+            .arg(formatMoney(price))
+            .arg(QString::number(multiplier, 'g', 12))
+            .arg(formatMoney(total));
+    }
+    else
+    {
+        line = QStringLiteral("- %1: %2%3 x %4 = %5")
+            .arg(name)
+            .arg(quantity, 0, 'g', 12)
+            .arg(unitSuffix)
+            .arg(formatMoney(displayPrice))
+            .arg(formatMoney(total));
+    }
     return {line, total};
 }
 
-double ReportBuilder::appendWorkLines(QStringList &lines, const StringMapList &works)
+double ReportBuilder::appendWorkLines(QStringList &lines, const StringMapList &works, bool includeCoefficients)
 {
     double total = 0.0;
     for(const QVariant &item : works)
     {
         const StringMap work = item.toMap();
-        const QPair<QString, double> line = workLine(work);
+        const QPair<QString, double> line = workLine(work, includeCoefficients);
         lines.append(line.first);
         total += line.second;
     }
@@ -154,6 +180,7 @@ QString ReportBuilder::buildWorkReport(const QString &personalInfo, const String
     else
     {
         double total = 0.0;
+        const bool includeCoefficients = optionEnabled(options, "include_coefficients");
         if(optionEnabled(options, "group_by_subobjects"))
         {
             QMap<QString, StringMapList> groups;
@@ -176,7 +203,7 @@ QString ReportBuilder::buildWorkReport(const QString &personalInfo, const String
             {
                 lines.append(QString());
                 lines.append(subobjectName + ':');
-                total += appendWorkLines(lines, groups.value(subobjectName));
+                total += appendWorkLines(lines, groups.value(subobjectName), includeCoefficients);
             }
         }
         else
@@ -186,7 +213,7 @@ QString ReportBuilder::buildWorkReport(const QString &personalInfo, const String
             for(const QVariant &item : works)
             {
                 const StringMap work = item.toMap();
-                const QPair<QString, double> line = workLine(work);
+                const QPair<QString, double> line = workLine(work, includeCoefficients);
                 lines.append(QStringLiteral("%1. %2").arg(index++).arg(line.first.mid(2)));
                 total += line.second;
             }

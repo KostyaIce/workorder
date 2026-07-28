@@ -22,8 +22,8 @@ public:
 
 private:
     static QString formatMoney(double value);
-    static QPair<QString, double> workLine(const StringMap &work);
-    static double appendWorkLines(QStringList &lines, const StringMapList &works);
+    static QPair<QString, double> workLine(const StringMap &work, bool includeCoefficients);
+    static double appendWorkLines(QStringList &lines, const StringMapList &works, bool includeCoefficients);
 };
 
 } // namespace workorder

@@ -40,13 +40,14 @@ private:
     QString buildPartiesHtml(const QString &personalInfo, const StringMap &client,
                              const StringMap &objectData, const StringMap &options) const;
     QString buildWorksHtml(const StringMapList &works, const StringMap &options) const;
-    QString buildGroupedWorksHtml(const StringMapList &works) const;
-    QString buildFlatWorksHtml(const StringMapList &works) const;
-    QPair<QString, double> buildWorksTableHtml(const StringMapList &rows, bool includeTotal) const;
+    QString buildGroupedWorksHtml(const StringMapList &works, const StringMap &options) const;
+    QString buildFlatWorksHtml(const StringMapList &works, const StringMap &options) const;
+    QPair<QString, double> buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
+                                               const StringMap &options) const;
     QString escapeHtml(const QString &value) const;
     QString formatMoney(double value) const;
     QString formatMultiplier(int percentSum) const;
-    QString formatWorkName(const StringMap &work) const;
+    QString formatWorkName(const StringMap &work, bool includeCoefficients) const;
     QString formatQuantity(double quantity, const QString &unit) const;
     QString worksTableStyle() const;
     QString worksTableHeaderStyle() const;

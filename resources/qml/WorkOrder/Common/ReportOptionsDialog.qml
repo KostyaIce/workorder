@@ -270,6 +270,14 @@ Dialog
                             checked: reportOptionsBackend.groupBySubobjects
                             onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
                         }
+
+                        ReportOptionCheckRow
+                        {
+                            label: qsTr("Указывать коэффициент")
+                            showPreview: false
+                            checked: reportOptionsBackend.includeCoefficients
+                            onCheckStateChanged: (value) => reportOptionsBackend.includeCoefficients = value
+                        }
                     }
                 }
             }
@@ -397,6 +405,14 @@ Dialog
                         showPreview: false
                         checked: reportOptionsBackend.groupBySubobjects
                         onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
+                    }
+
+                    ReportOptionCheckRow
+                    {
+                        label: qsTr("Указывать коэффициент")
+                        showPreview: false
+                        checked: reportOptionsBackend.includeCoefficients
+                        onCheckStateChanged: (value) => reportOptionsBackend.includeCoefficients = value
                     }
                 }
             }
