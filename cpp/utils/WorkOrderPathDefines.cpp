@@ -108,7 +108,7 @@ QString WorkOrderPathDefines::configPath()
 
 QString WorkOrderPathDefines::reportsPath()
 {
-    // Reports live in a user-chosen folder; default is Documents/WorkOrder.
+    // Default reports folder: user Documents (not under app data).
     const QString overridePath = qEnvironmentVariable("WORKORDER_REPORTS_DIR");
     if(!overridePath.isEmpty())
         return QDir(overridePath).absolutePath();
@@ -117,7 +117,7 @@ QString WorkOrderPathDefines::reportsPath()
     QString base = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     if(base.isEmpty())
         base = QDir::homePath();
-    return QDir(base).filePath(QLatin1String(kApplication));
+    return QDir(base).absolutePath();
 }
 
 QString WorkOrderPathDefines::configFilePath()

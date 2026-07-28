@@ -110,7 +110,18 @@ QString ReportBuilder::buildWorkReport(const QString &personalInfo, const String
     {
         lines.append(QStringLiteral("Исполнитель:"));
         const QString info = personalInfo.trimmed();
-        lines.append(info.isEmpty() ? QStringLiteral("—") : info);
+        if(info.isEmpty())
+        {
+            lines.append(QStringLiteral("—"));
+        }
+        else
+        {
+            const QString normalized = QString(info).replace(QLatin1String("\r\n"), QLatin1String("\n"))
+                                                    .replace(QLatin1Char('\r'), QLatin1Char('\n'));
+            const QStringList infoLines = normalized.split(QLatin1Char('\n'));
+            for(const QString &line : infoLines)
+                lines.append(line);
+        }
         lines.append(QString());
     }
 

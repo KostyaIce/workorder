@@ -205,8 +205,15 @@ QString PdfReportBuilder::buildPersonalInfoHtml(const QString &personalInfo, con
         return QString();
 
     const QString info = personalInfo.trimmed();
-    return QStringLiteral("<h3>Исполнитель:</h3><p>%1</p>")
-        .arg(escapeHtml(info.isEmpty() ? QStringLiteral("—") : info));
+    if(info.isEmpty())
+        return QStringLiteral("<h3>Исполнитель:</h3><p>—</p>");
+
+    QString htmlBody = escapeHtml(info);
+    htmlBody.replace(QLatin1String("\r\n"), QLatin1String("\n"));
+    htmlBody.replace(QLatin1Char('\r'), QLatin1Char('\n'));
+    htmlBody.replace(QLatin1Char('\n'), QLatin1String("<br/>"));
+
+    return QStringLiteral("<h3>Исполнитель:</h3><p>%1</p>").arg(htmlBody);
 }
 
 QString PdfReportBuilder::buildClientNameHtml(const StringMap &client, const StringMap &options) const

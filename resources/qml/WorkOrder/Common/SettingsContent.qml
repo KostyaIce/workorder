@@ -394,12 +394,30 @@ ColumnLayout {
                 }
 
                 TextArea {
+                    id: personalInfoArea
                     Layout.fillWidth: true
                     Layout.preferredHeight: compact ? 160 : 180
                     text: settingsBackend.personalInfo
                     wrapMode: TextArea.Wrap
                     placeholderText: qsTr("Иванов Иван Иванович\n+7 (900) 000-00-00\nemail@example.com\nИП Иванов И.И.")
-                    onTextChanged: settingsBackend.personalInfo = text
+
+                    function persistPersonalInfo()
+                    {
+                        settingsBackend.personalInfo = text
+                        settingsBackend.saveSettings()
+                    }
+
+                    onActiveFocusChanged:
+                    {
+                        if(!activeFocus)
+                            persistPersonalInfo()
+                    }
+
+                    Keys.onPressed: (event) =>
+                    {
+                        if(event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                            Qt.callLater(persistPersonalInfo)
+                    }
                 }
             }
 

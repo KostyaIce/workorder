@@ -24,8 +24,8 @@ Linux does **not** use `/opt` — only user/app writable locations.
 ```
 
 Reports are **not** under `{STORAGE}/data`. Default folder is
-`Documents/WorkOrder` (or `WORKORDER_REPORTS_DIR`). Save dialogs use the
-path chosen by the user.
+user Documents (`QStandardPaths::DocumentsLocation`, or `WORKORDER_REPORTS_DIR`).
+Save dialogs use the path chosen by the user.
 
 ## STORAGE by OS
 
@@ -66,5 +66,5 @@ Org/app names: `WorkOrderApp` / `WorkOrder` (set before path resolve).
 | `::logPath()` / `logDir()` | `data/log` |
 | `::dbPath()` / `dbDir()` | `data/db` |
 | `::configPath()` / `configDir()` | `data/config` |
-| `::reportsPath()` | Documents/WorkOrder (or env) |
+| `::reportsPath()` | Documents (or env) |
 | `::configFilePath()` | `data/config/WorkOrder.conf` |
