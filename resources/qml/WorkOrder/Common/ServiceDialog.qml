@@ -15,15 +15,11 @@ Dialog {
     property string paragraph: ""
 
     title: service_id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
-    standardButtons: Dialog.Ok | Dialog.Cancel
+    standardButtons: Dialog.NoButton
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
     height: compact ? parent.height * 0.85 : 560
-
-    Component.onCompleted: {
-        standardButton(Dialog.Cancel).text = qsTr("Отмена")
-    }
 
     onOpened: {
         nameField.text = name
@@ -126,5 +122,13 @@ Dialog {
         keywords = ""
         note = ""
         paragraph = ""
+    }
+
+    footer: DialogEdgeButtons {
+        width: root.width
+        cancelText: qsTr("Отмена")
+        acceptText: qsTr("OK")
+        onCancelled: root.reject()
+        onAccepted: root.accept()
     }
 }

@@ -6,6 +6,7 @@ set(WORKORDER_BACKEND_SOURCES
     CloudDiskBackend.cpp
     DatabaseBackend.cpp
     InvoiceBackend.cpp
+    NotificationManager.cpp
     ReportBackend.cpp
     ReportOptionsBackend.cpp
     SettingsBackend.cpp
@@ -17,6 +18,7 @@ set(WORKORDER_BACKEND_HEADERS
     CloudDiskBackend.h
     DatabaseBackend.h
     InvoiceBackend.h
+    NotificationManager.h
     ReportBackend.h
     ReportOptionsBackend.h
     SettingsBackend.h

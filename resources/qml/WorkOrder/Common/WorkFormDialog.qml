@@ -294,34 +294,13 @@ Dialog
         }
     }
 
-    footer: Item
+    footer: DialogEdgeButtons
     {
-        implicitHeight: footerRow.implicitHeight + 20
-
-        RowLayout
-        {
-            id: footerRow
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: 12
-            spacing: 8
-
-            PrimaryButton
-            {
-                Layout.fillWidth: true
-                text: qsTr("Отмена")
-                filled: false
-                onClicked: root.reject()
-            }
-
-            PrimaryButton
-            {
-                Layout.fillWidth: true
-                text: root.isEditMode ? qsTr("Сохранить") : qsTr("Добавить")
-                enabled: root.hasService && reportBackend.currentServiceName.trim() !== ""
-                onClicked: root.acceptWork()
-            }
-        }
+        width: root.width
+        cancelText: qsTr("Отмена")
+        acceptText: root.isEditMode ? qsTr("Сохранить") : qsTr("Добавить")
+        acceptEnabled: root.hasService && reportBackend.currentServiceName.trim() !== ""
+        onCancelled: root.reject()
+        onAccepted: root.acceptWork()
     }
 }

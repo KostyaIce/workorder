@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.workorder"
     android:installLocation="auto"
-    android:versionCode="100012"
-    android:versionName="1.0-12">
+    android:versionCode="100013"
+    android:versionName="1.0-13">
     <!-- %%INSERT_PERMISSIONS -->
     <!-- %%INSERT_FEATURES -->
 
@@ -51,5 +51,16 @@
                 android:name="android.app.background_running"
                 android:value="false" />
         </activity>
+
+        <!-- Required for QDesktopServices::openUrl(file://) on Android 7+ (Qt FileProvider). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.qtprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/qtprovider_paths" />
+        </provider>
     </application>
 </manifest>

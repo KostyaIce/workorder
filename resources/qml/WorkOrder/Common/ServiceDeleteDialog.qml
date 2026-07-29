@@ -8,7 +8,6 @@ ConfirmDialog {
     property string name: ""
 
     title: qsTr("Удалить услугу?")
-    standardButtons: Dialog.Yes | Dialog.No
     danger: false
 
     onOpened: {

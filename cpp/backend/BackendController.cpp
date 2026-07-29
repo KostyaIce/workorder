@@ -3,6 +3,7 @@
 #include "CloudDiskBackend.h"
 #include "DatabaseBackend.h"
 #include "InvoiceBackend.h"
+#include "NotificationManager.h"
 #include "ReportBackend.h"
 #include "ReportOptionsBackend.h"
 #include "SettingsBackend.h"
@@ -13,6 +14,7 @@ namespace workorder
 BackendController::BackendController(QQmlApplicationEngine *engine, QObject *parent)
     : QObject(parent)
     , m_engine(engine)
+    , m_notificationManager(std::make_unique<NotificationManager>())
     , m_settingsBackend(std::make_unique<SettingsBackend>())
     , m_reportOptionsBackend(std::make_unique<ReportOptionsBackend>())
     , m_cloudDiskBackend(std::make_unique<CloudDiskBackend>())
@@ -38,6 +40,7 @@ void BackendController::exposeToQml(QQmlContext *context) const
     if(!context)
         return;
 
+    context->setContextProperty("notificationManager", m_notificationManager.get());
     context->setContextProperty("invoiceBackend", m_invoiceBackend.get());
     context->setContextProperty("databaseBackend", m_databaseBackend.get());
     context->setContextProperty("settingsBackend", m_settingsBackend.get());

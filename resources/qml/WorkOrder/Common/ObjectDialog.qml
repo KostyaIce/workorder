@@ -6,21 +6,25 @@ Dialog {
     id: root
 
     property bool compact: true
+    readonly property bool nameValid: nameField.text.trim().length > 0
 
     title: qsTr("Новый объект")
-    standardButtons: Dialog.Ok | Dialog.Cancel
+    standardButtons: Dialog.NoButton
     modal: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
     height: 280
 
-    Component.onCompleted: {
-        standardButton(Dialog.Cancel).text = qsTr("Отмена")
-    }
-
     onOpened: {
         nameField.text = ""
         addressField.text = ""
+    }
+
+    function tryAccept()
+    {
+        if(!nameValid)
+            return
+        accept()
     }
 
     ColumnLayout {
@@ -42,9 +46,18 @@ Dialog {
         }
     }
 
+    footer: DialogEdgeButtons {
+        width: root.width
+        cancelText: qsTr("Отмена")
+        acceptText: qsTr("OK")
+        acceptEnabled: root.nameValid
+        onCancelled: root.reject()
+        onAccepted: root.tryAccept()
+    }
+
     onAccepted: {
         var data = {
-            "name": nameField.text,
+            "name": nameField.text.trim(),
             "address": addressField.text
         };
 

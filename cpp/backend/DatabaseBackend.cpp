@@ -1,6 +1,7 @@
 #include "DatabaseBackend.h"
 
 #include "DatabaseStorage.h"
+#include "NotificationManager.h"
 #include "ServicesDatabase.h"
 #include "Types.h"
 
@@ -33,13 +34,13 @@ bool DatabaseBackend::addService(const QString &name, double price)
     const QString trimmed = name.trimmed();
     if(trimmed.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Название услуги не может быть пустым"));
+        NotificationManager::notifyError(QStringLiteral("Название услуги не может быть пустым"));
         return false;
     }
 
     if(price < 0.0)
     {
-        emit errorOccurred(QStringLiteral("Цена не может быть отрицательной"));
+        NotificationManager::notifyError(QStringLiteral("Цена не может быть отрицательной"));
         return false;
     }
 
@@ -50,7 +51,7 @@ bool DatabaseBackend::addService(const QString &name, double price)
 
     if(!ServicesDatabase::addService(payload))
     {
-        emit errorOccurred(QStringLiteral("Услуга '%1' уже существует").arg(trimmed));
+        NotificationManager::notifyError(QStringLiteral("Услуга '%1' уже существует").arg(trimmed));
         return false;
     }
 
@@ -66,13 +67,13 @@ bool DatabaseBackend::updateService(int serviceId, const QString &name, double p
     const QString trimmed = name.trimmed();
     if(trimmed.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Название услуги не может быть пустым"));
+        NotificationManager::notifyError(QStringLiteral("Название услуги не может быть пустым"));
         return false;
     }
 
     if(price < 0.0)
     {
-        emit errorOccurred(QStringLiteral("Цена не может быть отрицательной"));
+        NotificationManager::notifyError(QStringLiteral("Цена не может быть отрицательной"));
         return false;
     }
 
@@ -86,7 +87,7 @@ bool DatabaseBackend::updateService(int serviceId, const QString &name, double p
             payload.insert("price", QString::number(price, 'f', 2));
             if(!ServicesDatabase::updateService(payload))
             {
-                emit errorOccurred(QStringLiteral("Не удалось обновить услугу"));
+                NotificationManager::notifyError(QStringLiteral("Не удалось обновить услугу"));
                 return false;
             }
             loadServicesFromDatabase();
@@ -95,7 +96,7 @@ bool DatabaseBackend::updateService(int serviceId, const QString &name, double p
         }
     }
 
-    emit errorOccurred(QStringLiteral("Услуга с ID %1 не найдена").arg(serviceId));
+    NotificationManager::notifyError(QStringLiteral("Услуга с ID %1 не найдена").arg(serviceId));
     return false;
 }
 
@@ -116,7 +117,7 @@ bool DatabaseBackend::deleteService(int serviceId)
         return true;
     }
 
-    emit errorOccurred(QStringLiteral("Услуга с ID %1 не найдена").arg(serviceId));
+    NotificationManager::notifyError(QStringLiteral("Услуга с ID %1 не найдена").arg(serviceId));
     return false;
 }
 
@@ -220,7 +221,7 @@ bool DatabaseBackend::loadServicesFromDatabase(const QString &filePath)
     const StringMapList services = ServicesDatabase::loadServices();
     if(services.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("БД услуг пуста или не найдена: %1").arg(ServicesDatabase::defaultServicesDbPath()));
+        NotificationManager::notifyError(QStringLiteral("БД услуг пуста или не найдена: %1").arg(ServicesDatabase::defaultServicesDbPath()));
         return false;
     }
 
@@ -245,7 +246,7 @@ bool DatabaseBackend::exportToJson(const QString &filePath)
     QFile file(filePath);
     if(!file.open(QIODevice::WriteOnly))
     {
-        emit errorOccurred(QStringLiteral("Ошибка экспорта: %1").arg(filePath));
+        NotificationManager::notifyError(QStringLiteral("Ошибка экспорта: %1").arg(filePath));
         return false;
     }
 
@@ -262,7 +263,7 @@ bool DatabaseBackend::importFromJson(const QString &filePath)
     QFile file(filePath);
     if(!file.open(QIODevice::ReadOnly))
     {
-        emit errorOccurred(QStringLiteral("Ошибка импорта: %1").arg(filePath));
+        NotificationManager::notifyError(QStringLiteral("Ошибка импорта: %1").arg(filePath));
         return false;
     }
 

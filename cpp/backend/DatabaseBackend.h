@@ -55,7 +55,6 @@ signals:
     void serviceSelected(int id, const QString &name, double price);
     void worksChanged();
     void databaseRepaired(const QString &message);
-    void errorOccurred(const QString &message);
 
 private:
     void applyServices(const QVariantList &services);

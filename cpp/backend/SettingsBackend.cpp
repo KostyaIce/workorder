@@ -2,14 +2,81 @@
 
 #include "AppPaths.h"
 #include "DatabaseStorage.h"
+#include "MinimalZip.h"
+#include "NotificationManager.h"
 
 #include <QDesktopServices>
+#include <QDebug>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QIODevice>
 #include <QUrl>
 #include <QVariantMap>
 
+#if defined(Q_OS_ANDROID)
+#include <QJniObject>
+#include <QtCore/qcoreapplication_platform.h>
+#endif
+
 namespace workorder
 {
+
+namespace
+{
+
+#if defined(Q_OS_ANDROID)
+
+QString createLogsZip(const QString &logDir)
+{
+    QDir dir(logDir);
+    const QFileInfoList files = dir.entryInfoList(QDir::Files | QDir::Readable, QDir::Name);
+    MinimalZipWriter zip;
+    int added = 0;
+    for(const QFileInfo &info : files)
+    {
+        if(info.fileName() == QLatin1String("logs.zip"))
+            continue;
+
+        QFile file(info.absoluteFilePath());
+        if(!file.open(QIODevice::ReadOnly))
+            continue;
+        zip.addFile(info.fileName(), file.readAll());
+        ++added;
+    }
+
+    if(added == 0)
+        return {};
+
+    const QString zipPath = dir.filePath(QStringLiteral("logs.zip"));
+    if(QFile::exists(zipPath))
+        QFile::remove(zipPath);
+    if(!zip.writeToFile(zipPath))
+        return {};
+    return zipPath;
+}
+
+bool shareZipOnAndroid(const QString &zipPath)
+{
+    const QJniObject context = QNativeInterface::QAndroidApplication::context();
+    if(!context.isValid())
+    {
+        qWarning("SettingsBackend: Android context is invalid");
+        return false;
+    }
+
+    const jboolean ok = QJniObject::callStaticMethod<jboolean>(
+        "com/workorder/LogShare",
+        "shareZip",
+        "(Landroid/content/Context;Ljava/lang/String;)Z",
+        context.object(),
+        QJniObject::fromString(zipPath).object<jstring>());
+    return ok == JNI_TRUE;
+}
+
+#endif
+
+} // namespace
 
 SettingsBackend::SettingsBackend(QObject *parent)
     : QObject(parent)
@@ -171,14 +238,52 @@ bool SettingsBackend::openLogDirectory()
 {
     const QString path = AppPaths::logDir();
     QDir().mkpath(path);
-    return QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    if(QDesktopServices::openUrl(QUrl::fromLocalFile(path)))
+        return true;
+
+    NotificationManager::notifyError(
+        tr("Не удалось открыть каталог: %1").arg(path));
+    return false;
 }
 
 bool SettingsBackend::openDbDirectory()
 {
     const QString path = AppPaths::dbDir();
     QDir().mkpath(path);
-    return QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    if(QDesktopServices::openUrl(QUrl::fromLocalFile(path)))
+        return true;
+
+    NotificationManager::notifyError(
+        tr("Не удалось открыть каталог: %1").arg(path));
+    return false;
+}
+
+bool SettingsBackend::copyLogs()
+{
+#if defined(Q_OS_ANDROID)
+    // Same approach as KelVPN MainActivity.sendLogs: zip private log files and
+    // share via FileProvider + ACTION_SEND (directory open is not supported).
+    const QString sourceDir = AppPaths::logDir();
+    QDir().mkpath(sourceDir);
+
+    const QString zipPath = createLogsZip(sourceDir);
+    if(zipPath.isEmpty())
+    {
+        NotificationManager::notifyError(tr("Нет файлов логов для отправки"));
+        return false;
+    }
+
+    if(!shareZipOnAndroid(zipPath))
+    {
+        NotificationManager::notifyError(tr("Не удалось поделиться логами"));
+        return false;
+    }
+
+    NotificationManager::notifyInfo(tr("Выберите приложение для отправки логов"));
+    return true;
+#else
+    return openLogDirectory();
+#endif
 }
 
 QVariantList SettingsBackend::getAvailableThemes() const

@@ -13,6 +13,7 @@
 #include "ClientsDatabase.h"
 #include "DatabaseStorage.h"
 #include "FileIo.h"
+#include "NotificationManager.h"
 #include "ObjectsDatabase.h"
 #include "PdfReportBuilder.h"
 #include "QSettingsStore.h"
@@ -118,7 +119,7 @@ bool ReportBackend::initializeData()
     }
     catch(...)
     {
-        emit errorOccurred(QStringLiteral("Ошибка инициализации данных"));
+        NotificationManager::notifyError(QStringLiteral("Ошибка инициализации данных"));
         return false;
     }
 }
@@ -127,6 +128,11 @@ bool ReportBackend::addClient(const QVariantMap &data)
 {
     if(data.isEmpty())
         return false;
+    if(data.value(QStringLiteral("name")).toString().trimmed().isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите имя заказчика"));
+        return false;
+    }
 
     const bool result = ClientsDatabase::addClientEntry(data);
     loadClients();
@@ -404,17 +410,17 @@ bool ReportBackend::addWorkAt(double quantity, qint64 startOrderAt)
         return false;
     if(m_currentClient.id.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Выберите заказчика"));
+        NotificationManager::notifyError(QStringLiteral("Выберите заказчика"));
         return false;
     }
     if(m_currentObject.id.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Выберите объект"));
+        NotificationManager::notifyError(QStringLiteral("Выберите объект"));
         return false;
     }
     if(startOrderAt <= 0)
     {
-        emit errorOccurred(QStringLiteral("Выберите счёт или начните новый отчёт"));
+        NotificationManager::notifyError(QStringLiteral("Выберите счёт или начните новый отчёт"));
         return false;
     }
 
@@ -434,7 +440,7 @@ bool ReportBackend::addWorkAt(double quantity, qint64 startOrderAt)
     if(result.isEmpty())
     {
         qDebug() << "Не удалось добавить работу";
-        emit errorOccurred(QStringLiteral("Не удалось добавить работу"));
+        NotificationManager::notifyError(QStringLiteral("Не удалось добавить работу"));
         return false;
     }
 
@@ -479,7 +485,7 @@ bool ReportBackend::updateWork(const QVariantMap &data)
 
     if(!WorksDatabase::updateWork(m_currentClient.name, m_currentClient.id, data))
     {
-        emit errorOccurred(QStringLiteral("Не удалось обновить работу"));
+        NotificationManager::notifyError(QStringLiteral("Не удалось обновить работу"));
         return false;
     }
 
@@ -502,7 +508,7 @@ bool ReportBackend::deleteWork(const QString &workId)
 
     if(!WorksDatabase::deleteWork(m_currentClient.name, m_currentClient.id, workId))
     {
-        emit errorOccurred(QStringLiteral("Не удалось удалить работу"));
+        NotificationManager::notifyError(QStringLiteral("Не удалось удалить работу"));
         return false;
     }
 
@@ -518,12 +524,17 @@ bool ReportBackend::addObject(const QVariantMap &data)
 {
     if(data.isEmpty() || m_currentClient.id.isEmpty())
         return false;
+    if(data.value(QStringLiteral("name")).toString().trimmed().isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите название объекта"));
+        return false;
+    }
 
     ObjectsDatabase::createObjectDatabase(m_currentClient.name, m_currentClient.id);
     const bool result = ObjectsDatabase::addObjectEntry(
         m_currentClient.name,
         m_currentClient.id,
-        data.value("name").toString(),
+        data.value("name").toString().trimmed(),
         data.value("address").toString());
     loadObjects();
     return result;
@@ -539,7 +550,7 @@ bool ReportBackend::saveReportToFile(const QString &fileUrl)
     const QString filePath = resolveLocalFilePath(fileUrl);
     if(filePath.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Не выбран файл для сохранения"));
+        NotificationManager::notifyError(QStringLiteral("Не выбран файл для сохранения"));
         return false;
     }
     return generateReportInternal(true, filePath);
@@ -795,20 +806,20 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
     const QVariantMap client = m_clients->itemData(m_currentClient.id);
     if(client.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Выберите заказчика или объект"));
+        NotificationManager::notifyError(QStringLiteral("Выберите заказчика или объект"));
         return false;
     }
 
     if(m_currentObject.id.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Выберите объект заказчика"));
+        NotificationManager::notifyError(QStringLiteral("Выберите объект заказчика"));
         return false;
     }
 
     const QVariantList selectedOrders = m_reportOptionsBackend->selectedOrderTimestamps();
     if(selectedOrders.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Выберите хотя бы один счёт"));
+        NotificationManager::notifyError(QStringLiteral("Выберите хотя бы один счёт"));
         return false;
     }
 
@@ -824,7 +835,7 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
 
     if(works.isEmpty())
     {
-        emit errorOccurred(QStringLiteral("Нет работ для выбранных счетов"));
+        NotificationManager::notifyError(QStringLiteral("Нет работ для выбранных счетов"));
         return false;
     }
 
@@ -875,13 +886,13 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
                 m_lastReportPath = fallback.first;
                 m_lastReportUrl = QUrl::fromLocalFile(fallback.first).toString();
                 emit reportGenerated(m_lastReportPath, m_lastReportUrl);
-                emit errorOccurred(tr("Не удалось записать в выбранный файл. Отчёт сохранён в: %1")
+                NotificationManager::notifyError(tr("Не удалось записать в выбранный файл. Отчёт сохранён в: %1")
                                        .arg(fallback.first));
                 return true;
             }
         }
 
-        emit errorOccurred(QStringLiteral("Не удалось сохранить PDF"));
+        NotificationManager::notifyError(QStringLiteral("Не удалось сохранить PDF"));
         return false;
     }
 

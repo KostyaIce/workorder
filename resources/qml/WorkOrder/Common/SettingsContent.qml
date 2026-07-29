@@ -425,23 +425,34 @@ ColumnLayout {
                 title: qsTr("Данные приложения")
                 compact: root.compact
 
+                readonly property bool isAndroid: Qt.platform.os === "android"
+
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("Открыть каталоги с логами и базами данных")
+                    text: parent.isAndroid
+                          ? qsTr("Отправить архив логов через системное меню")
+                          : qsTr("Открыть каталоги с логами и базами данных")
                     font.pixelSize: compact ? 13 : 14
                     color: textSecondaryColor
                     wrapMode: Text.WordWrap
                 }
 
                 SettingsActionRow {
-                    visible: compact
+                    visible: compact && parent.isAndroid
+                    label: qsTr("Поделиться логами")
+                    icon: ">"
+                    onActivated: settingsBackend.copyLogs()
+                }
+
+                SettingsActionRow {
+                    visible: compact && !parent.isAndroid
                     label: qsTr("Каталог логов")
                     icon: ">"
                     onActivated: settingsBackend.openLogDirectory()
                 }
 
                 SettingsActionRow {
-                    visible: compact
+                    visible: compact && !parent.isAndroid
                     label: qsTr("Каталог баз данных")
                     icon: ">"
                     onActivated: settingsBackend.openDbDirectory()

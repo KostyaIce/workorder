@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import WorkOrder.Common 1.0
 
 ApplicationWindow
 {
@@ -150,6 +151,12 @@ ApplicationWindow
                 }
             }
         }
+    }
+
+    NotificationToast
+    {
+        anchors.fill: parent
+        z: 1000
     }
 
     Component

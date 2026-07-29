@@ -77,6 +77,8 @@ public:
     Q_INVOKABLE bool resetDatabase();
     Q_INVOKABLE bool openLogDirectory();
     Q_INVOKABLE bool openDbDirectory();
+    // Android only: zip logs and share via system chooser (KelVPN-style).
+    Q_INVOKABLE bool copyLogs();
     Q_INVOKABLE QVariantList getAvailableThemes() const;
     Q_INVOKABLE QVariantList getAvailableLanguages() const;
     Q_INVOKABLE QVariantList getAvailableCurrencies() const;

@@ -2,6 +2,7 @@ module WorkOrder.Common
 Card 1.0 Card.qml
 PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
+DialogEdgeButtons 1.0 DialogEdgeButtons.qml
 PrimaryButton 1.0 PrimaryButton.qml
 WorkOrderComboBox 1.0 WorkOrderComboBox.qml
 FormField 1.0 FormField.qml
@@ -38,3 +39,4 @@ WorkFormDialog 1.0 WorkFormDialog.qml
 ReportOptionsDialog 1.0 ReportOptionsDialog.qml
 ReportOptionCheckRow 1.0 ReportOptionCheckRow.qml
 ReportResultDialog 1.0 ReportResultDialog.qml
+NotificationToast 1.0 NotificationToast.qml

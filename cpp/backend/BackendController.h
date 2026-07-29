@@ -12,6 +12,7 @@ namespace workorder
 class CloudDiskBackend;
 class DatabaseBackend;
 class InvoiceBackend;
+class NotificationManager;
 class ReportBackend;
 class ReportOptionsBackend;
 class SettingsBackend;
@@ -29,6 +30,7 @@ public:
 
 private:
     QQmlApplicationEngine *m_engine = nullptr;
+    std::unique_ptr<NotificationManager> m_notificationManager;
     std::unique_ptr<SettingsBackend> m_settingsBackend;
     std::unique_ptr<ReportOptionsBackend> m_reportOptionsBackend;
     std::unique_ptr<CloudDiskBackend> m_cloudDiskBackend;

@@ -3,6 +3,7 @@
 #include "AppPaths.h"
 #include "ClientsDatabase.h"
 #include "DatabaseStorage.h"
+#include "NotificationManager.h"
 #include "ObjectsDatabase.h"
 #include "QSettingsStore.h"
 #include "ServicesDatabase.h"
@@ -927,6 +928,7 @@ void CloudDiskBackend::finishWithError(const QString &message, const QString &lo
     m_transferIndex = 0;
     setBusy(false);
     setStatusMessage(message, logMessage);
+    NotificationManager::notifyError(message);
 }
 
 void CloudDiskBackend::finishDownloadPhase()

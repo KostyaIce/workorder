@@ -117,7 +117,6 @@ signals:
     void serviceSelected();
     void subObjectChanged(const QString &value);
     void reportGenerated(const QString &path, const QString &url);
-    void errorOccurred(const QString &message);
 
 private:
     struct CurrentClient

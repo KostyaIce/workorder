@@ -42,6 +42,15 @@ Org/app names: `WorkOrderApp` / `WorkOrder` (set before path resolve).
 
 `AppPaths::isAndroidRuntime()` is separate — runtime UI/bootstrap helper, not used for storage roots.
 
+## Opening / sharing logs and DB folders in Settings
+
+Desktop / Windows / Linux / macOS: `openLogDirectory()` / `openDbDirectory()` open
+`logDir` / `dbDir` in the file manager.
+
+Android: only `copyLogs()` — packs `logDir` into `logs.zip` and shares via
+`Intent.ACTION_SEND` (`com.workorder.LogShare` + FileProvider). Catalog buttons
+are hidden.
+
 ## Overrides
 
 | Env | Meaning |

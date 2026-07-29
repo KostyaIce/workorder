@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- App files root (covers data/log under AppDataLocation / getFilesDir). -->
+    <files-path name="files_path" path="/" />
+    <!-- Explicit log dir (same idea as KelVPN provider_paths log_files). -->
+    <files-path name="log_files" path="data/log/" />
+    <cache-path name="cache_path" path="/" />
+    <external-path name="external_path" path="." />
+    <external-files-path name="external_files_path" path="." />
+    <external-cache-path name="external_cache_path" path="." />
+</paths>

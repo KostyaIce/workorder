@@ -424,8 +424,6 @@ Dialog
             spacing: 8
             visible: !compact
 
-            Item { Layout.fillWidth: true }
-
             PrimaryButton
             {
                 Layout.fillWidth: false
@@ -433,6 +431,8 @@ Dialog
                 filled: false
                 onClicked: root.close()
             }
+
+            Item { Layout.fillWidth: true }
 
             PrimaryButton
             {
@@ -444,28 +444,17 @@ Dialog
             }
         }
 
-        RowLayout
+        DialogEdgeButtons
         {
             Layout.fillWidth: true
-            spacing: 8
             visible: compact
-
-            PrimaryButton
-            {
-                Layout.fillWidth: true
-                text: qsTr("Закрыть")
-                filled: false
-                onClicked: root.close()
-            }
-
-            PrimaryButton
-            {
-                Layout.fillWidth: true
-                text: qsTr("Сохранить")
-                enabled: reportBackend.selectedClientId !== ""
-                         && reportBackend.selectedObjectName !== ""
-                onClicked: root.openSaveReportDialog()
-            }
+            width: parent.width
+            cancelText: qsTr("Закрыть")
+            acceptText: qsTr("Сохранить")
+            acceptEnabled: reportBackend.selectedClientId !== ""
+                           && reportBackend.selectedObjectName !== ""
+            onCancelled: root.close()
+            onAccepted: root.openSaveReportDialog()
         }
     }
 }
