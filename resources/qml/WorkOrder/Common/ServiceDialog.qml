@@ -30,53 +30,61 @@ Dialog {
         unitField.text = unit
     }
 
-    ColumnLayout {
-        width: parent.width
-        spacing: 12
+    Flickable {
+        anchors.fill: parent
+        contentHeight: formLayout.implicitHeight
+        clip: true
+        flickableDirection: Flickable.VerticalFlick
 
-        FormField {
-            label: qsTr("Название услуги")
-            placeholder: qsTr("Например: Диагностика оборудования")
-            compact: root.compact
-            id: nameField
-        }
+        ColumnLayout {
+            id: formLayout
+            width: parent.width
+            spacing: 12
 
-        FormField {
-            label: qsTr("Примечание")
-            placeholder: qsTr("Дополнительное описание услуги")
-            compact: root.compact
-            id: noteField
-        }
-
-        FormField {
-            label: qsTr("Параграф")
-            placeholder: qsTr("Раздел каталога")
-            compact: root.compact
-            id: paragraphField
-        }
-
-        FormField {
-            label: qsTr("Цена")
-            placeholder: qsTr("0.00")
-            compact: root.compact
-            id: priceField
-            field.validator: RegularExpressionValidator {
-                regularExpression: /^[0-9]+(\.[0-9]{0,2})?$/
+            FormField {
+                label: qsTr("Название услуги")
+                placeholder: qsTr("Например: Диагностика оборудования")
+                compact: root.compact
+                id: nameField
             }
-        }
 
-        FormField {
-            label: qsTr("Единица измерения")
-            placeholder: qsTr("шт, м символ % будет коэфициентом")
-            compact: root.compact
-            id: unitField
-        }
+            FormField {
+                label: qsTr("Примечание")
+                placeholder: qsTr("Дополнительное описание услуги")
+                compact: root.compact
+                id: noteField
+            }
 
-        FormField {
-            label: qsTr("Ключевые фразы")
-            placeholder: qsTr("Через запятую: диагностика, проверка, тест")
-            compact: root.compact
-            id: keywordsField
+            FormField {
+                label: qsTr("Параграф")
+                placeholder: qsTr("Раздел каталога")
+                compact: root.compact
+                id: paragraphField
+            }
+
+            FormField {
+                label: qsTr("Цена")
+                placeholder: qsTr("0.00")
+                compact: root.compact
+                id: priceField
+                field.validator: RegularExpressionValidator {
+                    regularExpression: /^[0-9]+(\.[0-9]{0,2})?$/
+                }
+            }
+
+            FormField {
+                label: qsTr("Единица измерения")
+                placeholder: qsTr("шт, м символ % будет коэфициентом")
+                compact: root.compact
+                id: unitField
+            }
+
+            FormField {
+                label: qsTr("Ключевые фразы")
+                placeholder: qsTr("Через запятую: диагностика, проверка, тест")
+                compact: root.compact
+                id: keywordsField
+            }
         }
     }
 

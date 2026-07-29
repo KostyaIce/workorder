@@ -205,6 +205,7 @@ ColumnLayout
         {
             id: coefficientInputRow
             Layout.fillWidth: true
+            focusPolicy: Qt.ClickFocus
             placeholderText: root.clearAfterSelect
                              ? qsTr("Выбрать другой коэффициент...")
                              : qsTr("Введите название коэффициента...")
@@ -216,8 +217,15 @@ ColumnLayout
             }
             onActiveFocusChanged:
             {
-                if(!activeFocus)
+                if(activeFocus)
+                {
+                    if(suggestionsPopup.keyboardAware)
+                        suggestionsPopup.scheduleEnsureVisible()
+                }
+                else
+                {
                     root.commitPendingInputValue()
+                }
             }
         }
     }
@@ -227,6 +235,7 @@ ColumnLayout
         id: coefficientInput
         visible: !useRowLayout
         Layout.fillWidth: true
+        focusPolicy: Qt.ClickFocus
         placeholderText: root.clearAfterSelect
                          ? qsTr("Выбрать другой коэффициент...")
                          : qsTr("Введите название коэффициента...")
@@ -238,8 +247,15 @@ ColumnLayout
         }
         onActiveFocusChanged:
         {
-            if(!activeFocus)
+            if(activeFocus)
+            {
+                if(suggestionsPopup.keyboardAware)
+                    suggestionsPopup.scheduleEnsureVisible()
+            }
+            else
+            {
                 root.commitPendingInputValue()
+            }
         }
     }
 
@@ -252,6 +268,7 @@ ColumnLayout
         maxRowHeight: suggestionMaxRowHeight
         maxRows: 4
         showShadow: !root.compact
+        keyboardAware: root.compact && Qt.platform.os === "android"
 
         delegate: Rectangle
         {

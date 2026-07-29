@@ -73,6 +73,7 @@ RowLayout {
         property real referenceValue: root.value
 
         Layout.fillWidth: true
+        focusPolicy: Qt.ClickFocus
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
 

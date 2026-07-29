@@ -132,7 +132,7 @@ ColumnLayout
 
     function clearField()
     {
-        applyInputValue("", true)
+        applyInputValue("", serviceInput.activeFocus)
     }
 
     function openAddServiceDialog(serviceName)
@@ -181,6 +181,8 @@ ColumnLayout
         {
             id: serviceInput
             Layout.fillWidth: true
+            // Avoid Android giving this field default focus on startup (triggers scroll).
+            focusPolicy: Qt.ClickFocus
             enabled: root.reportReady
             placeholderText: root.reportReady
                 ? qsTr("Введите название услуги...")
@@ -195,8 +197,15 @@ ColumnLayout
             }
             onActiveFocusChanged:
             {
-                if(!activeFocus)
+                if(activeFocus)
+                {
+                    if(suggestionsPopup.keyboardAware)
+                        suggestionsPopup.scheduleEnsureVisible()
+                }
+                else
+                {
                     commitPendingInputValue()
+                }
             }
         }
 
@@ -245,6 +254,7 @@ ColumnLayout
         maxRowHeight: suggestionMaxRowHeight
         maxRows: 4
         showShadow: !root.compact
+        keyboardAware: root.compact && Qt.platform.os === "android"
 
         delegate: Rectangle
         {

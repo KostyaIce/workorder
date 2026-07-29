@@ -22,6 +22,13 @@ ApplicationWindow
     property color textSecondaryColor: "#757575"
 
     property int currentPage: 0
+    property bool startupFocusPending: true
+
+    function clearStartupFocus()
+    {
+        focusSink.forceActiveFocus()
+        Qt.inputMethod.hide()
+    }
 
     palette.window: backgroundColor
     palette.windowText: textColor
@@ -33,6 +40,45 @@ ApplicationWindow
     palette.highlightedText: "white"
     palette.mid: "#E0E0E0"
     palette.dark: textSecondaryColor
+
+    // Absorbs initial focus so Android does not open the IME on a TextField at startup.
+    Item
+    {
+        id: focusSink
+        width: 0
+        height: 0
+        focus: true
+        activeFocusOnTab: false
+    }
+
+    Component.onCompleted: clearStartupFocus()
+
+    onActiveChanged:
+    {
+        if(active && startupFocusPending)
+            clearStartupFocus()
+    }
+
+    // Android may assign focus to the first TextField after QML has finished loading.
+    Timer
+    {
+        interval: 50
+        running: true
+        repeat: false
+        onTriggered: root.clearStartupFocus()
+    }
+
+    Timer
+    {
+        interval: 250
+        running: true
+        repeat: false
+        onTriggered:
+        {
+            root.clearStartupFocus()
+            root.startupFocusPending = false
+        }
+    }
 
     Rectangle
     {

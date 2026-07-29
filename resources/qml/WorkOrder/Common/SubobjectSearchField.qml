@@ -81,6 +81,7 @@ ColumnLayout
         {
             id: subobjectInputRow
             Layout.fillWidth: true
+            focusPolicy: Qt.ClickFocus
             placeholderText: root.selectionOnly
                              ? qsTr("Выбрать другой объект...")
                              : qsTr("Комната 1, Кухня")
@@ -99,9 +100,15 @@ ColumnLayout
             onActiveFocusChanged:
             {
                 if(activeFocus)
+                {
+                    if(suggestionsPopup.keyboardAware)
+                        suggestionsPopup.scheduleEnsureVisible()
                     updateSuggestions()
+                }
                 else
+                {
                     closeSuggestionsTimer.start()
+                }
             }
         }
     }
@@ -111,6 +118,7 @@ ColumnLayout
         id: subobjectInput
         visible: !useRowLayout
         Layout.fillWidth: true
+        focusPolicy: Qt.ClickFocus
         placeholderText: root.selectionOnly
                          ? qsTr("Выбрать другой объект...")
                          : qsTr("Комната 1, Кухня")
@@ -129,9 +137,15 @@ ColumnLayout
         onActiveFocusChanged:
         {
             if(activeFocus)
+            {
+                if(suggestionsPopup.keyboardAware)
+                    suggestionsPopup.scheduleEnsureVisible()
                 updateSuggestions()
+            }
             else
+            {
                 closeSuggestionsTimer.start()
+            }
         }
     }
 
@@ -142,6 +156,7 @@ ColumnLayout
         model: subobjectsFilterModel
         rowHeight: suggestionRowHeight
         maxRows: 4
+        keyboardAware: root.compact && Qt.platform.os === "android"
 
         delegate: Rectangle
         {
