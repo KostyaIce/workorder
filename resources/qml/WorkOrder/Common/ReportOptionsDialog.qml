@@ -246,6 +246,7 @@ Dialog
                         {
                             id: reportHeaderFieldDesktop
                             Layout.fillWidth: true
+                            Layout.maximumWidth: optionsColumnDesktop.width
                             visible: reportOptionsBackend.includeReportHeader
                             label: qsTr("Шапка отчёта")
                             placeholder: qsTr("Отчет о проделанной работе по установке сантехники")
@@ -326,15 +327,30 @@ Dialog
                 color: textColor
             }
 
-            ScrollView
+            Flickable
             {
+                id: optionsFlickableMobile
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: optionsColumnMobile.implicitHeight
+
+                ScrollBar.vertical: ScrollBar
+                {
+                    policy: ScrollBar.AsNeeded
+                }
+
+                ScrollBar.horizontal: ScrollBar
+                {
+                    policy: ScrollBar.AlwaysOff
+                }
 
                 ColumnLayout
                 {
-                    width: parent.width - 8
+                    id: optionsColumnMobile
+                    width: optionsFlickableMobile.width - 8
                     x: 4
                     spacing: 4
 
@@ -382,6 +398,7 @@ Dialog
                     {
                         id: reportHeaderFieldMobile
                         Layout.fillWidth: true
+                        Layout.maximumWidth: optionsColumnMobile.width
                         visible: reportOptionsBackend.includeReportHeader
                         label: qsTr("Шапка отчёта")
                         placeholder: qsTr("Отчет о проделанной работе по установке сантехники")

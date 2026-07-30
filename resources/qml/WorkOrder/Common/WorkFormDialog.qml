@@ -25,7 +25,7 @@ Dialog
         workId = ""
         reportBackend.clearCurrentService()
         searchField.clearField()
-        quantityField.value = 1.0
+        quantityField.text = "1.00"
         open()
     }
 
@@ -42,7 +42,7 @@ Dialog
             item = worksModel.itemData(id)
 
         var quantity = item && item.quantity !== undefined ? Number(item.quantity) : 1.0
-        quantityField.value = quantity > 0 ? quantity : 1.0
+        quantityField.text = (quantity > 0 ? quantity : 1.0).toFixed(2)
         open()
     }
 
@@ -51,7 +51,7 @@ Dialog
         if(!hasService)
             return
 
-        var quantity = quantityField.displayValue
+        var quantity = Math.max(0.1, parseFloat(quantityField.text) || 0.1)
         var ok = false
         if(isEditMode)
             ok = reportBackend.updateCurrentWork(workId, quantity)
@@ -280,14 +280,13 @@ Dialog
                         color: textSecondaryColor
                     }
 
-                    QuantityField
+                    TextField
                     {
                         id: quantityField
                         Layout.fillWidth: true
-                        value: 1.0
-                        stepSize: 0.1
-                        minimumValue: 0.1
-                        decimals: 2
+                        text: "1.00"
+                        horizontalAlignment: Text.AlignHCenter
+                        validator: RegularExpressionValidator { regularExpression: /^[0-9]*\.?[0-9]{0,2}$/ }
                     }
                 }
             }

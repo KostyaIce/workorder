@@ -46,12 +46,43 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         Layout.topMargin: 4
-        text: qsTr("Замечания и пожелания по улучшению присылайте на почту:\nworkorderapp@mail.ru")
+        text: qsTr("Замечания и пожелания по улучшению присылайте на почту:")
         font.pixelSize: 13
         color: textSecondaryColor
         wrapMode: Text.WordWrap
         horizontalAlignment: centered ? Text.AlignHCenter : Text.AlignLeft
         Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
+    }
+
+    TextEdit {
+        id: emailEdit
+        Layout.fillWidth: true
+        text: "workorderapp@mail.ru"
+        font.pixelSize: 13
+        font.underline: true
+        color: "#1976D2"
+        readOnly: true
+        visible: false
+    }
+
+    Label {
+        Layout.fillWidth: true
+        text: emailEdit.text
+        font.pixelSize: 13
+        font.underline: true
+        color: "#1976D2"
+        horizontalAlignment: centered ? Text.AlignHCenter : Text.AlignLeft
+        Layout.alignment: centered ? Qt.AlignHCenter : Qt.AlignLeft
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                emailEdit.selectAll()
+                emailEdit.copy()
+                notificationManager.pushInfo(qsTr("Адрес скопирован в буфер обмена"))
+            }
+        }
     }
 
     Label {

@@ -169,19 +169,14 @@ bool CloudDiskBackend::connectWithToken(const QString &tokenOrUrl)
 
 void CloudDiskBackend::clearDiskData()
 {
-    qInfo("CloudDiskBackend: clearDiskData");
+    qInfo("CloudDiskBackend: clearDiskData (disconnect, token only)");
     m_token.clear();
     m_entries.clear();
-    m_pendingOp = PendingOp::None;
-    m_deletePaths.clear();
-    m_transferQueue.clear();
-    m_transferIndex = 0;
     QSettingsStore store;
     store.remove(QString::fromUtf8(KEY_TOKEN));
-    store.remove(QString::fromUtf8(KEY_DISK_URL));
     store.sync();
     setBusy(false);
-    setStatusMessage(tr("Данные диска удалены"), QStringLiteral("Disk credentials cleared"));
+    setStatusMessage(tr("Авторизация удалена, диск отключён"), QStringLiteral("Authorization cleared, disk disconnected"));
     emit entriesChanged();
     emit connectionChanged();
 }

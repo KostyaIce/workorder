@@ -62,15 +62,6 @@ ColumnLayout {
         onAccepted: settingsBackend.resetDatabase()
     }
 
-    ConfirmDialog {
-        id: clearCloudDiskDialog
-        title: qsTr("Удалить данные Яндекс.Диска?")
-        compact: root.compact
-        danger: true
-        message: qsTr("Токен Яндекс.Диска будет удалён с устройства.")
-        onAccepted: cloudDiskBackend.clearDiskData()
-    }
-
     CloudDiskDialog {
         id: cloudDiskDialog
         compact: root.compact
@@ -348,13 +339,6 @@ ColumnLayout {
                     onActivated: cloudDiskDialog.open()
                 }
 
-                SettingsActionRow {
-                    visible: compact && cloudDiskBackend.connected
-                    label: qsTr("Удалить данные Яндекс.Диска")
-                    danger: true
-                    onActivated: clearCloudDiskDialog.open()
-                }
-
                 RowLayout {
                     visible: !compact
                     Layout.fillWidth: true
@@ -366,17 +350,6 @@ ColumnLayout {
                               : qsTr("Подключить Яндекс.Диск")
                         Layout.preferredWidth: 240
                         onClicked: cloudDiskDialog.open()
-                    }
-
-                    Button {
-                        visible: cloudDiskBackend.connected
-                        text: qsTr("Удалить данные Яндекс.Диска")
-                        flat: true
-                        contentItem: Label {
-                            text: parent.text
-                            color: "#F44336"
-                        }
-                        onClicked: clearCloudDiskDialog.open()
                     }
                 }
             }

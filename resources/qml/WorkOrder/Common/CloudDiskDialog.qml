@@ -132,7 +132,7 @@ Dialog
                 {
                     Layout.fillWidth: true
                     visible: cloudDiskBackend.connected
-                    text: qsTr("Удалить данные Яндекс.Диска")
+                    text: qsTr("Отключить Яндекс.Диск")
                     enabled: !cloudDiskBackend.busy
                     contentItem: Label
                     {
@@ -183,7 +183,7 @@ Dialog
                 Button
                 {
                     visible: cloudDiskBackend.connected
-                    text: qsTr("Удалить данные Яндекс.Диска")
+                    text: qsTr("Отключить Яндекс.Диск")
                     enabled: !cloudDiskBackend.busy
                     contentItem: Label
                     {

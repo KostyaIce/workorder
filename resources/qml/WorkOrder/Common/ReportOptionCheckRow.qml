@@ -17,6 +17,7 @@ ColumnLayout
     signal checkStateChanged(bool value)
 
     Layout.fillWidth: true
+    Layout.preferredWidth: 0
     spacing: 2
 
     RowLayout
@@ -63,6 +64,7 @@ ColumnLayout
     {
         visible: root.showPreview && root.checked && root.previewText !== ""
         Layout.fillWidth: true
+        Layout.preferredWidth: 0
         Layout.leftMargin: checkBoxSlot.width + root.labelGap
         text: root.previewText
         font.pixelSize: 11

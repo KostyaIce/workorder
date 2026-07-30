@@ -28,6 +28,7 @@ ColumnLayout
     {
         id: field
         Layout.fillWidth: true
+        Layout.preferredWidth: 0
         Layout.preferredHeight: root.preferredHeight
         placeholderText: root.placeholder
         wrapMode: TextArea.Wrap

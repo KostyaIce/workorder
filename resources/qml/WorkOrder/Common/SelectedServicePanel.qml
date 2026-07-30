@@ -96,14 +96,13 @@ Rectangle
             color: textSecondaryColor
         }
 
-        QuantityField
+        TextField
         {
             id: quantityMobile
             Layout.fillWidth: true
-            value: 1.0
-            stepSize: 0.1
-            minimumValue: 0.1
-            decimals: 2
+            text: "1.00"
+            horizontalAlignment: Text.AlignHCenter
+            validator: RegularExpressionValidator { regularExpression: /^[0-9]*\.?[0-9]{0,2}$/ }
         }
 
         RowLayout
@@ -115,7 +114,7 @@ Rectangle
             {
                 Layout.fillWidth: true
                 text: qsTr("+ Добавить в счет")
-                onClicked: root.addToInvoiceRequested(quantityMobile.displayValue)
+                onClicked: root.addToInvoiceRequested(Math.max(0.1, parseFloat(quantityMobile.text) || 0.1))
             }
 
             Rectangle
@@ -234,14 +233,13 @@ Rectangle
             Layout.fillWidth: true
             spacing: 12
 
-            QuantityField
+            TextField
             {
                 id: quantityDesktop
                 Layout.fillWidth: true
-                value: 1.0
-                stepSize: 0.1
-                minimumValue: 0.1
-                decimals: 2
+                text: "1.00"
+                horizontalAlignment: Text.AlignHCenter
+                validator: RegularExpressionValidator { regularExpression: /^[0-9]*\.?[0-9]{0,2}$/ }
             }
 
             PrimaryButton
@@ -249,7 +247,7 @@ Rectangle
                 Layout.preferredWidth: 200
                 Layout.fillWidth: false
                 text: qsTr("+ Добавить в счет")
-                onClicked: root.addToInvoiceRequested(quantityDesktop.displayValue)
+                onClicked: root.addToInvoiceRequested(Math.max(0.1, parseFloat(quantityDesktop.text) || 0.1))
             }
 
             Rectangle

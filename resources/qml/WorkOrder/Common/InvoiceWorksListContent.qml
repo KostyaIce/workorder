@@ -112,55 +112,67 @@ ColumnLayout
                     width: parent.width - 12
                     anchors.top: parent.top
                     anchors.left: parent.left
-                    anchors.topMargin: 6
+                    anchors.topMargin: 4
                     anchors.leftMargin: 6
-                    spacing: 4
+                    spacing: 3
 
                     RowLayout
                     {
                         Layout.fillWidth: true
                         spacing: 4
 
-                        TextField
-                        {
-                            Layout.fillWidth: true
-                            font.pixelSize: 13
-                            text: workItem.editName
-                            placeholderText: qsTr("Название")
-                            onTextChanged: workItem.editName = text
+                    TextField
+                    {
+                        id: nameCompactField
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                        font.pixelSize: 13
+                        text: workItem.editName
+                        placeholderText: qsTr("Название")
+                        onTextChanged: workItem.editName = text
+                        Connections {
+                            target: workItem
+                            function onEditNameChanged() { if(!nameCompactField.activeFocus) nameCompactField.cursorPosition = 0 }
                         }
+                    }
 
                         ToolButton
                         {
-                            Layout.preferredWidth: 32
-                            Layout.preferredHeight: 32
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
                             font.pixelSize: 14
                             text: "\u2715"
                             onClicked: reportBackend.deleteWork(workItem.workId)
                         }
                     }
 
-                    RowLayout
+                    TextField
                     {
+                        id: subobjectCompactField
                         Layout.fillWidth: true
-                        spacing: 4
-
-                        TextField
-                        {
-                            Layout.fillWidth: true
-                            font.pixelSize: 12
-                            text: workItem.editSubobject
-                            placeholderText: qsTr("Субобъект")
-                            onTextChanged: workItem.editSubobject = text
+                        Layout.preferredHeight: 28
+                        font.pixelSize: 12
+                        text: workItem.editSubobject
+                        placeholderText: qsTr("Субобъект")
+                        onTextChanged: workItem.editSubobject = text
+                        Connections {
+                            target: workItem
+                            function onEditSubobjectChanged() { if(!subobjectCompactField.activeFocus) subobjectCompactField.cursorPosition = 0 }
                         }
+                    }
 
-                        TextField
-                        {
-                            Layout.fillWidth: true
-                            font.pixelSize: 12
-                            text: workItem.editCoefficients
-                            placeholderText: qsTr("Коэффициенты")
-                            onTextChanged: workItem.editCoefficients = text
+                    TextField
+                    {
+                        id: coefficientsCompactField
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                        font.pixelSize: 12
+                        text: workItem.editCoefficients
+                        placeholderText: qsTr("Коэффициенты")
+                        onTextChanged: workItem.editCoefficients = text
+                        Connections {
+                            target: workItem
+                            function onEditCoefficientsChanged() { if(!coefficientsCompactField.activeFocus) coefficientsCompactField.cursorPosition = 0 }
                         }
                     }
 
@@ -178,16 +190,20 @@ ColumnLayout
                             color: primaryColor
                         }
 
-                        QuantityField
+                        TextField
                         {
                             Layout.fillWidth: true
                             Layout.maximumWidth: 110
-                            spacing: 2
-                            value: workItem.editQuantity
-                            stepSize: 0.1
-                            minimumValue: 0.1
-                            decimals: 2
-                            onQuantityChanged: (newValue) => workItem.editQuantity = newValue
+                            Layout.preferredHeight: 28
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                            text: workItem.editQuantity.toFixed(2)
+                            validator: RegularExpressionValidator { regularExpression: /^[0-9]*\.?[0-9]{0,2}$/ }
+                            onEditingFinished:
+                            {
+                                var v = parseFloat(text)
+                                if(!isNaN(v)) workItem.editQuantity = Math.max(0.1, v)
+                            }
                         }
 
                         Label
@@ -198,10 +214,17 @@ ColumnLayout
                             font.pixelSize: 12
                             color: textSecondaryColor
                         }
+                    }
+
+                    RowLayout
+                    {
+                        Layout.fillWidth: true
+                        spacing: 4
 
                         TextField
                         {
                             Layout.preferredWidth: 52
+                            Layout.preferredHeight: 28
                             font.pixelSize: 12
                             horizontalAlignment: Text.AlignRight
                             text: workItem.editPercentSum
@@ -225,7 +248,7 @@ ColumnLayout
 
                         Label
                         {
-                            Layout.preferredWidth: 68
+                            Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
                             text: workItem.lineTotal.toFixed(2) + " \u20BD"
                             font.pixelSize: 12
@@ -237,7 +260,8 @@ ColumnLayout
                     PrimaryButton
                     {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 32
+                        Layout.preferredHeight: 28
+                        font.pixelSize: 12
                         text: qsTr("Сохранить")
                         enabled: workItem.hasChanges
                         filled: workItem.hasChanges
@@ -247,7 +271,7 @@ ColumnLayout
                     DividerLine
                     {
                         Layout.fillWidth: true
-                        Layout.topMargin: 4
+                        Layout.topMargin: 2
                         visible: index < linesList.count - 1
                     }
                 }
@@ -264,10 +288,15 @@ ColumnLayout
 
                     TextField
                     {
+                        id: nameDesktopField
                         Layout.fillWidth: true
                         text: workItem.editName
                         placeholderText: qsTr("Название услуги")
                         onTextChanged: workItem.editName = text
+                        Connections {
+                            target: workItem
+                            function onEditNameChanged() { if(!nameDesktopField.activeFocus) nameDesktopField.cursorPosition = 0 }
+                        }
                     }
 
                     RowLayout
@@ -277,18 +306,28 @@ ColumnLayout
 
                         TextField
                         {
+                            id: subobjectDesktopField
                             Layout.fillWidth: true
                             text: workItem.editSubobject
                             placeholderText: qsTr("Субобъект")
                             onTextChanged: workItem.editSubobject = text
+                            Connections {
+                                target: workItem
+                                function onEditSubobjectChanged() { if(!subobjectDesktopField.activeFocus) subobjectDesktopField.cursorPosition = 0 }
+                            }
                         }
 
                         TextField
                         {
+                            id: coefficientsDesktopField
                             Layout.fillWidth: true
                             text: workItem.editCoefficients
                             placeholderText: qsTr("Коэффициенты")
                             onTextChanged: workItem.editCoefficients = text
+                            Connections {
+                                target: workItem
+                                function onEditCoefficientsChanged() { if(!coefficientsDesktopField.activeFocus) coefficientsDesktopField.cursorPosition = 0 }
+                            }
                         }
                     }
 
@@ -311,14 +350,18 @@ ColumnLayout
                             }
                         }
 
-                        QuantityField
+                        TextField
                         {
                             Layout.preferredWidth: 120
-                            value: workItem.editQuantity
-                            stepSize: 0.1
-                            minimumValue: 0.1
-                            decimals: 2
-                            onQuantityChanged: (newValue) => workItem.editQuantity = newValue
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                            text: workItem.editQuantity.toFixed(2)
+                            validator: RegularExpressionValidator { regularExpression: /^[0-9]*\.?[0-9]{0,2}$/ }
+                            onEditingFinished:
+                            {
+                                var v = parseFloat(text)
+                                if(!isNaN(v)) workItem.editQuantity = Math.max(0.1, v)
+                            }
                         }
 
                         Label
