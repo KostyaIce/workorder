@@ -21,6 +21,14 @@ Dialog
     height: compact ? Math.min(parent.height * 0.9, 640) : 560
     padding: compact ? 12 : 16
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar
+    {
+        text: root.title
+        compact: root.compact
+    }
+
     onOpened:
     {
         diskUrlField.text = cloudDiskBackend.diskUrl

@@ -14,6 +14,13 @@ Dialog {
 
     property bool compact: true
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar {
+        text: root.title
+        compact: root.compact
+    }
+
     ColumnLayout {
         spacing: 0
         width: parent.width

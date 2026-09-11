@@ -45,6 +45,14 @@ Dialog
     height: compact ? parent.height * 0.85 : 560
     padding: 16
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar
+    {
+        text: root.title
+        compact: root.compact
+    }
+
     FileDialog
     {
         id: saveReportDialog

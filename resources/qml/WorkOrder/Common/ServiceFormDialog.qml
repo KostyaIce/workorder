@@ -17,6 +17,13 @@ Dialog {
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 400
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar {
+        text: root.title
+        compact: root.compact
+    }
+
     onOpened: {
         if(mode === "edit") {
             nameField.text = serviceName

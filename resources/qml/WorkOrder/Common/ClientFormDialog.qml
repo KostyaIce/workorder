@@ -15,6 +15,13 @@ Dialog {
     width: compact ? parent.width - 32 : 460
     height: 410
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar {
+        text: root.title
+        compact: root.compact
+    }
+
     onOpened: {
         nameField.text = ""
         contactField.text = ""

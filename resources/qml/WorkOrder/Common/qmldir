@@ -3,6 +3,8 @@ Card 1.0 Card.qml
 PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
 DialogEdgeButtons 1.0 DialogEdgeButtons.qml
+DialogSurface 1.0 DialogSurface.qml
+DialogTitleBar 1.0 DialogTitleBar.qml
 PrimaryButton 1.0 PrimaryButton.qml
 WorkOrderComboBox 1.0 WorkOrderComboBox.qml
 FormField 1.0 FormField.qml
@@ -25,6 +27,8 @@ ServiceNameText 1.0 ServiceNameText.qml
 SubobjectSearchField 1.0 SubobjectSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
 InvoiceClientField 1.0 InvoiceClientField.qml
+ClientObjectDialog 1.0 ClientObjectDialog.qml
+ClientObjectSummary 1.0 ClientObjectSummary.qml
 InvoiceLinesList 1.0 InvoiceLinesList.qml
 SelectedServicePanel 1.0 SelectedServicePanel.qml
 TotalPanel 1.0 TotalPanel.qml

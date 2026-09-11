@@ -14,6 +14,13 @@ Dialog {
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 350
 
+    background: DialogSurface { }
+
+    header: DialogTitleBar {
+        text: root.title
+        compact: root.compact
+    }
+
     Label {
         text: root.message
         wrapMode: Text.WordWrap

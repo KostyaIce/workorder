@@ -74,24 +74,12 @@ Dialog
         coefficientSearch.clearField()
     }
 
-    header: Item
-    {
-        implicitHeight: headerLabel.implicitHeight + 24
+    background: DialogSurface { }
 
-        Label
-        {
-            id: headerLabel
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            text: root.title
-            font.pixelSize: compact ? 18 : 20
-            font.bold: true
-            color: textColor
-            wrapMode: Text.WordWrap
-        }
+    header: DialogTitleBar
+    {
+        text: root.title
+        compact: root.compact
     }
 
     contentItem: Flickable

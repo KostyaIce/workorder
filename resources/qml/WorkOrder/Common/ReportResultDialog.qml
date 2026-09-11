@@ -12,12 +12,35 @@ Dialog
 
     parent: Overlay.overlay
     title: root.reportPath === "" ? qsTr("Превью отчёта") : qsTr("Отчёт сформирован")
-    standardButtons: Dialog.Close
     modal: true
-    clip: true
     anchors.centerIn: parent
     width: compact ? parent.width - 32 : 720
     height: compact ? parent.height * 0.7 : 560
+
+    background: DialogSurface { }
+
+    header: DialogTitleBar
+    {
+        text: root.title
+        compact: root.compact
+    }
+
+    footer: Item
+    {
+        implicitHeight: closeButton.implicitHeight + 20
+
+        PrimaryButton
+        {
+            id: closeButton
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(implicitWidth, 120)
+            text: qsTr("Закрыть")
+            filled: false
+            onClicked: root.close()
+        }
+    }
 
     onClosed:
     {
@@ -55,6 +78,7 @@ Dialog
             id: pdfLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
             active: root.opened && root.reportUrl !== "" && pdfPreviewSupported
             source: active ? Qt.resolvedUrl("ReportResultDialogPdfPreview.qml") : ""
             onLoaded:

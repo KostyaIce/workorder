@@ -61,14 +61,13 @@ Item
 
                     SectionTitle
                     {
-                        text: qsTr("Клиент")
+                        text: qsTr("Клиент и объект")
                     }
 
-                    InvoiceClientField
+                    ClientObjectSummary
                     {
                         compact: true
-                        showInvoiceDate: false
-                        showStartReport: true
+                        onOpenRequested: clientObjectDialog.open()
                     }
                 }
             }
@@ -173,19 +172,16 @@ Item
 
                     SectionTitle
                     {
-                        text: qsTr("Клиент")
+                        text: qsTr("Клиент и объект")
                     }
 
-                    InvoiceClientField
+                    ClientObjectSummary
                     {
                         compact: false
-                        showInvoiceDate: false
-                        showStartReport: true
-                        layoutSpacing: 8
-                        actionButtonSize: 38
+                        Layout.fillHeight: true
+                        onOpenRequested: clientObjectDialog.open()
                     }
 
-                    Item { Layout.fillHeight: true }
                 }
             }
 
@@ -303,6 +299,12 @@ Item
     ReportOptionsDialog
     {
         id: reportOptionsDialog
+        compact: root.compact
+    }
+
+    ClientObjectDialog
+    {
+        id: clientObjectDialog
         compact: root.compact
     }
 
