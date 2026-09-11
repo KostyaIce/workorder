@@ -29,6 +29,7 @@ InvoiceFormContent 1.0 InvoiceFormContent.qml
 InvoiceClientField 1.0 InvoiceClientField.qml
 ClientObjectDialog 1.0 ClientObjectDialog.qml
 ClientObjectSummary 1.0 ClientObjectSummary.qml
+InvoiceWorkDialog 1.0 InvoiceWorkDialog.qml
 InvoiceLinesList 1.0 InvoiceLinesList.qml
 SelectedServicePanel 1.0 SelectedServicePanel.qml
 TotalPanel 1.0 TotalPanel.qml

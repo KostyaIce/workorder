@@ -13,6 +13,7 @@ ColumnLayout
     property int layoutSpacing: 8
     // Invoice tab: require active report. Dialog/report edit: always enabled.
     property bool requireReportReady: true
+    property bool preserveServiceDataOnReselect: false
     property string labelText: qsTr("Услуга")
 
     readonly property int suggestionRowHeight: compact ? 56 : 36
@@ -329,7 +330,11 @@ ColumnLayout
                 hoverEnabled: !compact
                 onClicked:
                 {
-                    reportBackend.selectService(model.id, model.name, model.unit, model.price)
+                    var sameService = reportBackend.currentServiceName === model.name
+                            && reportBackend.currentUnit === model.unit
+                            && reportBackend.currentPrice === model.price
+                    if(!root.preserveServiceDataOnReselect || !sameService)
+                        reportBackend.selectService(model.id, model.name, model.unit, model.price)
                     applyInputValue("", false)
                 }
             }
