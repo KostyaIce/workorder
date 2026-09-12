@@ -8,15 +8,11 @@ ColumnLayout
 
     property bool compact: true
     property bool showInvoiceDate: true
-    property bool showStartReport: true
     property int layoutSpacing: 12
     property int actionButtonSize: 44
 
-    readonly property int objectLastOrder: reportBackend.selectedObjectLastOrder
     readonly property bool clientSelected: reportBackend.selectedClientId !== ""
-    readonly property bool noActiveReport: objectLastOrder === 0
-    readonly property bool reportIsStale: objectLastOrder > 0
-        && (Math.floor(Date.now() / 1000) - objectLastOrder) > 12 * 3600
+    readonly property bool objectSelected: reportBackend.selectedObjectName !== ""
 
     spacing: layoutSpacing
     Layout.fillWidth: true
@@ -71,6 +67,37 @@ ColumnLayout
             Layout.preferredWidth: actionButtonSize
             Layout.preferredHeight: actionButtonSize
             radius: 8
+            opacity: root.clientSelected ? 1.0 : 0.45
+            color: clientEditMouse.pressed ? Qt.darker(cardColor, 1.1) : cardColor
+            border.width: 1
+            border.color: primaryColor
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: "\u270E"
+                font.pixelSize: actionButtonSize > 40 ? 20 : 18
+                color: primaryColor
+            }
+
+            MouseArea
+            {
+                id: clientEditMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: root.clientSelected
+                onClicked: clientDialog.openForEdit()
+            }
+
+            ToolTip.visible: clientEditMouse.containsMouse
+            ToolTip.text: qsTr("Редактировать заказчика")
+        }
+
+        Rectangle
+        {
+            Layout.preferredWidth: actionButtonSize
+            Layout.preferredHeight: actionButtonSize
+            radius: 8
             color: clientAddMouse.pressed ? Qt.darker(primaryColor, 1.15) : primaryColor
 
             Label
@@ -86,8 +113,12 @@ ColumnLayout
             {
                 id: clientAddMouse
                 anchors.fill: parent
+                hoverEnabled: true
                 onClicked: clientDialog.open()
             }
+
+            ToolTip.visible: clientAddMouse.containsMouse
+            ToolTip.text: qsTr("Добавить заказчика")
         }
     }
 
@@ -133,6 +164,37 @@ ColumnLayout
             Layout.preferredWidth: actionButtonSize
             Layout.preferredHeight: actionButtonSize
             radius: 8
+            opacity: root.objectSelected ? 1.0 : 0.45
+            color: objectEditMouse.pressed ? Qt.darker(cardColor, 1.1) : cardColor
+            border.width: 1
+            border.color: primaryColor
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: "\u270E"
+                font.pixelSize: actionButtonSize > 40 ? 20 : 18
+                color: primaryColor
+            }
+
+            MouseArea
+            {
+                id: objectEditMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: root.objectSelected
+                onClicked: objectDialog.openForEdit()
+            }
+
+            ToolTip.visible: objectEditMouse.containsMouse
+            ToolTip.text: qsTr("Редактировать объект")
+        }
+
+        Rectangle
+        {
+            Layout.preferredWidth: actionButtonSize
+            Layout.preferredHeight: actionButtonSize
+            radius: 8
             opacity: root.clientSelected ? 1.0 : 0.45
             color: objectAddMouse.pressed ? Qt.darker(primaryColor, 1.15) : primaryColor
 
@@ -149,40 +211,14 @@ ColumnLayout
             {
                 id: objectAddMouse
                 anchors.fill: parent
+                hoverEnabled: true
                 enabled: root.clientSelected
                 onClicked: objectDialog.open()
             }
+
+            ToolTip.visible: objectAddMouse.containsMouse
+            ToolTip.text: qsTr("Добавить объект")
         }
-    }
-
-    PrimaryButton
-    {
-        visible: showStartReport
-        Layout.fillWidth: true
-        text: qsTr("Начать новый отчет")
-        filled: true
-        enabled: reportBackend.selectedObjectName !== ""
-        onClicked: reportBackend.updateLastTimeObject()
-    }
-
-    Label
-    {
-        visible: showStartReport && noActiveReport && reportBackend.selectedObjectName !== ""
-        Layout.fillWidth: true
-        text: qsTr("Для создания отчета нажмите эту кнопку")
-        font.pixelSize: compact ? 12 : 13
-        color: primaryColor
-        wrapMode: Text.WordWrap
-    }
-
-    Label
-    {
-        visible: showStartReport && reportIsStale && reportBackend.selectedObjectName !== ""
-        Layout.fillWidth: true
-        text: qsTr("Дата отчета может быть неактуальна. Возможно, вы хотите начать новый отчет.")
-        font.pixelSize: compact ? 12 : 13
-        color: "#F57C00"
-        wrapMode: Text.WordWrap
     }
 
     RowLayout

@@ -14,8 +14,10 @@ Dialog
 
     readonly property bool hasService: reportBackend.currentServiceName !== ""
     readonly property real quantity: Math.max(0.1, parseFloat(quantityField.text) || 0.1)
-    readonly property real totalPrice:
-        reportBackend.currentPrice * quantity * reportBackend.currentPercentSum / 100
+    readonly property int quantityThousandths: Math.round(quantity * 1000)
+    readonly property int totalPrice:
+        Math.round(reportBackend.currentPrice * quantityThousandths
+                   * reportBackend.currentPercentSum / 100000)
 
     component SummaryLabel: Label
     {

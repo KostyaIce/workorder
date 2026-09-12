@@ -35,6 +35,10 @@ SelectedServicePanel 1.0 SelectedServicePanel.qml
 TotalPanel 1.0 TotalPanel.qml
 InvoiceWorksListContent 1.0 InvoiceWorksListContent.qml
 InvoiceWorksDialog 1.0 InvoiceWorksDialog.qml
+InvoiceWorkEditDialog 1.0 InvoiceWorkEditDialog.qml
+InvoiceExpenseDialog 1.0 InvoiceExpenseDialog.qml
+InvoiceExpenseEditDialog 1.0 InvoiceExpenseEditDialog.qml
+InvoiceExpensesListContent 1.0 InvoiceExpensesListContent.qml
 ServiceFormDialog 1.0 ServiceFormDialog.qml
 ServiceDeleteDialog 1.0 ServiceDeleteDialog.qml
 DatabaseContent 1.0 DatabaseContent.qml

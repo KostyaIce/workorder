@@ -88,6 +88,36 @@ bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPat
     return query.numRowsAffected() > 0;
 }
 
+bool ClientsDatabase::updateClientEntry(const StringMap &data, const QString &dbPath)
+{
+    if(data.isEmpty())
+        return false;
+
+    const QString clientId = data.value("id").toString();
+    if(clientId.isEmpty())
+        return false;
+
+    createClientTable(dbPath);
+    const QString path = resolveDbPath(dbPath);
+    QSqlDatabase db = openDatabase(path);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "UPDATE clients SET name = ?, address = ?, contact = ?, notes = ? WHERE id = ?"));
+    query.addBindValue(data.value("name"));
+    query.addBindValue(data.value("address", QString()));
+    query.addBindValue(data.value("contact", QString()));
+    query.addBindValue(data.value("notes", QString()));
+    query.addBindValue(clientId);
+
+    if(!query.exec())
+    {
+        qWarning("Failed to update client: %s", qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    return query.numRowsAffected() > 0;
+}
+
 StringMapList ClientsDatabase::loadClients(const QString &dbPath)
 {
     const QString path = resolveDbPath(dbPath);

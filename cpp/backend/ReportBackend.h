@@ -11,6 +11,7 @@ namespace workorder
 {
 
 class ClientsModel;
+class ExpensesModel;
 class ObjectsModel;
 class OrdersModel;
 class WorksModel;
@@ -25,7 +26,10 @@ class ReportBackend : public QObject
 
     Q_PROPERTY(int clientCount READ clientCount NOTIFY clientsChanged)
     Q_PROPERTY(int workCount READ workCount NOTIFY worksChanged)
-    Q_PROPERTY(double worksTotal READ worksTotal NOTIFY worksChanged)
+    Q_PROPERTY(qint64 worksTotal READ worksTotal NOTIFY worksChanged)
+    Q_PROPERTY(int expenseCount READ expenseCount NOTIFY expensesChanged)
+    Q_PROPERTY(qint64 expensesTotal READ expensesTotal NOTIFY expensesChanged)
+    Q_PROPERTY(qint64 invoiceTotal READ invoiceTotal NOTIFY totalsChanged)
     Q_PROPERTY(QString selectedClientId READ selectedClientId NOTIFY clientSelected)
     Q_PROPERTY(QString selectedClientName READ selectedClientName NOTIFY clientSelected)
     Q_PROPERTY(QString selectedClientAddress READ selectedClientAddress NOTIFY clientSelected)
@@ -52,7 +56,10 @@ public:
 
     int clientCount() const;
     int workCount() const;
-    double worksTotal() const;
+    qint64 worksTotal() const;
+    int expenseCount() const;
+    qint64 expensesTotal() const;
+    qint64 invoiceTotal() const;
     QString selectedClientId() const { return m_currentClient.id; }
     QString selectedClientName() const { return m_currentClient.name; }
     QString selectedClientAddress() const { return m_currentClient.address; }
@@ -72,6 +79,9 @@ public:
 
     Q_INVOKABLE bool initializeData();
     Q_INVOKABLE bool addClient(const QVariantMap &data);
+    Q_INVOKABLE bool updateClient(const QVariantMap &data);
+    Q_INVOKABLE QVariantMap currentClientData() const;
+    Q_INVOKABLE QVariantMap currentObjectData() const;
     Q_INVOKABLE void selectClient(const QString &clientId);
     Q_INVOKABLE void updateLastTimeObject();
     Q_INVOKABLE void selectObject(const QString &objectId);
@@ -95,7 +105,11 @@ public:
     Q_INVOKABLE bool updateCurrentWork(const QString &workId, double quantity);
     Q_INVOKABLE bool updateWork(const QVariantMap &data);
     Q_INVOKABLE bool deleteWork(const QString &workId);
+    Q_INVOKABLE bool addExpense(const QString &description, int amount);
+    Q_INVOKABLE bool updateExpense(const QVariantMap &data);
+    Q_INVOKABLE bool deleteExpense(const QString &expenseId);
     Q_INVOKABLE bool addObject(const QVariantMap &data);
+    Q_INVOKABLE bool updateObject(const QVariantMap &data);
     Q_INVOKABLE bool generateReport();
     Q_INVOKABLE bool saveReportToFile(const QString &fileUrl);
     Q_INVOKABLE QString defaultReportSaveUrl(const QString &clientId) const;
@@ -110,6 +124,8 @@ public:
 signals:
     void clientsChanged();
     void worksChanged();
+    void expensesChanged();
+    void totalsChanged();
     void clientSelected();
     void objectSelected();
     void objectUpdated();
@@ -151,6 +167,8 @@ private:
     void loadOrders();
     void loadSubobjects(const QString &objectId);
     void reloadWorks();
+    void reloadExpenses();
+    QVariantList currentOrderTotals() const;
     bool setCurrentClient(const QString &clientId);
     bool setCurrentObject(const QString &objectId);
     void saveSelectedClientId(const QString &clientId);
@@ -158,6 +176,8 @@ private:
     void clearPersistedSelection();
     void restoreSelection();
     void updateCurrentObjectData();
+    // Per-client database file name contains the client name, so it must follow a rename.
+    bool renameClientStorage(const QString &previousName, const QString &newName);
     void clearSelectedOrder();
     void reloadSelectedOrderWorks();
     bool addWorkAt(double quantity, qint64 startOrderAt);
@@ -182,6 +202,7 @@ private:
     OrdersModel *m_orders = nullptr;
     WorksModel *m_works = nullptr;
     WorksModel *m_workReport = nullptr;
+    ExpensesModel *m_expenses = nullptr;
     SubobjectsModel *m_subobjects = nullptr;
     SubobjectsFilterModel *m_subobjectsFilter = nullptr;
 };

@@ -41,9 +41,43 @@ Dialog
         }
     }
 
-    InvoiceWorksListContent
+    ColumnLayout
     {
         anchors.fill: parent
-        compact: root.compact
+        spacing: 8
+
+        Label
+        {
+            Layout.fillWidth: true
+            text: qsTr("Работы") + " (" + reportBackend.workCount + ")"
+            font.pixelSize: root.compact ? 15 : 16
+            font.bold: true
+            color: textColor
+        }
+
+        InvoiceWorksListContent
+        {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            compact: root.compact
+        }
+
+        Label
+        {
+            Layout.fillWidth: true
+            visible: reportBackend.expenseCount > 0
+            text: qsTr("Затраты") + " (" + reportBackend.expenseCount + ")"
+            font.pixelSize: root.compact ? 15 : 16
+            font.bold: true
+            color: textColor
+        }
+
+        InvoiceExpensesListContent
+        {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: reportBackend.expenseCount > 0
+            compact: root.compact
+        }
     }
 }

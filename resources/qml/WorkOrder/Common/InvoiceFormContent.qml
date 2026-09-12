@@ -7,7 +7,7 @@ Item
     id: root
 
     property bool compact: true
-    property int desktopTopCardHeight: 240
+    property int desktopTopCardHeight: 160
 
     Layout.fillWidth: true
     Layout.fillHeight: !compact
@@ -85,6 +85,13 @@ Item
                         text: qsTr("Добавить работу")
                         onClicked: invoiceWorkDialog.openForAdd()
                     }
+
+                    PrimaryButton
+                    {
+                        text: qsTr("Добавить затраты")
+                        enabled: reportBackend.selectedObjectLastOrder > 0
+                        onClicked: invoiceExpenseDialog.openForAdd()
+                    }
                 }
             }
 
@@ -129,13 +136,13 @@ Item
                 Layout.fillHeight: true
                 compact: false
                 sideMargin: 0
-                verticalPadding: 16
+                verticalPadding: 12
                 horizontalPadding: 16
 
                 ColumnLayout
                 {
                     anchors.fill: parent
-                    spacing: 8
+                    spacing: 6
 
                     SectionTitle
                     {
@@ -159,13 +166,13 @@ Item
                 Layout.fillHeight: true
                 compact: false
                 sideMargin: 0
-                verticalPadding: 16
+                verticalPadding: 12
                 horizontalPadding: 16
 
                 ColumnLayout
                 {
                     anchors.fill: parent
-                    spacing: 8
+                    spacing: 6
 
                     SectionTitle
                     {
@@ -180,7 +187,12 @@ Item
                         onClicked: invoiceWorkDialog.openForAdd()
                     }
 
-                    Item { Layout.fillHeight: true }
+                    PrimaryButton
+                    {
+                        text: qsTr("Добавить затраты")
+                        enabled: reportBackend.selectedObjectLastOrder > 0
+                        onClicked: invoiceExpenseDialog.openForAdd()
+                    }
                 }
             }
         }
@@ -231,6 +243,12 @@ Item
     InvoiceWorkDialog
     {
         id: invoiceWorkDialog
+        compact: root.compact
+    }
+
+    InvoiceExpenseDialog
+    {
+        id: invoiceExpenseDialog
         compact: root.compact
     }
 

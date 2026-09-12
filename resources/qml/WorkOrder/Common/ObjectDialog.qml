@@ -6,9 +6,10 @@ Dialog {
     id: root
 
     property bool compact: true
+    property bool editMode: false
     readonly property bool nameValid: nameField.text.trim().length > 0
 
-    title: qsTr("Новый объект")
+    title: editMode ? qsTr("Редактирование объекта") : qsTr("Новый объект")
     standardButtons: Dialog.NoButton
     modal: true
     anchors.centerIn: parent
@@ -22,9 +23,27 @@ Dialog {
         compact: root.compact
     }
 
+    function openForEdit()
+    {
+        editMode = true
+        open()
+    }
+
     onOpened: {
+        if(editMode)
+        {
+            var object = reportBackend.currentObjectData()
+            nameField.text = object.name === undefined ? "" : object.name
+            addressField.text = object.address === undefined ? "" : object.address
+            return
+        }
+
         nameField.text = ""
         addressField.text = ""
+    }
+
+    onClosed: {
+        editMode = false
     }
 
     function tryAccept()
@@ -56,7 +75,7 @@ Dialog {
     footer: DialogEdgeButtons {
         width: root.width
         cancelText: qsTr("Отмена")
-        acceptText: qsTr("OK")
+        acceptText: root.editMode ? qsTr("Сохранить") : qsTr("OK")
         acceptEnabled: root.nameValid
         onCancelled: root.reject()
         onAccepted: root.tryAccept()
@@ -67,6 +86,12 @@ Dialog {
             "name": nameField.text.trim(),
             "address": addressField.text
         };
+
+        if(editMode)
+        {
+            reportBackend.updateObject(data)
+            return
+        }
 
         reportBackend.addObject(data)
     }

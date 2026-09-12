@@ -4,6 +4,7 @@
 #include "SettingsBackend.h"
 
 #include "ClientsModel.h"
+#include "ExpensesModel.h"
 #include "ObjectsModel.h"
 #include "OrdersModel.h"
 #include "SubobjectsFilterModel.h"
@@ -12,6 +13,7 @@
 
 #include "ClientsDatabase.h"
 #include "DatabaseStorage.h"
+#include "ExpensesDatabase.h"
 #include "FileIo.h"
 #include "NotificationManager.h"
 #include "ObjectsDatabase.h"
@@ -22,6 +24,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QMap>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QTemporaryFile>
@@ -44,6 +47,15 @@ QVariantList mapsToVariantList(const StringMapList &items)
     return result;
 }
 
+qint64 workAmountKopecks(const QVariantMap &work)
+{
+    const qint64 priceKopecks = work.value("price").toLongLong();
+    const qint64 quantityThousandths = qRound64(work.value("quantity", 1).toDouble() * 1000.0);
+    const qint64 percentSum = work.value("percent_sum", 100).toLongLong();
+    const qint64 numerator = priceKopecks * quantityThousandths * percentSum;
+    return (numerator + 50000) / 100000;
+}
+
 } // namespace
 
 ReportBackend::ReportBackend(SettingsBackend *settingsBackend,
@@ -58,11 +70,14 @@ ReportBackend::ReportBackend(SettingsBackend *settingsBackend,
     , m_orders(new OrdersModel(this))
     , m_works(new WorksModel(this))
     , m_workReport(new WorksModel(this))
+    , m_expenses(new ExpensesModel(this))
     , m_subobjects(new SubobjectsModel(this))
     , m_subobjectsFilter(new SubobjectsFilterModel(this))
 {
     ClientsDatabase::createClientTable();
     m_subobjectsFilter->setSourceModel(m_subobjects);
+    connect(this, &ReportBackend::worksChanged, this, &ReportBackend::totalsChanged);
+    connect(this, &ReportBackend::expensesChanged, this, &ReportBackend::totalsChanged);
     registerModels(engine);
 }
 
@@ -83,12 +98,14 @@ void ReportBackend::registerModels(QQmlApplicationEngine *engine)
     context->setContextProperty("ordersModel", m_orders);
     context->setContextProperty("worksModel", m_works);
     context->setContextProperty("workReportModel", m_workReport);
+    context->setContextProperty("expensesModel", m_expenses);
     context->setContextProperty("subobjectsModel", m_subobjects);
     context->setContextProperty("subobjectsFilterModel", m_subobjectsFilter);
 }
 
 int ReportBackend::clientCount() const { return m_clients->rowCount(); }
 int ReportBackend::workCount() const { return m_works->count(); }
+int ReportBackend::expenseCount() const { return m_expenses->count(); }
 
 QString ReportBackend::currentUnit() const
 {
@@ -96,17 +113,25 @@ QString ReportBackend::currentUnit() const
     return unit.isEmpty() ? QStringLiteral("ед.") : unit;
 }
 
-double ReportBackend::worksTotal() const
+qint64 ReportBackend::worksTotal() const
 {
-    double total = 0.0;
+    qint64 total = 0;
     for(const QVariant &item : m_works->items())
-    {
-        const QVariantMap work = item.toMap();
-        total += work.value("price").toDouble()
-            * work.value("quantity", 1).toDouble()
-            * (work.value("percent_sum", 100).toDouble() / 100.0);
-    }
+        total += workAmountKopecks(item.toMap());
     return total;
+}
+
+qint64 ReportBackend::expensesTotal() const
+{
+    qint64 total = 0;
+    for(const QVariant &item : m_expenses->items())
+        total += item.toMap().value("amount").toLongLong();
+    return total;
+}
+
+qint64 ReportBackend::invoiceTotal() const
+{
+    return worksTotal() + expensesTotal();
 }
 
 bool ReportBackend::initializeData()
@@ -139,6 +164,58 @@ bool ReportBackend::addClient(const QVariantMap &data)
     return result;
 }
 
+bool ReportBackend::updateClient(const QVariantMap &data)
+{
+    if(data.isEmpty() || m_currentClient.id.isEmpty())
+        return false;
+
+    const QString name = data.value(QStringLiteral("name")).toString().trimmed();
+    if(name.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите имя заказчика"));
+        return false;
+    }
+
+    if(!renameClientStorage(m_currentClient.name, name))
+        return false;
+
+    QVariantMap payload = data;
+    payload.insert(QStringLiteral("id"), m_currentClient.id);
+    payload.insert(QStringLiteral("name"), name);
+
+    if(!ClientsDatabase::updateClientEntry(payload))
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось обновить заказчика"));
+        return false;
+    }
+
+    const QString objectId = m_currentObject.id;
+    loadClients();
+    // setCurrentClient() resets the object selection, so it is restored afterwards.
+    setCurrentClient(m_currentClient.id);
+    if(!objectId.isEmpty())
+        setCurrentObject(objectId);
+
+    emit clientSelected();
+    emit objectSelected();
+    emit objectUpdated();
+    return true;
+}
+
+QVariantMap ReportBackend::currentClientData() const
+{
+    if(m_currentClient.id.isEmpty())
+        return {};
+    return m_clients->itemData(m_currentClient.id);
+}
+
+QVariantMap ReportBackend::currentObjectData() const
+{
+    if(m_currentObject.id.isEmpty())
+        return {};
+    return m_objects->itemData(m_currentObject.id);
+}
+
 void ReportBackend::selectClient(const QString &clientId)
 {
     if(!setCurrentClient(clientId))
@@ -149,6 +226,8 @@ void ReportBackend::selectClient(const QString &clientId)
     emit clientSelected();
     emit objectSelected();
     emit objectUpdated();
+    emit worksChanged();
+    emit expensesChanged();
 }
 
 void ReportBackend::updateLastTimeObject()
@@ -157,9 +236,11 @@ void ReportBackend::updateLastTimeObject()
         return;
 
     ObjectsDatabase::updateObjectLastOrderAt(m_currentClient.name, m_currentClient.id, m_currentObject.id);
-    m_works->clear();
     loadObjects();
     updateCurrentObjectData();
+    // The new order has no items yet, so both models and totals must be refreshed.
+    reloadWorks();
+    reloadExpenses();
 }
 
 void ReportBackend::selectObject(const QString &objectId)
@@ -195,13 +276,16 @@ void ReportBackend::activateInvoiceContext()
     if(m_currentObject.id.isEmpty())
     {
         m_works->clearModel();
+        m_expenses->clearModel();
         emit worksChanged();
+        emit expensesChanged();
         return;
     }
 
     loadObjects();
     updateCurrentObjectData();
     reloadWorks();
+    reloadExpenses();
 }
 
 void ReportBackend::activateReportsContext()
@@ -218,9 +302,7 @@ void ReportBackend::activateReportsContext()
         return;
     }
 
-    const StringMapList orders = WorksDatabase::getOrders(
-        m_currentClient.name, m_currentClient.id, m_currentObject.id);
-    m_orders->updateModelFromMaps(mapsToVariantList(orders));
+    m_orders->updateModelFromMaps(currentOrderTotals());
 
     if(preservedOrder > 0 && !m_orders->itemData(preservedOrder).isEmpty())
     {
@@ -236,7 +318,9 @@ void ReportBackend::activateReportsContext()
 void ReportBackend::clearWorks()
 {
     m_works->clearModel();
+    m_expenses->clearModel();
     emit worksChanged();
+    emit expensesChanged();
 }
 
 void ReportBackend::selectService(const QString &serviceId, const QString &name, const QString &unit, int price)
@@ -386,9 +470,7 @@ void ReportBackend::reloadSelectedOrderWorks()
     m_selectedOrderTotalPrice = order.isEmpty() ? 0 : order.value(QStringLiteral("total_price")).toInt();
 
     // Refresh order totals from DB without dropping selection.
-    const StringMapList orders = WorksDatabase::getOrders(
-        m_currentClient.name, m_currentClient.id, m_currentObject.id);
-    m_orders->updateModelFromMaps(mapsToVariantList(orders));
+    m_orders->updateModelFromMaps(currentOrderTotals());
     const QVariantMap refreshed = m_orders->itemData(m_selectedStartOrderAt);
     if(!refreshed.isEmpty())
         m_selectedOrderTotalPrice = refreshed.value(QStringLiteral("total_price")).toInt();
@@ -432,7 +514,7 @@ bool ReportBackend::addWorkAt(double quantity, qint64 startOrderAt)
     data.insert("price", m_currentService.price);
     data.insert("unit", m_currentService.unit);
     data.insert("quantity", quantity);
-    data.insert("start_order_at", static_cast<int>(startOrderAt));
+    data.insert("start_order_at", startOrderAt);
     data.insert("coefficients", m_currentService.coefficients);
     data.insert("percent_sum", m_currentService.percentSum);
 
@@ -520,6 +602,64 @@ bool ReportBackend::deleteWork(const QString &workId)
     return true;
 }
 
+bool ReportBackend::addExpense(const QString &description, int amount)
+{
+    if(m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty()
+       || m_currentObject.lastOrderAt <= 0)
+    {
+        NotificationManager::notifyError(QStringLiteral("Сначала начните новый отчёт"));
+        return false;
+    }
+
+    QVariantMap data;
+    data.insert("object_id", m_currentObject.id);
+    data.insert("start_order_at", m_currentObject.lastOrderAt);
+    data.insert("description", description.trimmed());
+    data.insert("amount", amount);
+    const QVariantMap result = ExpensesDatabase::addExpense(
+        m_currentClient.name, m_currentClient.id, data);
+    if(result.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось добавить затраты"));
+        return false;
+    }
+
+    m_expenses->addItem(result);
+    emit expensesChanged();
+    return true;
+}
+
+bool ReportBackend::updateExpense(const QVariantMap &data)
+{
+    if(data.isEmpty() || m_currentClient.id.isEmpty())
+        return false;
+
+    if(!ExpensesDatabase::updateExpense(m_currentClient.name, m_currentClient.id, data))
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось обновить затраты"));
+        return false;
+    }
+
+    reloadExpenses();
+    return true;
+}
+
+bool ReportBackend::deleteExpense(const QString &expenseId)
+{
+    if(expenseId.isEmpty() || m_currentClient.id.isEmpty())
+        return false;
+
+    if(!ExpensesDatabase::deleteExpense(m_currentClient.name, m_currentClient.id, expenseId))
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось удалить затраты"));
+        return false;
+    }
+
+    m_expenses->removeItem(expenseId);
+    emit expensesChanged();
+    return true;
+}
+
 bool ReportBackend::addObject(const QVariantMap &data)
 {
     if(data.isEmpty() || m_currentClient.id.isEmpty())
@@ -538,6 +678,34 @@ bool ReportBackend::addObject(const QVariantMap &data)
         data.value("address").toString());
     loadObjects();
     return result;
+}
+
+bool ReportBackend::updateObject(const QVariantMap &data)
+{
+    if(data.isEmpty() || m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty())
+        return false;
+
+    const QString name = data.value(QStringLiteral("name")).toString().trimmed();
+    if(name.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите название объекта"));
+        return false;
+    }
+
+    QVariantMap payload = data;
+    payload.insert(QStringLiteral("id"), m_currentObject.id);
+    payload.insert(QStringLiteral("name"), name);
+
+    if(!ObjectsDatabase::updateObjectName(m_currentClient.name, m_currentClient.id, payload))
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось обновить объект"));
+        return false;
+    }
+
+    loadObjects();
+    updateCurrentObjectData();
+    emit objectSelected();
+    return true;
 }
 
 bool ReportBackend::generateReport()
@@ -648,9 +816,7 @@ void ReportBackend::loadOrders()
         return;
     }
 
-    const StringMapList orders = WorksDatabase::getOrders(
-        m_currentClient.name, m_currentClient.id, m_currentObject.id);
-    m_orders->updateModelFromMaps(mapsToVariantList(orders));
+    m_orders->updateModelFromMaps(currentOrderTotals());
 }
 
 void ReportBackend::loadSubobjects(const QString &objectId)
@@ -678,6 +844,48 @@ void ReportBackend::reloadWorks()
     emit worksChanged();
 }
 
+void ReportBackend::reloadExpenses()
+{
+    const StringMapList expenses = ExpensesDatabase::loadExpensesByStartOrder(
+        m_currentClient.name,
+        m_currentClient.id,
+        m_currentObject.id,
+        m_currentObject.lastOrderAt);
+    m_expenses->updateModelFromMaps(mapsToVariantList(expenses));
+    emit expensesChanged();
+}
+
+QVariantList ReportBackend::currentOrderTotals() const
+{
+    const StringMapList works = WorksDatabase::loadWorksByObject(
+        m_currentClient.name, m_currentClient.id, m_currentObject.id);
+    const StringMapList expenseOrders = ExpensesDatabase::getOrderTotals(
+        m_currentClient.name, m_currentClient.id, m_currentObject.id);
+
+    QMap<qint64, qint64> totals;
+    for(const QVariant &value : works)
+    {
+        const QVariantMap work = value.toMap();
+        totals[work.value("start_order_at").toLongLong()] += workAmountKopecks(work);
+    }
+    for(const QVariant &value : expenseOrders)
+    {
+        const QVariantMap order = value.toMap();
+        totals[order.value("start_order_at").toLongLong()]
+            += order.value("total_price").toLongLong();
+    }
+
+    QVariantList result;
+    for(auto it = totals.constBegin(); it != totals.constEnd(); ++it)
+    {
+        QVariantMap order;
+        order.insert("start_order_at", it.key());
+        order.insert("total_price", it.value());
+        result.append(order);
+    }
+    return result;
+}
+
 bool ReportBackend::setCurrentClient(const QString &clientId)
 {
     if(clientId.isEmpty())
@@ -692,9 +900,11 @@ bool ReportBackend::setCurrentClient(const QString &clientId)
     m_currentClient.address = item.value("address").toString();
 
     WorksDatabase::createWorksTable(m_currentClient.name, m_currentClient.id);
+    ExpensesDatabase::createExpensesTable(m_currentClient.name, m_currentClient.id);
     ObjectsDatabase::createObjectDatabase(m_currentClient.name, m_currentClient.id);
     loadObjects();
     m_works->clearModel();
+    m_expenses->clearModel();
     m_currentObject = {};
     return true;
 }
@@ -713,6 +923,7 @@ bool ReportBackend::setCurrentObject(const QString &objectId)
     m_currentObject.address = item.value("address").toString();
     m_currentObject.lastOrderAt = item.value("last_order_at").toLongLong();
     reloadWorks();
+    reloadExpenses();
     return true;
 }
 
@@ -787,6 +998,38 @@ void ReportBackend::updateCurrentObjectData()
     emit objectUpdated();
 }
 
+bool ReportBackend::renameClientStorage(const QString &previousName, const QString &newName)
+{
+    if(previousName == newName)
+        return true;
+
+    const QString previousPath = DatabaseStorage::objectDbPath(previousName, m_currentClient.id);
+    const QString newPath = DatabaseStorage::objectDbPath(newName, m_currentClient.id);
+    if(previousPath == newPath || !QFile::exists(previousPath))
+        return true;
+
+    if(QFile::exists(newPath))
+    {
+        NotificationManager::notifyError(QStringLiteral("База данных заказчика уже существует"));
+        return false;
+    }
+
+    ObjectsDatabase::closeDatabase(previousName, m_currentClient.id);
+    WorksDatabase::closeDatabase(previousName, m_currentClient.id);
+    ExpensesDatabase::closeDatabase(previousName, m_currentClient.id);
+
+    if(!QFile::rename(previousPath, newPath))
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось переименовать базу данных заказчика"));
+        return false;
+    }
+
+    qInfo("ReportBackend::renameClientStorage %s -> %s",
+          qPrintable(previousPath),
+          qPrintable(newPath));
+    return true;
+}
+
 void ReportBackend::clearSelectedOrder()
 {
     if(m_selectedStartOrderAt == 0)
@@ -832,10 +1075,15 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
         m_currentClient.id,
         {m_currentObject.id},
         orderTimestamps);
+    const StringMapList expenses = ExpensesDatabase::getResultExpenses(
+        m_currentClient.name,
+        m_currentClient.id,
+        {m_currentObject.id},
+        orderTimestamps);
 
-    if(works.isEmpty())
+    if(works.isEmpty() && expenses.isEmpty())
     {
-        NotificationManager::notifyError(QStringLiteral("Нет работ для выбранных счетов"));
+        NotificationManager::notifyError(QStringLiteral("Нет позиций для выбранных счетов"));
         return false;
     }
 
@@ -865,6 +1113,7 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
         client,
         objectData,
         mapsToVariantList(works),
+        mapsToVariantList(expenses),
         m_reportOptionsBackend->asDict(),
         targetPath);
 
@@ -879,6 +1128,7 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
                 client,
                 objectData,
                 mapsToVariantList(works),
+                mapsToVariantList(expenses),
                 m_reportOptionsBackend->asDict(),
                 QString());
             if(!fallback.first.isEmpty())

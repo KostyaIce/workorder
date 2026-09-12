@@ -5,6 +5,7 @@ set(WORKORDER_UTILS_SOURCES
     AppLogging.cpp
     ClientsDatabase.cpp
     DatabaseStorage.cpp
+    ExpensesDatabase.cpp
     FileIo.cpp
     MinimalZip.cpp
     ObjectsDatabase.cpp
@@ -24,6 +25,7 @@ set(WORKORDER_UTILS_HEADERS
     AppLogging.h
     ClientsDatabase.h
     DatabaseStorage.h
+    ExpensesDatabase.h
     FileIo.h
     MinimalZip.h
     ObjectsDatabase.h

@@ -3,6 +3,7 @@
 #include "AppPaths.h"
 #include "ClientsDatabase.h"
 #include "DatabaseStorage.h"
+#include "ExpensesDatabase.h"
 #include "NotificationManager.h"
 #include "ObjectsDatabase.h"
 #include "QSettingsStore.h"
@@ -1021,10 +1022,13 @@ bool CloudDiskBackend::mergeIncomingDatabases()
             sourcePath, clientName, clientId);
         const int worksInserted = WorksDatabase::mergeFromDatabase(
             sourcePath, clientName, clientId);
-        qInfo("CloudDiskBackend: merge %s objects inserted=%d works inserted=%d",
+        const int expensesInserted = ExpensesDatabase::mergeFromDatabase(
+            sourcePath, clientName, clientId);
+        qInfo("CloudDiskBackend: merge %s objects inserted=%d works inserted=%d expenses inserted=%d",
               qPrintable(name),
               objectsInserted,
-              worksInserted);
+              worksInserted,
+              expensesInserted);
     }
 
     closeAllSqlConnections();

@@ -65,7 +65,6 @@ Dialog
                 Layout.rightMargin: 8
                 compact: root.compact
                 showInvoiceDate: false
-                showStartReport: true
                 layoutSpacing: root.compact ? 12 : 10
                 actionButtonSize: root.compact ? 44 : 40
             }

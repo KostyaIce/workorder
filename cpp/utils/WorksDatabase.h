@@ -13,6 +13,8 @@ class WorksDatabase
 {
 public:
     static void createWorksTable(const QString &clientName, const QString &clientId);
+    // Releases the cached connection, required before the client database file is renamed.
+    static void closeDatabase(const QString &clientName, const QString &clientId);
     static StringMap addWork(const QString &clientName, const QString &clientId, const StringMap &data);
     static StringMapList loadWorks(const QString &clientName, const QString &clientId);
     static StringMapList loadWorksByObject(const QString &clientName, const QString &clientId, const QString &objectId);

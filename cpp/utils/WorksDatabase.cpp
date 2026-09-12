@@ -147,6 +147,20 @@ void WorksDatabase::createWorksTable(const QString &clientName, const QString &c
         ")"));
 }
 
+void WorksDatabase::closeDatabase(const QString &clientName, const QString &clientId)
+{
+    const QString name = connectionName(clientName, clientId);
+    if(!QSqlDatabase::contains(name))
+        return;
+
+    {
+        QSqlDatabase db = QSqlDatabase::database(name, false);
+        if(db.isOpen())
+            db.close();
+    }
+    QSqlDatabase::removeDatabase(name);
+}
+
 StringMap WorksDatabase::addWork(const QString &clientName, const QString &clientId, const StringMap &data)
 {
     if(data.isEmpty())

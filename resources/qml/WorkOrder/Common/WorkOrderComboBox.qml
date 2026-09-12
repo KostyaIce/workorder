@@ -38,6 +38,29 @@ ComboBox
         elide: Text.ElideRight
     }
 
+    // The popup uses root.delegateModel, so the list items come from this delegate.
+    delegate: ItemDelegate
+    {
+        id: itemDelegate
+
+        required property var model
+        required property int index
+
+        width: ListView.view ? ListView.view.width : implicitWidth
+        text: root.textRole === "" ? "" : model[root.textRole]
+        highlighted: root.highlightedIndex === itemDelegate.index
+        hoverEnabled: root.hoverEnabled
+        palette.text: textColor
+        palette.highlightedText: "white"
+
+        background: Rectangle
+        {
+            color: itemDelegate.highlighted
+                   ? primaryColor
+                   : (itemDelegate.hovered ? "#F0F0F0" : cardColor)
+        }
+    }
+
     popup: Popup
     {
         y: root.height + 2
@@ -51,23 +74,6 @@ ComboBox
             implicitHeight: Math.min(contentHeight, 240)
             model: root.delegateModel
             currentIndex: root.highlightedIndex
-
-            delegate: ItemDelegate
-            {
-                required property var model
-                required property int index
-
-                width: ListView.view.width
-                text: model[root.textRole]
-                palette.text: textColor
-                palette.highlightedText: "white"
-
-                background: Rectangle
-                {
-                    color: highlighted ? primaryColor
-                           : (hovered ? "#F0F0F0" : cardColor)
-                }
-            }
 
             ScrollIndicator.vertical: ScrollIndicator {}
         }

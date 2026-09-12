@@ -17,9 +17,11 @@ public:
 
     QByteArray buildPdfBytes(const QString &personalInfo, const StringMap &client,
                              const StringMap &objectData, const StringMapList &works,
+                             const StringMapList &expenses,
                              const StringMap &options = StringMap()) const;
     QPair<QString, QByteArray> saveWorkReport(const QString &personalInfo, const StringMap &client,
                                               const StringMap &objectData, const StringMapList &works,
+                                              const StringMapList &expenses,
                                               const StringMap &options = StringMap(),
                                               const QString &filePath = QString()) const;
 
@@ -29,6 +31,7 @@ public:
 private:
     QString buildHtml(const QString &personalInfo, const StringMap &client,
                       const StringMap &objectData, const StringMapList &works,
+                      const StringMapList &expenses,
                       const StringMap &options) const;
     QString buildHtmlHead() const;
     QString buildReportHeaderHtml(const StringMap &options) const;
@@ -40,9 +43,11 @@ private:
     QString buildPartiesHtml(const QString &personalInfo, const StringMap &client,
                              const StringMap &objectData, const StringMap &options) const;
     QString buildWorksHtml(const StringMapList &works, const StringMap &options) const;
+    QString buildExpensesHtml(const StringMapList &expenses) const;
+    QString buildTotalsHtml(const StringMapList &works, const StringMapList &expenses) const;
     QString buildGroupedWorksHtml(const StringMapList &works, const StringMap &options) const;
     QString buildFlatWorksHtml(const StringMapList &works, const StringMap &options) const;
-    QPair<QString, double> buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
+    QPair<QString, qint64> buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
                                                const StringMap &options) const;
     QString escapeHtml(const QString &value) const;
     QString formatMoney(double value) const;
@@ -59,6 +64,7 @@ private:
 
 QPair<QString, QByteArray> saveWorkReportPdf(const QString &personalInfo, const StringMap &client,
                                              const StringMap &objectData, const StringMapList &works,
+                                             const StringMapList &expenses,
                                              const StringMap &options = StringMap(),
                                              const QString &filePath = QString(),
                                              const QString &fontPath = QString());

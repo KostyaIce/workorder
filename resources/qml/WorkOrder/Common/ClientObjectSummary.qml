@@ -13,7 +13,7 @@ Item
 
     signal openRequested()
 
-    implicitHeight: compact ? summaryColumn.implicitHeight + 24 : Math.max(176, summaryColumn.implicitHeight + 32)
+    implicitHeight: summaryColumn.implicitHeight + (compact ? 24 : 20)
     Layout.fillWidth: true
 
     Rectangle
@@ -34,7 +34,7 @@ Item
         }
     }
 
-    ColumnLayout
+    GridLayout
     {
         id: summaryColumn
 
@@ -43,7 +43,10 @@ Item
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: root.compact ? 12 : 16
         anchors.rightMargin: root.compact ? 12 : 16
-        spacing: root.compact ? 10 : 14
+        // Desktop keeps client and object side by side to save vertical space.
+        columns: root.compact ? 1 : 3
+        columnSpacing: 16
+        rowSpacing: 10
 
         ColumnLayout
         {
@@ -82,8 +85,10 @@ Item
 
         Rectangle
         {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
+            Layout.fillWidth: root.compact
+            Layout.fillHeight: !root.compact
+            Layout.preferredWidth: root.compact ? -1 : 1
+            Layout.preferredHeight: root.compact ? 1 : -1
             color: "#E0E0E0"
         }
 

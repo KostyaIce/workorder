@@ -13,6 +13,7 @@ class ClientsDatabase
 public:
     static void createClientTable(const QString &dbPath = QString());
     static bool addClientEntry(const StringMap &data, const QString &dbPath = QString());
+    static bool updateClientEntry(const StringMap &data, const QString &dbPath = QString());
     static StringMapList loadClients(const QString &dbPath = QString());
     static bool delClientEntry(const StringMap &data, const QString &dbPath = QString());
     // Insert rows from source that are missing in target (by primary key id).

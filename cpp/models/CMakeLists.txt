@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(WORKORDER_MODELS_SOURCES
     ClientsModel.cpp
+    ExpensesModel.cpp
     ObjectsModel.cpp
     ServicesModel.cpp
     WorksModel.cpp
@@ -15,6 +16,7 @@ set(WORKORDER_MODELS_SOURCES
 
 set(WORKORDER_MODELS_HEADERS
     ClientsModel.h
+    ExpensesModel.h
     ObjectsModel.h
     ServicesModel.h
     WorksModel.h
@@ -22,6 +24,7 @@ set(WORKORDER_MODELS_HEADERS
     SubobjectsModel.h
     ModelUtils.h
     items/ClientItem.h
+    items/ExpenseItem.h
     items/ObjectItem.h
     items/ServiceItem.h
     items/WorkItem.h

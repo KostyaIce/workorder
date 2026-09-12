@@ -54,6 +54,20 @@ void ObjectsDatabase::createObjectDatabase(const QString &clientName, const QStr
         ")"));
 }
 
+void ObjectsDatabase::closeDatabase(const QString &clientName, const QString &clientId)
+{
+    const QString name = connectionName(clientName, clientId);
+    if(!QSqlDatabase::contains(name))
+        return;
+
+    {
+        QSqlDatabase db = QSqlDatabase::database(name, false);
+        if(db.isOpen())
+            db.close();
+    }
+    QSqlDatabase::removeDatabase(name);
+}
+
 bool ObjectsDatabase::addObjectEntry(const QString &clientName, const QString &clientId,
                                const QString &name, const QString &address)
 {

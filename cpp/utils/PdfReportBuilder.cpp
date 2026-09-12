@@ -41,6 +41,15 @@ QString safeClientName(const StringMap &client)
     return safe.isEmpty() ? QStringLiteral("client") : safe;
 }
 
+qint64 workAmountKopecks(const StringMap &work)
+{
+    const qint64 priceKopecks = work.value("price").toLongLong();
+    const qint64 quantityThousandths = qRound64(work.value("quantity", 1).toDouble() * 1000.0);
+    const qint64 percentSum = work.value("percent_sum", 100).toLongLong();
+    const qint64 numerator = priceKopecks * quantityThousandths * percentSum;
+    return (numerator + 50000) / 100000;
+}
+
 } // namespace
 
 QString PdfReportBuilder::resolveReportFontPath(const QString &fontPath)
@@ -272,11 +281,13 @@ QString PdfReportBuilder::buildPartiesHtml(const QString &personalInfo, const St
     return html;
 }
 
-QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
+QPair<QString, qint64> PdfReportBuilder::buildWorksTableHtml(const StringMapList &rows, bool includeTotal,
                                                              const StringMap &options) const
 {
     QString html;
-    double total = 0.0;
+    qint64 totalKopecks = 0;
+    for(const QVariant &value : rows)
+        totalKopecks += workAmountKopecks(value.toMap());
     const bool includeCoefficients = optionEnabled(options, "include_coefficients");
     const QString cellStyle = worksTableStyle();
     const QString headerStyle = worksTableHeaderStyle();
@@ -352,13 +363,13 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
     for(const QString &key : order)
     {
         const StringMap work = merged.value(key);
-        const double price = work.value("price").toDouble() / 100.0;
+        const qint64 priceKopecks = work.value("price").toLongLong();
         const double quantity = work.value("quantity", 1).toDouble();
         const int percentSum = work.value("percent_sum", 100).toInt();
-        const double multiplier = percentSum / 100.0;
-        const double displayPrice = includeCoefficients ? price : price * multiplier;
-        const double lineTotal = price * quantity * multiplier;
-        total += lineTotal;
+        const qint64 displayPriceKopecks = includeCoefficients
+            ? priceKopecks
+            : (priceKopecks * percentSum + 50) / 100;
+        const qint64 lineTotalKopecks = workAmountKopecks(work);
 
         if(includeCoefficients)
         {
@@ -375,11 +386,11 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
                      qtyColWidth,
                      wrapWorksTableText(formatQuantity(quantity, work.value("unit").toString())),
                      priceColWidth,
-                     wrapWorksTableText(escapeHtml(formatMoney(price))),
+                     wrapWorksTableText(escapeHtml(formatMoney(priceKopecks / 100.0))),
                      coeffColWidth,
                      wrapWorksTableText(escapeHtml(formatMultiplier(percentSum))),
                      sumColWidth,
-                     wrapWorksTableText(escapeHtml(formatMoney(lineTotal))));
+                     wrapWorksTableText(escapeHtml(formatMoney(lineTotalKopecks / 100.0))));
         }
         else
         {
@@ -395,9 +406,9 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
                      qtyColWidth,
                      wrapWorksTableText(formatQuantity(quantity, work.value("unit").toString())),
                      priceColWidth,
-                     wrapWorksTableText(escapeHtml(formatMoney(displayPrice))),
+                     wrapWorksTableText(escapeHtml(formatMoney(displayPriceKopecks / 100.0))),
                      sumColWidth,
-                     wrapWorksTableText(escapeHtml(formatMoney(lineTotal))));
+                     wrapWorksTableText(escapeHtml(formatMoney(lineTotalKopecks / 100.0))));
         }
     }
 
@@ -411,11 +422,12 @@ QPair<QString, double> PdfReportBuilder::buildWorksTableHtml(const StringMapList
             .arg(headerStyle)
             .arg(labelColspan)
             .arg(wrapWorksTableText(QStringLiteral("<b>Итого:</b>")),
-                 wrapWorksTableText(QStringLiteral("<b>%1</b>").arg(escapeHtml(formatMoney(total)))));
+                 wrapWorksTableText(QStringLiteral("<b>%1</b>").arg(
+                     escapeHtml(formatMoney(totalKopecks / 100.0)))));
     }
 
     html += QStringLiteral("</table>");
-    return {html, total};
+    return {html, totalKopecks};
 }
 
 QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works, const StringMap &options) const
@@ -435,18 +447,20 @@ QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works, cons
     });
 
     QString html;
-    double grandTotal = 0.0;
+    qint64 grandTotalKopecks = 0;
     for(const QString &subobjectName : keys)
     {
         if(!subobjectName.isEmpty())
             html += QStringLiteral("<h4>%1:</h4>").arg(escapeHtml(subobjectName));
 
-        const QPair<QString, double> table = buildWorksTableHtml(groups.value(subobjectName), false, options);
+        const QPair<QString, qint64> table = buildWorksTableHtml(
+            groups.value(subobjectName), false, options);
         html += table.first;
-        grandTotal += table.second;
+        grandTotalKopecks += table.second;
     }
 
-    html += QStringLiteral("<p align=\"right\"><b>Итого: %1</b></p>").arg(formatMoney(grandTotal));
+    html += QStringLiteral("<p align=\"right\"><b>Итого: %1</b></p>")
+                .arg(formatMoney(grandTotalKopecks / 100.0));
     return html;
 }
 
@@ -473,13 +487,75 @@ QString PdfReportBuilder::buildWorksHtml(const StringMapList &works, const Strin
     return html;
 }
 
+QString PdfReportBuilder::buildExpensesHtml(const StringMapList &expenses) const
+{
+    if(expenses.isEmpty())
+        return QString();
+
+    const QString cellStyle = worksTableStyle();
+    const QString headerStyle = worksTableHeaderStyle();
+    QString html = QStringLiteral(
+        "<h3>Затраты</h3>"
+        "<table border=\"1\" cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
+        "<tr><td style=\"%1\" width=\"75%\"><b>Описание</b></td>"
+        "<td style=\"%1\" width=\"25%\" align=\"right\"><b>Сумма</b></td></tr>")
+                       .arg(headerStyle);
+
+    qint64 totalKopecks = 0;
+    for(const QVariant &value : expenses)
+    {
+        const StringMap expense = value.toMap();
+        const qint64 amount = expense.value("amount").toLongLong();
+        totalKopecks += amount;
+        html += QStringLiteral(
+            "<tr><td style=\"%1\">%2</td>"
+            "<td style=\"%1\" align=\"right\">%3</td></tr>")
+                    .arg(cellStyle,
+                         wrapWorksTableText(escapeHtml(expense.value("description").toString())),
+                         wrapWorksTableText(escapeHtml(formatMoney(amount / 100.0))));
+    }
+
+    html += QStringLiteral(
+        "<tr><td style=\"%1\" align=\"right\"><b>Итого по затратам:</b></td>"
+        "<td style=\"%1\" align=\"right\"><b>%2</b></td></tr></table>")
+                .arg(headerStyle, escapeHtml(formatMoney(totalKopecks / 100.0)));
+    return html;
+}
+
+QString PdfReportBuilder::buildTotalsHtml(const StringMapList &works,
+                                          const StringMapList &expenses) const
+{
+    if(expenses.isEmpty())
+        return QString();
+
+    qint64 worksTotalKopecks = 0;
+    for(const QVariant &value : works)
+        worksTotalKopecks += workAmountKopecks(value.toMap());
+
+    qint64 expensesTotalKopecks = 0;
+    for(const QVariant &value : expenses)
+        expensesTotalKopecks += value.toMap().value("amount").toLongLong();
+
+    return QStringLiteral(
+        "<p align=\"right\"><b>Итого по работам: %1</b><br/>"
+        "<b>Итого по затратам: %2</b><br/>"
+        "<b>Общая сумма: %3</b></p>")
+        .arg(escapeHtml(formatMoney(worksTotalKopecks / 100.0)),
+             escapeHtml(formatMoney(expensesTotalKopecks / 100.0)),
+             escapeHtml(formatMoney(
+                 (worksTotalKopecks + expensesTotalKopecks) / 100.0)));
+}
+
 QString PdfReportBuilder::buildHtml(const QString &personalInfo, const StringMap &client,
                                     const StringMap &objectData, const StringMapList &works,
+                                    const StringMapList &expenses,
                                     const StringMap &options) const
 {
     QString html = buildHtmlHead();
     html += buildReportHeaderHtml(options);
     html += buildWorksHtml(works, options);
+    html += buildExpensesHtml(expenses);
+    html += buildTotalsHtml(works, expenses);
     html += buildPartiesHtml(personalInfo, client, objectData, options);
     html += buildReportDateHtml(options);
     html += QStringLiteral("</body></html>");
@@ -488,10 +564,11 @@ QString PdfReportBuilder::buildHtml(const QString &personalInfo, const StringMap
 
 QByteArray PdfReportBuilder::buildPdfBytes(const QString &personalInfo, const StringMap &client,
                                            const StringMap &objectData, const StringMapList &works,
+                                           const StringMapList &expenses,
                                            const StringMap &options) const
 {
     QTextDocument document;
-    document.setHtml(buildHtml(personalInfo, client, objectData, works, options));
+    document.setHtml(buildHtml(personalInfo, client, objectData, works, expenses, options));
 
     QByteArray bytes;
     QBuffer buffer(&bytes);
@@ -512,9 +589,10 @@ QByteArray PdfReportBuilder::buildPdfBytes(const QString &personalInfo, const St
 
 QPair<QString, QByteArray> PdfReportBuilder::saveWorkReport(const QString &personalInfo, const StringMap &client,
                                                             const StringMap &objectData, const StringMapList &works,
+                                                            const StringMapList &expenses,
                                                             const StringMap &options, const QString &filePath) const
 {
-    const QByteArray pdfBytes = buildPdfBytes(personalInfo, client, objectData, works, options);
+    const QByteArray pdfBytes = buildPdfBytes(personalInfo, client, objectData, works, expenses, options);
     const QString reportsDir = DatabaseStorage::defaultReportsDir();
     QDir().mkpath(reportsDir);
 
@@ -546,10 +624,12 @@ QPair<QString, QByteArray> PdfReportBuilder::saveWorkReport(const QString &perso
 
 QPair<QString, QByteArray> saveWorkReportPdf(const QString &personalInfo, const StringMap &client,
                                              const StringMap &objectData, const StringMapList &works,
+                                             const StringMapList &expenses,
                                              const StringMap &options, const QString &filePath,
                                              const QString &fontPath)
 {
-    return PdfReportBuilder(fontPath).saveWorkReport(personalInfo, client, objectData, works, options, filePath);
+    return PdfReportBuilder(fontPath).saveWorkReport(
+        personalInfo, client, objectData, works, expenses, options, filePath);
 }
 
 } // namespace workorder
