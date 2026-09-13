@@ -25,6 +25,11 @@ Item {
         parent: Overlay.overlay
     }
 
+    InvoiceWorkEditDialog {
+        id: workEditDialog
+        compact: root.compact
+    }
+
     ReportOptionsDialog {
         id: reportOptionsDialog
         compact: root.compact
@@ -226,8 +231,8 @@ Item {
 
                             MouseArea {
                                 anchors.fill: parent
-                                anchors.rightMargin: 48
-                                onClicked: workDialog.openForEdit(id)
+                                anchors.rightMargin: 88
+                                onClicked: workEditDialog.openForEdit(id)
                             }
 
                             RowLayout {
@@ -267,7 +272,23 @@ Item {
                                 }
 
                                 ToolButton {
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
+                                    text: "\u270E"
+                                    font.pixelSize: 16
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Редактировать")
+                                    onClicked: workEditDialog.openForEdit(id)
+                                }
+
+                                ToolButton {
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
                                     text: "\u2715"
+                                    font.pixelSize: 16
+                                    palette.buttonText: "#F44336"
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Удалить")
                                     onClicked: reportBackend.deleteWork(id)
                                 }
                             }
@@ -508,8 +529,8 @@ Item {
 
                             MouseArea {
                                 anchors.fill: parent
-                                anchors.rightMargin: 48
-                                onClicked: workDialog.openForEdit(id)
+                                anchors.rightMargin: 88
+                                onClicked: workEditDialog.openForEdit(id)
                             }
 
                             RowLayout {
@@ -549,7 +570,19 @@ Item {
                                 }
 
                                 ToolButton {
+                                    Layout.preferredWidth: 36
+                                    Layout.preferredHeight: 36
+                                    text: "\u270E"
+                                    font.pixelSize: 16
+                                    onClicked: workEditDialog.openForEdit(id)
+                                }
+
+                                ToolButton {
+                                    Layout.preferredWidth: 36
+                                    Layout.preferredHeight: 36
                                     text: "\u2715"
+                                    font.pixelSize: 16
+                                    palette.buttonText: "#F44336"
                                     onClicked: reportBackend.deleteWork(id)
                                 }
                             }

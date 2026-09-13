@@ -63,8 +63,8 @@ Dialog {
             }
 
             FormField {
-                label: qsTr("Параграф")
-                placeholder: qsTr("Раздел каталога")
+                label: qsTr("Тип услуги")
+                placeholder: qsTr("Например: Монтажные работы")
                 compact: root.compact
                 id: paragraphField
             }

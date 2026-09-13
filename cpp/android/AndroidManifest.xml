@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.workorder"
     android:installLocation="auto"
-    android:versionCode="100018"
-    android:versionName="1.0-18">
+    android:versionCode="100019"
+    android:versionName="1.0-19">
     <!-- %%INSERT_PERMISSIONS -->
     <!-- %%INSERT_FEATURES -->
 

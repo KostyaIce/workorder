@@ -7,11 +7,9 @@ Dialog
     id: root
 
     property bool compact: true
-    property string workId: ""
     readonly property bool hasService: reportBackend.currentServiceName !== ""
-    readonly property bool isEditMode: workId !== ""
 
-    title: isEditMode ? qsTr("Редактировать работу") : qsTr("Добавить работу")
+    title: qsTr("Добавить работу")
     modal: true
     anchors.centerIn: Overlay.overlay
     width: Math.min(compact ? parent.width - 24 : 520, parent.width - 16)
@@ -22,27 +20,9 @@ Dialog
 
     function openForAdd()
     {
-        workId = ""
         reportBackend.clearCurrentService()
         searchField.clearField()
         quantityField.text = "1.00"
-        open()
-    }
-
-    function openForEdit(id)
-    {
-        if(!reportBackend.loadWorkIntoCurrentService(id))
-            return
-
-        workId = id
-        searchField.clearField()
-
-        var item = workReportModel.itemData(id)
-        if(!item || Object.keys(item).length === 0)
-            item = worksModel.itemData(id)
-
-        var quantity = item && item.quantity !== undefined ? Number(item.quantity) : 1.0
-        quantityField.text = (quantity > 0 ? quantity : 1.0).toFixed(2)
         open()
     }
 
@@ -52,23 +32,15 @@ Dialog
             return
 
         var quantity = Math.max(0.1, parseFloat(quantityField.text) || 0.1)
-        var ok = false
-        if(isEditMode)
-            ok = reportBackend.updateCurrentWork(workId, quantity)
-        else
-            ok = reportBackend.addWork(quantity, reportBackend.selectedStartOrderAt)
-
-        if(!ok)
+        if(!reportBackend.addWork(quantity, reportBackend.selectedStartOrderAt))
             return
 
-        workId = ""
         searchField.clearField()
         close()
     }
 
     onClosed:
     {
-        workId = ""
         reportBackend.clearCurrentService()
         searchField.clearField()
         coefficientSearch.clearField()
@@ -105,7 +77,7 @@ Dialog
                 Layout.rightMargin: 8
                 compact: root.compact
                 requireReportReady: false
-                labelText: qsTr("Выбрать другую услугу")
+                labelText: qsTr("Найти услугу")
             }
 
             Rectangle
@@ -285,7 +257,7 @@ Dialog
     {
         width: root.width
         cancelText: qsTr("Отмена")
-        acceptText: root.isEditMode ? qsTr("Сохранить") : qsTr("Добавить")
+        acceptText: qsTr("Добавить")
         acceptEnabled: root.hasService && reportBackend.currentServiceName.trim() !== ""
         onCancelled: root.reject()
         onAccepted: root.acceptWork()

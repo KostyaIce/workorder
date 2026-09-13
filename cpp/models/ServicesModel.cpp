@@ -19,6 +19,15 @@ void ServicesModel::updateModelFromMaps(const QVariantList &items)
     std::sort(m_items.begin(), m_items.end(),
               [](const ServiceItem &left, const ServiceItem &right)
               {
+                  const QString leftType = left.paragraph.trimmed();
+                  const QString rightType = right.paragraph.trimmed();
+                  if(leftType.isEmpty() != rightType.isEmpty())
+                      return leftType.isEmpty();
+
+                  const int typeComparison = leftType.compare(rightType, Qt::CaseInsensitive);
+                  if(typeComparison != 0)
+                      return typeComparison < 0;
+
                   return left.name.compare(right.name, Qt::CaseInsensitive) < 0;
               });
     endResetModel();

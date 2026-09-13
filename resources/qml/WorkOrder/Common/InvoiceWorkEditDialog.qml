@@ -45,7 +45,10 @@ Dialog
 
     function openForEdit(id)
     {
+        // Works may belong to the current invoice or to any invoice opened in reports.
         var item = worksModel.itemData(id)
+        if(!item || Object.keys(item).length === 0)
+            item = workReportModel.itemData(id)
         if(!item || Object.keys(item).length === 0)
             return
 
