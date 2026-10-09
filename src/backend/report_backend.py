@@ -82,6 +82,7 @@ class ReportBackend(QObject):
     orderSelected = pyqtSignal()
     serviceSelected = pyqtSignal()
     subObjectChanged = pyqtSignal(str)
+    subobjectSuggestionsChanged = pyqtSignal()
     reportGenerated = pyqtSignal(str, str)
     errorOccurred = pyqtSignal(str)
 
@@ -106,6 +107,7 @@ class ReportBackend(QObject):
         self._works = WorksModel()
         self._work_report = WorksModel()
         self._subobjects = SubobjectsModel()
+        self._subobject_suggestion_names = []
         self._subobjects_filter = SubobjectsFilterModel()
         self._subobjects_filter.setSourceModel(self._subobjects)
         
@@ -210,6 +212,10 @@ class ReportBackend(QObject):
     def currentSubObject(self):
         """Sub-object name for current invoice line."""
         return self._current_service_data.sub_object
+
+    @pyqtProperty("QStringList", notify=subobjectSuggestionsChanged)
+    def subobjectSuggestionNames(self):
+        return self._subobject_suggestion_names
 
     @pyqtProperty(str, notify=reportGenerated)
     def lastReportPath(self):
@@ -392,7 +398,8 @@ class ReportBackend(QObject):
             return False
 
         self._works.addItem(result)
-        self._subobjects.addItem(self._current_service_data.sub_object)
+        if self._subobjects.addItem(self._current_service_data.sub_object):
+            self._sync_subobject_suggestion_names()
         self.worksChanged.emit()
         self.clearCurrentService()
         return True
@@ -411,8 +418,8 @@ class ReportBackend(QObject):
             return False
 
         subobject_name = data.get("subobject_name", "")
-        if subobject_name:
-            self._subobjects.addItem(subobject_name)
+        if subobject_name and self._subobjects.addItem(subobject_name):
+            self._sync_subobject_suggestion_names()
 
         self._works.updateItem(data)
         self.worksChanged.emit()
@@ -611,10 +618,23 @@ class ReportBackend(QObject):
     def refreshSubobject(self, object_id):
         self._load_subobjects(object_id)
 
+    def _sync_subobject_suggestion_names(self):
+        names = []
+        for row in range(self._subobjects.rowCount()):
+            index = self._subobjects.index(row, 0)
+            value = self._subobjects.data(index, SubobjectsModel.NameRole)
+            if value:
+                names.append(value)
+        if names == self._subobject_suggestion_names:
+            return
+        self._subobject_suggestion_names = names
+        self.subobjectSuggestionsChanged.emit()
+
     def _load_subobjects(self, object_id):
         if self._current_client_data.id == "" or self._current_object_data.id == "":
             self._subobjects.updateModel([])
             self._subobjects_filter.clearFilter()
+            self._sync_subobject_suggestion_names()
             return
 
         names = load_subobject_names(
@@ -623,6 +643,7 @@ class ReportBackend(QObject):
             object_id,
         )
         self._subobjects.updateModel(names)
+        self._sync_subobject_suggestion_names()
 
     def _load_clients(self):
         clients_data = load_clients()

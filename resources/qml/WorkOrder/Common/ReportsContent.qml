@@ -35,6 +35,15 @@ Item {
         compact: root.compact
     }
 
+    ReportOrderDialog
+    {
+        id: reportOrderDialog
+        compact: root.compact
+        onAddWorkRequested: workDialog.openForAdd()
+        onGenerateReportRequested: reportOptionsDialog.open()
+        onEditWorkRequested: function(workId) { workEditDialog.openForEdit(workId) }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: compact ? 0 : 16
@@ -369,78 +378,52 @@ Item {
                 }
             }
 
-            WorkOrderComboBox {
-                id: orderBox
+            Label
+            {
                 Layout.fillWidth: true
                 Layout.leftMargin: compactHorizontalMargin
                 Layout.rightMargin: compactHorizontalMargin
-                Layout.preferredHeight: 50
+                visible: reportBackend.selectedObjectName !== "" && ordersModel.count === 0
+                text: qsTr("Нет счетов для этого объекта")
+                font.pixelSize: 14
+                color: textSecondaryColor
+                wrapMode: Text.WordWrap
+            }
+
+            ListView
+            {
+                id: mobileOrdersList
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: compactHorizontalMargin
+                Layout.rightMargin: compactHorizontalMargin
+                visible: reportBackend.selectedObjectName !== ""
+                clip: true
+                spacing: 4
                 model: ordersModel
-                valueRole: "start_order_at"
 
-                contentItem: ColumnLayout {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 4
-
-                    Label {
-                        visible: reportBackend.selectedStartOrderAt === 0
-                        text: qsTr("Выберите счёт")
-                        color: textSecondaryColor
-                        font.pixelSize: 14
-                        Layout.fillWidth: true
-                    }
-
-                    RowLayout {
-                        visible: reportBackend.selectedStartOrderAt !== 0
-                        Layout.fillWidth: true
-
-                        Label {
-                            text: qsTr("Счет на ") + Qt.formatDateTime(
-                                new Date(reportBackend.selectedStartOrderAt * 1000), "dd.MM.yyyy hh:mm")
-                            font.pixelSize: 11
-                            color: primaryColor
-                            font.bold: true
-                        }
-
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    RowLayout {
-                        visible: reportBackend.selectedStartOrderAt !== 0
-                        Layout.fillWidth: true
-
-                        Item { Layout.fillWidth: true }
-
-                        Label {
-                            text: (reportBackend.selectedOrderTotalPrice / 100).toFixed(2) + " \u20BD"
-                            font.pixelSize: 15
-                            font.bold: true
-                            color: textColor
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-
-                delegate: ItemDelegate {
-                    id: orderDelegate
-                    width: orderBox.width
+                delegate: Rectangle
+                {
+                    width: mobileOrdersList.width
                     height: 50
+                    radius: 8
+                    color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
 
-                    contentItem: ColumnLayout {
+                    ColumnLayout
+                    {
                         anchors.fill: parent
                         anchors.margins: 5
                         spacing: 4
 
-                        RowLayout {
+                        RowLayout
+                        {
                             Layout.fillWidth: true
 
-                            Label {
-                                text: qsTr("Счет на ") + Qt.formatDateTime(
-                                    new Date(model.start_order_at * 1000), "dd.MM.yyyy hh:mm")
+                            Label
+                            {
+                                text: qsTr("Счет на ")
+                                      + Qt.formatDateTime(new Date(start_order_at * 1000), "dd.MM.yyyy hh:mm")
                                 font.pixelSize: 11
                                 color: primaryColor
                                 font.bold: true
@@ -449,13 +432,15 @@ Item {
                             Item { Layout.fillWidth: true }
                         }
 
-                        RowLayout {
+                        RowLayout
+                        {
                             Layout.fillWidth: true
 
                             Item { Layout.fillWidth: true }
 
-                            Label {
-                                text: (model.total_price / 100).toFixed(2) + " \u20BD"
+                            Label
+                            {
+                                text: (total_price / 100).toFixed(2) + " \u20BD"
                                 font.pixelSize: 15
                                 font.bold: true
                                 color: textColor
@@ -464,137 +449,12 @@ Item {
                         }
                     }
 
-                    background: Rectangle {
-                        radius: 8
-                        color: orderDelegate.highlighted
-                               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
-                               : (index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02))
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked: reportOrderDialog.openForOrder(start_order_at)
                     }
                 }
-
-                onActivated: reportBackend.selectOrder(currentValue)
-
-                popup.onVisibleChanged: {
-                    if(popup.visible && ordersModel.count === 0)
-                        objectDialog.open()
-                }
-            }
-
-            Card {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.leftMargin: compactHorizontalMargin
-                Layout.rightMargin: compactHorizontalMargin
-                Layout.topMargin: 0
-                Layout.minimumHeight: 200
-                compact: true
-                fillVertical: true
-                visible: reportBackend.selectedStartOrderAt !== 0
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 10
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        PrimaryButton {
-                            text: qsTr("+ Работа")
-                            filled: false
-                            onClicked: workDialog.openForAdd()
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        PrimaryButton {
-                            text: qsTr("Отчёт")
-                            enabled: reportBackend.selectedClientId !== ""
-                            onClicked: reportOptionsDialog.open()
-                        }
-                    }
-
-                    ListView {
-                        id: mobileWorksList
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        spacing: 4
-                        model: workReportModel
-
-                        delegate: Rectangle {
-                            width: mobileWorksList.width
-                            height: 64
-                            radius: 6
-                            color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
-
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.rightMargin: 88
-                                onClicked: workEditDialog.openForEdit(id)
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    Label {
-                                        text: name
-                                        font.bold: true
-                                        color: textColor
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Label {
-                                        text: (subobject_name !== "" ? subobject_name + " | " : "")
-                                              + Qt.formatDateTime(new Date(updated_at * 1000), "dd.MM.yyyy hh:mm")
-                                        font.pixelSize: 11
-                                        color: textSecondaryColor
-                                    }
-                                }
-
-                                Label {
-                                    text: quantity + " x " + (price / 100).toFixed(2) + " \u20BD"
-                                    color: textSecondaryColor
-                                }
-
-                                Label {
-                                    text: ((quantity * price) / 100).toFixed(2) + " \u20BD"
-                                    font.bold: true
-                                    color: primaryColor
-                                }
-
-                                ToolButton {
-                                    Layout.preferredWidth: 36
-                                    Layout.preferredHeight: 36
-                                    text: "\u270E"
-                                    font.pixelSize: 16
-                                    onClicked: workEditDialog.openForEdit(id)
-                                }
-
-                                ToolButton {
-                                    Layout.preferredWidth: 36
-                                    Layout.preferredHeight: 36
-                                    text: "\u2715"
-                                    font.pixelSize: 16
-                                    palette.buttonText: "#F44336"
-                                    onClicked: reportBackend.deleteWork(id)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                visible: reportBackend.selectedStartOrderAt === 0
             }
         }
     }

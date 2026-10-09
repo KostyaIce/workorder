@@ -105,6 +105,16 @@ Dialog
 
     onClosed: clearSelection()
 
+    onCurrentStepChanged:
+    {
+        if(currentStep !== 2)
+            return
+
+        var objectData = reportBackend.currentObjectData()
+        if(objectData.id !== undefined && objectData.id !== "")
+            reportBackend.refreshSubobject(objectData.id)
+    }
+
     contentItem: Flickable
     {
         id: dialogFlickable
@@ -389,6 +399,70 @@ Dialog
                 {
                     Layout.fillWidth: true
                     compact: root.compact
+                    useSuggestionButtons: true
+                }
+
+                Flow
+                {
+                    id: subobjectPicksFlow
+
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Repeater
+                    {
+                        model: reportBackend.subobjectSuggestionNames
+
+                        Button
+                        {
+                            id: pickButton
+
+                            required property var modelData
+
+                            flat: true
+                            padding: 12
+
+                            readonly property real maxButtonWidth: subobjectPicksFlow.width
+                            readonly property real contentInset: leftPadding + rightPadding
+                            readonly property bool usesFullWidth: nameMetrics.width + contentInset >= maxButtonWidth
+
+                            width: Math.min(nameMetrics.width + contentInset, maxButtonWidth)
+                            implicitHeight: Math.max(root.compact ? 44 : 36,
+                                                     pickLabel.implicitHeight + topPadding + bottomPadding)
+
+                            TextMetrics
+                            {
+                                id: nameMetrics
+                                font: pickLabel.font
+                                text: pickButton.modelData
+                            }
+
+                            background: Rectangle
+                            {
+                                radius: 8
+                                border.width: 1
+                                border.color: primaryColor
+                                color: pickButton.pressed
+                                       ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.22)
+                                       : Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                            }
+
+                            contentItem: Label
+                            {
+                                id: pickLabel
+
+                                text: pickButton.modelData
+                                font.pixelSize: root.compact ? 14 : 13
+                                color: textColor
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                wrapMode: pickButton.usesFullWidth ? Text.WordWrap : Text.NoWrap
+                                width: pickButton.width - pickButton.contentInset
+                            }
+
+                            onClicked: reportBackend.setCurrentSubObject(modelData)
+                        }
+                    }
                 }
             }
 

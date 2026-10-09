@@ -101,28 +101,20 @@ ColumnLayout
                     ColumnLayout
                     {
                         Layout.alignment: Qt.AlignTop
-                        spacing: 2
+                        spacing: 8
 
-                        ToolButton
+                        OutlinedIconToolButton
                         {
-                            Layout.preferredWidth: root.compact ? 36 : 32
-                            Layout.preferredHeight: root.compact ? 36 : 32
-                            text: "\u270E"
-                            font.pixelSize: 16
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Редактировать")
+                            compact: root.compact
+                            tooltipText: qsTr("Редактировать")
                             onClicked: editDialog.openForEdit(expenseDelegate.expenseId)
                         }
 
-                        ToolButton
+                        OutlinedIconToolButton
                         {
-                            Layout.preferredWidth: root.compact ? 36 : 32
-                            Layout.preferredHeight: root.compact ? 36 : 32
-                            text: "\u2715"
-                            font.pixelSize: 16
-                            palette.buttonText: "#F44336"
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Удалить")
+                            compact: root.compact
+                            destructive: true
+                            tooltipText: qsTr("Удалить")
                             onClicked: reportBackend.deleteExpense(expenseDelegate.expenseId)
                         }
                     }

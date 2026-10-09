@@ -10,10 +10,11 @@ ColumnLayout
     property bool useRowLayout: false
     // When true: search field is for picking only; current value is edited elsewhere.
     property bool selectionOnly: false
+    // When true: show quick-pick buttons under the field instead of a popup list.
+    property bool useSuggestionButtons: false
 
     readonly property Item activeInput: useRowLayout ? subobjectInputRow : subobjectInput
     readonly property int suggestionRowHeight: compact ? 44 : 32
-
     spacing: useRowLayout ? 0 : 8
     Layout.fillWidth: true
 
@@ -29,6 +30,9 @@ ColumnLayout
 
     function updateSuggestions()
     {
+        if(useSuggestionButtons)
+            return
+
         if(activeInput.activeFocus && subobjectsFilterModel.count > 0)
         {
             closeSuggestionsTimer.stop()
@@ -38,7 +42,7 @@ ColumnLayout
         {
             suggestionsPopup.close()
 
-            if(!activeInput.activeFocus)
+            if(!activeInput.activeFocus && !useSuggestionButtons)
                 reportBackend.clearSubObjectSuggestions()
         }
     }
@@ -152,6 +156,7 @@ ColumnLayout
     OverlaySearchSuggestions
     {
         id: suggestionsPopup
+        visible: !root.useSuggestionButtons
         anchorItem: activeInput
         model: subobjectsFilterModel
         rowHeight: suggestionRowHeight
@@ -198,6 +203,9 @@ ColumnLayout
         interval: 150
         onTriggered:
         {
+            if(root.useSuggestionButtons)
+                return
+
             suggestionsPopup.close()
             reportBackend.clearSubObjectSuggestions()
         }

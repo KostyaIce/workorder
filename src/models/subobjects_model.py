@@ -3,12 +3,14 @@ from qt_compat import (
     QAbstractListModel,
     QModelIndex,
     pyqtProperty,
+    pyqtSignal,
 )
 
 
 class SubobjectsModel(QAbstractListModel):
 
     NameRole = Qt.ItemDataRole.UserRole + 1
+    countChanged = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -30,6 +32,7 @@ class SubobjectsModel(QAbstractListModel):
         unique_names.sort(key=str.casefold)
         self._items = [{"name": name} for name in unique_names]
         self.endResetModel()
+        self.countChanged.emit()
 
     def addItem(self, name):
         value = name.strip() if isinstance(name, str) else ""
@@ -44,6 +47,7 @@ class SubobjectsModel(QAbstractListModel):
         self.beginInsertRows(QModelIndex(), row, row)
         self._items.append({"name": value})
         self.endInsertRows()
+        self.countChanged.emit()
         return True
 
     def rowCount(self, parent=QModelIndex()):
@@ -65,6 +69,6 @@ class SubobjectsModel(QAbstractListModel):
             self.NameRole: b"name",
         }
 
-    @pyqtProperty(int)
+    @pyqtProperty(int, notify=countChanged)
     def count(self):
         return len(self._items)

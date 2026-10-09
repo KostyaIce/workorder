@@ -23,6 +23,7 @@ SettingsContent 1.0 SettingsContent.qml
 ServiceSearchField 1.0 ServiceSearchField.qml
 CoefficientSearchField 1.0 CoefficientSearchField.qml
 OverlaySearchSuggestions 1.0 OverlaySearchSuggestions.qml
+OutlinedIconToolButton 1.0 OutlinedIconToolButton.qml
 ServiceNameText 1.0 ServiceNameText.qml
 SubobjectSearchField 1.0 SubobjectSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
@@ -46,6 +47,7 @@ ReportsContent 1.0 ReportsContent.qml
 ClientFormDialog 1.0 ClientFormDialog.qml
 WorkFormDialog 1.0 WorkFormDialog.qml
 ReportOptionsDialog 1.0 ReportOptionsDialog.qml
+ReportOrderDialog 1.0 ReportOrderDialog.qml
 ReportOptionCheckRow 1.0 ReportOptionCheckRow.qml
 ReportResultDialog 1.0 ReportResultDialog.qml
 NotificationToast 1.0 NotificationToast.qml

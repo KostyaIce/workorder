@@ -286,6 +286,7 @@ void ReportBackend::activateInvoiceContext()
     updateCurrentObjectData();
     reloadWorks();
     reloadExpenses();
+    refreshSubobject(m_currentObject.id);
 }
 
 void ReportBackend::activateReportsContext()
@@ -531,7 +532,8 @@ bool ReportBackend::addWorkAt(double quantity, qint64 startOrderAt)
     if(startOrderAt == m_selectedStartOrderAt)
         reloadSelectedOrderWorks();
 
-    m_subobjects->addItem(m_currentService.subObject);
+    if(m_subobjects->addItem(m_currentService.subObject))
+        syncSubobjectSuggestionNames();
     emit worksChanged();
     clearCurrentService();
     return true;
@@ -572,8 +574,8 @@ bool ReportBackend::updateWork(const QVariantMap &data)
     }
 
     const QString subobjectName = data.value("subobject_name").toString();
-    if(!subobjectName.isEmpty())
-        m_subobjects->addItem(subobjectName);
+    if(!subobjectName.isEmpty() && m_subobjects->addItem(subobjectName))
+        syncSubobjectSuggestionNames();
 
     m_works->updateItem(data);
     m_workReport->updateItem(data);
@@ -825,12 +827,32 @@ void ReportBackend::loadSubobjects(const QString &objectId)
     {
         m_subobjects->updateModelFromNames({});
         m_subobjectsFilter->clearFilter();
+        syncSubobjectSuggestionNames();
         return;
     }
 
     const QStringList names = WorksDatabase::loadSubobjectNames(
         m_currentClient.name, m_currentClient.id, objectId);
     m_subobjects->updateModelFromNames(names);
+    syncSubobjectSuggestionNames();
+}
+
+void ReportBackend::syncSubobjectSuggestionNames()
+{
+    QStringList names;
+    if(m_subobjects)
+    {
+        const int rows = m_subobjects->rowCount();
+        names.reserve(rows);
+        for(int row = 0; row < rows; ++row)
+            names.append(m_subobjects->getObject(row).value(QStringLiteral("name")).toString());
+    }
+
+    if(m_subobjectSuggestionNames == names)
+        return;
+
+    m_subobjectSuggestionNames = names;
+    emit subobjectSuggestionsChanged();
 }
 
 void ReportBackend::reloadWorks()

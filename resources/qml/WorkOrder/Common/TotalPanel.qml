@@ -136,22 +136,37 @@ ColumnLayout
             elide: Text.ElideRight
         }
 
-        MouseArea
+        Button
         {
-            Layout.preferredWidth: showAllLabel.implicitWidth
-            Layout.preferredHeight: showAllLabel.implicitHeight
-            enabled: reportBackend.workCount + reportBackend.expenseCount > 0
-            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: worksDialog.open()
+            id: showAllButton
 
-            Label
+            flat: true
+            padding: 12
+            implicitHeight: root.compact ? 40 : 36
+            enabled: reportBackend.workCount + reportBackend.expenseCount > 0
+            text: qsTr("Показать все")
+
+            background: Rectangle
             {
-                id: showAllLabel
-                text: qsTr("Показать все")
-                font.pixelSize: 13
-                color: reportBackend.workCount + reportBackend.expenseCount > 0
-                       ? primaryColor : textSecondaryColor
+                radius: 8
+                border.width: 1
+                border.color: showAllButton.enabled ? primaryColor : "#CCCCCC"
+                color: showAllButton.pressed
+                       ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.22)
+                       : Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
             }
+
+            contentItem: Label
+            {
+                text: showAllButton.text
+                font.pixelSize: root.compact ? 14 : 13
+                font.bold: true
+                color: showAllButton.enabled ? primaryColor : textSecondaryColor
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            onClicked: worksDialog.open()
         }
     }
 

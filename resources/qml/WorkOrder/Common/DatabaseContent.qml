@@ -325,18 +325,16 @@ Item {
                                 color: primaryColor
                                 font.bold: true
                             }
-                            RowLayout {
-                                Layout.preferredWidth: 100
+                            RowLayout
+                            {
+                                Layout.preferredWidth: compact ? 108 : 100
                                 spacing: 8
 
-                                ToolButton {
-                                    Layout.preferredWidth: 32
-                                    Layout.preferredHeight: 32
-                                    text: "\u270E"
-                                    font.pixelSize: 16
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: qsTr("Редактировать")
-                                    onClicked: 
+                                OutlinedIconToolButton
+                                {
+                                    compact: root.compact
+                                    tooltipText: qsTr("Редактировать")
+                                    onClicked:
                                     {
                                         serviceDialog.service_id = id
                                         serviceDialog.name = name
@@ -349,15 +347,12 @@ Item {
                                     }
                                 }
 
-                                ToolButton {
-                                    Layout.preferredWidth: 32
-                                    Layout.preferredHeight: 32
-                                    text: "\u2715"
-                                    font.pixelSize: 16
-                                    palette.buttonText: "#F44336"
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: qsTr("Удалить")
-                                    onClicked: 
+                                OutlinedIconToolButton
+                                {
+                                    compact: root.compact
+                                    destructive: true
+                                    tooltipText: qsTr("Удалить")
+                                    onClicked:
                                     {
                                         deleteServiceDialog.id = id
                                         deleteServiceDialog.name = name
@@ -526,15 +521,15 @@ Item {
                             }
                         }
 
-                        RowLayout {
+                        ColumnLayout
+                        {
                             Layout.alignment: Qt.AlignTop
-                            spacing: 2
+                            spacing: 8
 
-                            ToolButton {
-                                Layout.preferredWidth: 36
-                                Layout.preferredHeight: 36
-                                text: "\u270E"
-                                font.pixelSize: 16
+                            OutlinedIconToolButton
+                            {
+                                compact: root.compact
+                                tooltipText: qsTr("Редактировать")
                                 onClicked:
                                 {
                                     serviceDialog.service_id = id
@@ -548,12 +543,11 @@ Item {
                                 }
                             }
 
-                            ToolButton {
-                                Layout.preferredWidth: 36
-                                Layout.preferredHeight: 36
-                                text: "\u2715"
-                                font.pixelSize: 16
-                                palette.buttonText: "#F44336"
+                            OutlinedIconToolButton
+                            {
+                                compact: root.compact
+                                destructive: true
+                                tooltipText: qsTr("Удалить")
                                 onClicked:
                                 {
                                     deleteServiceDialog.id = id

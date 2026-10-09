@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -44,6 +45,7 @@ class ReportBackend : public QObject
     Q_PROPERTY(QString currentCoefficients READ currentCoefficients NOTIFY serviceSelected)
     Q_PROPERTY(int currentPercentSum READ currentPercentSum NOTIFY serviceSelected)
     Q_PROPERTY(QString currentSubObject READ currentSubObject NOTIFY subObjectChanged)
+    Q_PROPERTY(QStringList subobjectSuggestionNames READ subobjectSuggestionNames NOTIFY subobjectSuggestionsChanged)
     Q_PROPERTY(QString lastReportPath READ lastReportPath NOTIFY reportGenerated)
     Q_PROPERTY(QString lastReportUrl READ lastReportUrl NOTIFY reportGenerated)
 
@@ -74,6 +76,7 @@ public:
     QString currentCoefficients() const { return m_currentService.coefficients; }
     int currentPercentSum() const { return m_currentService.percentSum; }
     QString currentSubObject() const { return m_currentService.subObject; }
+    QStringList subobjectSuggestionNames() const { return m_subobjectSuggestionNames; }
     QString lastReportPath() const { return m_lastReportPath; }
     QString lastReportUrl() const { return m_lastReportUrl; }
 
@@ -132,6 +135,7 @@ signals:
     void orderSelected();
     void serviceSelected();
     void subObjectChanged(const QString &value);
+    void subobjectSuggestionsChanged();
     void reportGenerated(const QString &path, const QString &url);
 
 private:
@@ -166,6 +170,7 @@ private:
     void loadObjects();
     void loadOrders();
     void loadSubobjects(const QString &objectId);
+    void syncSubobjectSuggestionNames();
     void reloadWorks();
     void reloadExpenses();
     QVariantList currentOrderTotals() const;
@@ -196,6 +201,7 @@ private:
     QString m_lastReportPath;
     QString m_lastReportUrl;
     QString m_previewTempPath;
+    QStringList m_subobjectSuggestionNames;
 
     ClientsModel *m_clients = nullptr;
     ObjectsModel *m_objects = nullptr;
