@@ -3,6 +3,7 @@
 #include "BackendController.h"
 
 #include <QCommandLineParser>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -13,6 +14,10 @@
 int main(int argc, char *argv[])
 {
     workorder::ApplicationBootstrap::setupEnvironment();
+
+#if defined(Q_OS_MACOS)
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
+#endif
 
     QGuiApplication app(argc, argv);
     app.setApplicationName("WorkOrder");

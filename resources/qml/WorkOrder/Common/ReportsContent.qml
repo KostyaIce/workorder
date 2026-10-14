@@ -462,7 +462,6 @@ Item {
     Connections
     {
         target: reportBackend
-        function onErrorOccurred(error) { console.log("Report error:", error) }
         function onObjectSelected() { reportBackend.refreshOrders() }
     }
 

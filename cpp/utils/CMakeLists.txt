@@ -6,7 +6,10 @@ set(WORKORDER_UTILS_SOURCES
     ClientsDatabase.cpp
     DatabaseStorage.cpp
     ExpensesDatabase.cpp
+    ClientDbDocument.cpp
+    DatabaseCloudJson.cpp
     FileIo.cpp
+    JsonRecordStore.cpp
     MinimalZip.cpp
     ObjectsDatabase.cpp
     PdfReportBuilder.cpp
@@ -26,7 +29,10 @@ set(WORKORDER_UTILS_HEADERS
     ClientsDatabase.h
     DatabaseStorage.h
     ExpensesDatabase.h
+    ClientDbDocument.h
+    DatabaseCloudJson.h
     FileIo.h
+    JsonRecordStore.h
     MinimalZip.h
     ObjectsDatabase.h
     PdfReportBuilder.h

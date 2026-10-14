@@ -8,6 +8,7 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QSqlRecord>
 #include <QUuid>
 
 namespace workorder
@@ -57,6 +58,9 @@ void ClientsDatabase::createClientTable(const QString &dbPath)
         "created_at TEXT,"
         "UNIQUE (name, address, contact)"
         ")"));
+    if(db.record(QStringLiteral("clients")).indexOf(QStringLiteral("updated_at")) < 0)
+        query.exec(QStringLiteral("ALTER TABLE clients ADD COLUMN updated_at TEXT"));
+    query.exec(QStringLiteral("UPDATE clients SET updated_at = created_at WHERE updated_at IS NULL"));
 }
 
 bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPath)
@@ -69,15 +73,17 @@ bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPat
     QSqlDatabase db = openDatabase(path);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO clients(id, kind, name, address, contact, notes, created_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO clients(id, kind, name, address, contact, notes, created_at, updated_at)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
     query.addBindValue(data.value("kind"));
     query.addBindValue(data.value("name"));
     query.addBindValue(data.value("address", QString()));
     query.addBindValue(data.value("contact", QString()));
     query.addBindValue(data.value("notes", QString()));
-    query.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
+    const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+    query.addBindValue(now);
+    query.addBindValue(now);
 
     if(!query.exec())
     {
@@ -102,11 +108,12 @@ bool ClientsDatabase::updateClientEntry(const StringMap &data, const QString &db
     QSqlDatabase db = openDatabase(path);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE clients SET name = ?, address = ?, contact = ?, notes = ? WHERE id = ?"));
+        "UPDATE clients SET name = ?, address = ?, contact = ?, notes = ?, updated_at = ? WHERE id = ?"));
     query.addBindValue(data.value("name"));
     query.addBindValue(data.value("address", QString()));
     query.addBindValue(data.value("contact", QString()));
     query.addBindValue(data.value("notes", QString()));
+    query.addBindValue(QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
     query.addBindValue(clientId);
 
     if(!query.exec())

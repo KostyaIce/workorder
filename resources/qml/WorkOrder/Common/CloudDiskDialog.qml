@@ -32,7 +32,6 @@ Dialog
     onOpened:
     {
         diskUrlField.text = cloudDiskBackend.diskUrl
-        tokenField.text = ""
     }
 
     contentItem: Flickable
@@ -59,7 +58,7 @@ Dialog
                 Layout.fillWidth: true
                 Layout.maximumWidth: contentColumn.width
                 visible: !cloudDiskBackend.connected
-                text: qsTr("Откройте авторизацию в браузере, войдите в Яндекс, разрешите доступ и вставьте токен (или URL с access_token=...) ниже.")
+                text: qsTr("Нажмите «Войти через Яндекс», подтвердите доступ к папке приложения на Диске. После входа окно браузера можно закрыть.")
                 wrapMode: Text.WordWrap
                 color: textSecondaryColor
                 font.pixelSize: compact ? 13 : 14
@@ -86,24 +85,24 @@ Dialog
                 visible: false
             }
 
-            Button
+            PrimaryButton
             {
                 Layout.fillWidth: compact
-                text: qsTr("Открыть авторизацию")
-                enabled: !cloudDiskBackend.busy
+                visible: !cloudDiskBackend.connected
+                text: cloudDiskBackend.oauthInProgress
+                      ? qsTr("Ожидание входа...")
+                      : qsTr("Войти через Яндекс")
+                enabled: !cloudDiskBackend.busy && !cloudDiskBackend.oauthInProgress
                 onClicked: cloudDiskBackend.openAuthInBrowser()
             }
 
-            FormTextArea
+            Button
             {
-                id: tokenField
-                Layout.fillWidth: true
-                Layout.maximumWidth: contentColumn.width
-                compact: root.compact
-                preferredHeight: compact ? 90 : 100
-                label: qsTr("Токен или URL с access_token")
-                placeholder: qsTr("Вставьте OAuth-токен или полный redirect URL")
-                visible: !cloudDiskBackend.connected
+                Layout.fillWidth: compact
+                visible: !cloudDiskBackend.connected && cloudDiskBackend.oauthInProgress
+                text: qsTr("Отменить вход")
+                enabled: !cloudDiskBackend.busy
+                onClicked: cloudDiskBackend.cancelOAuth()
             }
 
             // Connect / refresh / clear / close
@@ -113,19 +112,6 @@ Dialog
                 Layout.maximumWidth: contentColumn.width
                 spacing: 8
                 visible: compact
-
-                PrimaryButton
-                {
-                    Layout.fillWidth: true
-                    visible: !cloudDiskBackend.connected
-                    text: qsTr("Подключить")
-                    enabled: !cloudDiskBackend.busy && tokenField.text.trim().length > 0
-                    onClicked:
-                    {
-                        cloudDiskBackend.diskUrl = diskUrlField.text
-                        cloudDiskBackend.connectWithToken(tokenField.text)
-                    }
-                }
 
                 Button
                 {
@@ -168,18 +154,6 @@ Dialog
                 spacing: 8
                 visible: !compact
 
-                PrimaryButton
-                {
-                    visible: !cloudDiskBackend.connected
-                    text: qsTr("Подключить")
-                    enabled: !cloudDiskBackend.busy && tokenField.text.trim().length > 0
-                    onClicked:
-                    {
-                        cloudDiskBackend.diskUrl = diskUrlField.text
-                        cloudDiskBackend.connectWithToken(tokenField.text)
-                    }
-                }
-
                 Button
                 {
                     visible: cloudDiskBackend.connected
@@ -212,68 +186,14 @@ Dialog
                 }
             }
 
-            // Sync / upload / download
-            ColumnLayout
+            PrimaryButton
             {
                 Layout.fillWidth: true
                 Layout.maximumWidth: contentColumn.width
-                spacing: 8
-                visible: compact && cloudDiskBackend.connected
-
-                Button
-                {
-                    Layout.fillWidth: true
-                    text: qsTr("Синхронизация")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.syncDatabases()
-                }
-
-                Button
-                {
-                    Layout.fillWidth: true
-                    text: qsTr("Выгрузить на Яндекс.Диск")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.forceUploadDatabases()
-                }
-
-                Button
-                {
-                    Layout.fillWidth: true
-                    text: qsTr("Загрузить с Яндекс.Диска")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.downloadDatabases()
-                }
-            }
-
-            RowLayout
-            {
-                Layout.fillWidth: true
-                Layout.maximumWidth: contentColumn.width
-                spacing: 8
-                visible: !compact && cloudDiskBackend.connected
-
-                Button
-                {
-                    text: qsTr("Синхронизация")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.syncDatabases()
-                }
-
-                Button
-                {
-                    text: qsTr("Выгрузить на Яндекс.Диск")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.forceUploadDatabases()
-                }
-
-                Button
-                {
-                    text: qsTr("Загрузить с Яндекс.Диска")
-                    enabled: !cloudDiskBackend.busy
-                    onClicked: cloudDiskBackend.downloadDatabases()
-                }
-
-                Item { Layout.fillWidth: true }
+                visible: cloudDiskBackend.connected
+                text: qsTr("Синхронизация")
+                enabled: !cloudDiskBackend.busy
+                onClicked: cloudDiskBackend.syncDatabases()
             }
 
             Label

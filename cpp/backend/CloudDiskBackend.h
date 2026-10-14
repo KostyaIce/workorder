@@ -14,12 +14,15 @@ class QNetworkReply;
 namespace workorder
 {
 
+class YandexDiskOAuthFlow;
+
 class CloudDiskBackend : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
+    Q_PROPERTY(bool oauthInProgress READ oauthInProgress NOTIFY oauthInProgressChanged)
     Q_PROPERTY(QString diskUrl READ diskUrl WRITE setDiskUrl NOTIFY connectionChanged)
     Q_PROPERTY(QString clientId READ clientId CONSTANT)
     Q_PROPERTY(QString authUrl READ authUrl CONSTANT)
@@ -32,6 +35,7 @@ public:
 
     bool connected() const;
     bool busy() const;
+    bool oauthInProgress() const;
     QString diskUrl() const;
     void setDiskUrl(const QString &value);
     QString clientId() const;
@@ -40,20 +44,18 @@ public:
     QVariantList entries() const;
 
     Q_INVOKABLE bool openAuthInBrowser();
+    Q_INVOKABLE void cancelOAuth();
     Q_INVOKABLE bool connectWithToken(const QString &tokenOrUrl);
     Q_INVOKABLE void clearDiskData();
     Q_INVOKABLE void refreshContents();
     Q_INVOKABLE void ensureWorkOrderDirectory();
-    // Download cloud DBs to temp, merge missing rows into local, then force-upload.
+    // Download JSON stores from cloud, merge by latest revision, upload merged files (overwrite).
     Q_INVOKABLE void syncDatabases();
-    // Clear app:/workOrder files, then upload all local *.db.
-    Q_INVOKABLE void forceUploadDatabases();
-    // Clear local *.db, then download all *.db from app:/workOrder.
-    Q_INVOKABLE void downloadDatabases();
 
 signals:
     void connectionChanged();
     void busyChanged();
+    void oauthInProgressChanged();
     void statusMessageChanged();
     void entriesChanged();
 
@@ -63,8 +65,6 @@ private:
         None,
         EnsureOnly,
         Refresh,
-        ForceUpload,
-        Download,
         Sync
     };
 
@@ -92,19 +92,15 @@ private:
     void startEnsureGet();
     void startEnsurePut();
     void startListRequest();
-    void startListForCloudClear();
     void startListForDownload();
     void handleEnsureGetReply(QNetworkReply *reply);
     void handleEnsurePutReply(QNetworkReply *reply);
     void handleListReply(QNetworkReply *reply);
-    void handleCloudClearListReply(QNetworkReply *reply);
-    void handleCloudDeleteReply(QNetworkReply *reply);
     void handleUploadHrefReply(QNetworkReply *reply);
     void handleUploadPutReply(QNetworkReply *reply);
     void handleDownloadListReply(QNetworkReply *reply);
     void handleDownloadHrefReply(QNetworkReply *reply);
     void handleDownloadContentReply(QNetworkReply *reply);
-    void processNextCloudDelete();
     void beginUploadQueue();
     void processNextUpload();
     void processNextDownload();
@@ -112,11 +108,16 @@ private:
     bool mergeIncomingDatabases();
     void clearSyncIncomingDir() const;
     QString syncIncomingDir() const;
+    void clearSyncOutgoingDir() const;
+    QString syncOutgoingDir() const;
+    void closeAllSqlConnections() const;
+    bool exportLocalDatabasesToOutgoingJson() const;
     void finishTransferSuccess(const QString &message, const QString &logMessage);
     void finishWithError(const QString &message, const QString &logMessage);
-    void closeAllSqlConnections() const;
+    void onOAuthFinished(bool success, const QString &accessToken, const QString &errorMessage);
+    void onOAuthProgressMessage(const QString &message);
+    void setOauthInProgress(bool value);
     QStringList localDatabaseFileNames() const;
-    bool clearLocalDatabaseFiles();
     QString remoteDbPath(const QString &fileName) const;
 
     QNetworkAccessManager *m_network = nullptr;
@@ -126,9 +127,11 @@ private:
     QVariantList m_entries;
     bool m_busy = false;
     PendingOp m_pendingOp = PendingOp::None;
-    QStringList m_deletePaths;
     QList<TransferItem> m_transferQueue;
     int m_transferIndex = 0;
+    int m_syncRecordsAdded = 0;
+    YandexDiskOAuthFlow *m_oauthFlow = nullptr;
+    bool m_oauthInProgress = false;
 };
 
 } // namespace workorder

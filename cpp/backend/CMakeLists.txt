@@ -4,6 +4,7 @@ set(WORKORDER_BACKEND_SOURCES
     ../app/ApplicationBootstrap.cpp
     BackendController.cpp
     CloudDiskBackend.cpp
+    YandexDiskOAuthFlow.cpp
     DatabaseBackend.cpp
     InvoiceBackend.cpp
     NotificationManager.cpp
@@ -16,6 +17,8 @@ set(WORKORDER_BACKEND_HEADERS
     ../app/ApplicationBootstrap.h
     BackendController.h
     CloudDiskBackend.h
+    YandexDiskConfig.h
+    YandexDiskOAuthFlow.h
     DatabaseBackend.h
     InvoiceBackend.h
     NotificationManager.h
@@ -32,6 +35,19 @@ add_library(workorder_backend STATIC
 add_library(WorkOrder::Backend ALIAS workorder_backend)
 
 target_compile_features(workorder_backend PUBLIC cxx_std_20)
+
+if(WORKORDER_YANDEX_OAUTH_CLIENT_ID)
+    target_compile_definitions(workorder_backend
+        PRIVATE WORKORDER_YANDEX_OAUTH_CLIENT_ID="${WORKORDER_YANDEX_OAUTH_CLIENT_ID}")
+endif()
+if(WORKORDER_MOBILE_APPLICATION_ID)
+    target_compile_definitions(workorder_backend
+        PRIVATE WORKORDER_MOBILE_APPLICATION_ID="${WORKORDER_MOBILE_APPLICATION_ID}")
+endif()
+if(WORKORDER_OAUTH_CALLBACK_SCHEME)
+    target_compile_definitions(workorder_backend
+        PRIVATE WORKORDER_OAUTH_CALLBACK_SCHEME="${WORKORDER_OAUTH_CALLBACK_SCHEME}")
+endif()
 
 target_link_libraries(workorder_backend
     PUBLIC

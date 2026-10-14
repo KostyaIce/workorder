@@ -53,13 +53,16 @@ Item
         scale: root.isShowing ? 1.0 : 0.95
         z: 1000
 
+        // Avoid NSAnimation on macOS during window focus changes (can crash in Qt Cocoa).
         Behavior on opacity
         {
+            enabled: Qt.platform.os !== "osx"
             NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
         }
 
         Behavior on scale
         {
+            enabled: Qt.platform.os !== "osx"
             NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
         }
 

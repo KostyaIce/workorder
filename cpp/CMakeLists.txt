@@ -9,11 +9,27 @@ project(WorkOrder
     LANGUAGES CXX
 )
 
+if(APPLE AND NOT ANDROID)
+    enable_language(OBJCXX)
+endif()
+
 include("${WORKORDER_ROOT}/cmake/IdeCommon.cmake")
 include("${WORKORDER_ROOT}/cmake/CppProject.cmake")
 include("${WORKORDER_ROOT}/cmake/CppResources.cmake")
 include("${WORKORDER_ROOT}/cmake/CppAndroid.cmake")
+include("${WORKORDER_ROOT}/cmake/CppIos.cmake")
 include("${WORKORDER_ROOT}/cmake/WorkOrderLogging.cmake")
+
+if(NOT WORKORDER_YANDEX_OAUTH_CLIENT_ID)
+    set(WORKORDER_YANDEX_OAUTH_CLIENT_ID "d3e1a705454a448b841e617117fec451"
+        CACHE STRING "Yandex OAuth client id (oauth.yandex.ru)")
+endif()
+set(WORKORDER_IOS_BUNDLE_ID "com.workorder"
+    CACHE STRING "iOS bundle identifier (Yandex OAuth iOS platform)")
+set(WORKORDER_OAUTH_CALLBACK_SCHEME "workorder"
+    CACHE STRING "Mobile OAuth redirect URL scheme")
+set(WORKORDER_MOBILE_APPLICATION_ID "com.workorder"
+    CACHE STRING "Android application id / iOS bundle id")
 
 if(ANDROID)
     set(Type "mobile" CACHE STRING "Application UI type on Android" FORCE)
@@ -61,6 +77,11 @@ qt_add_executable(WorkOrder
     ${CMAKE_CURRENT_LIST_DIR}/Main.cpp
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_sources(WorkOrder PRIVATE ${CMAKE_CURRENT_LIST_DIR}/app/MacCocoaWorkaround.mm)
+    target_link_libraries(WorkOrder PRIVATE "-framework AppKit" "-framework UniformTypeIdentifiers")
+endif()
+
 target_link_libraries(WorkOrder
     PRIVATE
         WorkOrder::Backend
@@ -95,6 +116,10 @@ endif()
 
 if(ANDROID)
     workorder_setup_android_target(WorkOrder)
+endif()
+
+if(IOS)
+    workorder_setup_ios_target(WorkOrder)
 endif()
 
 if(ANDROID)

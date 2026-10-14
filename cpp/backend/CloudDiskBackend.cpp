@@ -1,10 +1,14 @@
 #include "CloudDiskBackend.h"
 
+#include "YandexDiskConfig.h"
+#include "YandexDiskOAuthFlow.h"
+
 #include "AppPaths.h"
 #include "ClientsDatabase.h"
+#include "DatabaseCloudJson.h"
 #include "DatabaseStorage.h"
 #include "ExpensesDatabase.h"
-#include "NotificationManager.h"
+#include "JsonRecordStore.h"
 #include "ObjectsDatabase.h"
 #include "QSettingsStore.h"
 #include "ServicesDatabase.h"
@@ -22,8 +26,10 @@
 #include <QNetworkRequest>
 #include <QRegularExpression>
 #include <QSqlDatabase>
+#include <QTimer>
 #include <QUrl>
 #include <QUrlQuery>
+#include <exception>
 
 namespace workorder
 {
@@ -36,7 +42,6 @@ const char *KEY_DISK_URL = "cloud_disk/disk_url";
 const char *KEY_CLIENT_ID_LEGACY = "cloud_disk/client_id";
 const char *DEFAULT_DISK_URL = "https://cloud-api.yandex.net/v1/disk";
 const char *AUTH_BASE_URL = "https://oauth.yandex.ru/authorize";
-const char *YANDEX_CLIENT_ID = "d3e1a705454a448b841e617117fec451";
 const char *WORKORDER_FOLDER_PATH = "app:/workOrder";
 const int LIST_LIMIT = 1000;
 
@@ -58,7 +63,21 @@ CloudDiskBackend::CloudDiskBackend(QObject *parent)
     : QObject(parent)
     , m_network(new QNetworkAccessManager(this))
     , m_diskUrl(QString::fromUtf8(DEFAULT_DISK_URL))
+    , m_oauthFlow(new YandexDiskOAuthFlow(this))
 {
+    connect(m_oauthFlow,
+            &YandexDiskOAuthFlow::finished,
+            this,
+            &CloudDiskBackend::onOAuthFinished);
+    connect(m_oauthFlow,
+            &YandexDiskOAuthFlow::progressMessageChanged,
+            this,
+            &CloudDiskBackend::onOAuthProgressMessage);
+    connect(m_oauthFlow,
+            &YandexDiskOAuthFlow::inProgressChanged,
+            this,
+            [this](bool inProgress) { setOauthInProgress(inProgress); });
+
     loadPersisted();
     if(m_token.isEmpty())
     {
@@ -87,6 +106,11 @@ bool CloudDiskBackend::busy() const
     return m_busy;
 }
 
+bool CloudDiskBackend::oauthInProgress() const
+{
+    return m_oauthInProgress;
+}
+
 QString CloudDiskBackend::diskUrl() const
 {
     return m_diskUrl;
@@ -105,15 +129,21 @@ void CloudDiskBackend::setDiskUrl(const QString &value)
 
 QString CloudDiskBackend::clientId() const
 {
-    return QString::fromUtf8(YANDEX_CLIENT_ID);
+    return QString::fromUtf8(YandexDiskConfig::oauthClientId);
 }
 
 QString CloudDiskBackend::authUrl() const
 {
+    if(m_oauthFlow && m_oauthFlow->inProgress())
+        return m_oauthFlow->buildAuthorizeUrl();
+
     QUrl url(QString::fromUtf8(AUTH_BASE_URL));
     QUrlQuery query;
-    query.addQueryItem(QStringLiteral("response_type"), QStringLiteral("token"));
+    query.addQueryItem(QStringLiteral("response_type"), QStringLiteral("code"));
     query.addQueryItem(QStringLiteral("client_id"), clientId());
+    query.addQueryItem(QStringLiteral("redirect_uri"), m_oauthFlow->redirectUri());
+    query.addQueryItem(QStringLiteral("scope"),
+                       QString::fromUtf8(YandexDiskConfig::oauthScopes));
     url.setQuery(query);
     return url.toString();
 }
@@ -130,18 +160,61 @@ QVariantList CloudDiskBackend::entries() const
 
 bool CloudDiskBackend::openAuthInBrowser()
 {
-    const QString url = authUrl();
+    if(!m_oauthFlow->begin())
+    {
+        setStatusMessage(tr("Не удалось начать вход в Яндекс"),
+                         QStringLiteral("OAuth begin failed"));
+        return false;
+    }
+
+    const QString url = m_oauthFlow->buildAuthorizeUrl();
     qInfo("CloudDiskBackend: openAuthInBrowser url=%s", qPrintable(url));
     if(!QDesktopServices::openUrl(QUrl(url)))
     {
         qWarning("CloudDiskBackend: failed to open browser");
+        m_oauthFlow->cancel();
         setStatusMessage(tr("Не удалось открыть браузер"), QStringLiteral("Failed to open browser"));
         return false;
     }
 
-    setStatusMessage(tr("Откройте ссылку в браузере, войдите и вставьте токен"),
-                     QStringLiteral("Open the link in browser, sign in and paste the token"));
+    onOAuthProgressMessage(tr("Ожидаем подтверждение в браузере..."));
     return true;
+}
+
+void CloudDiskBackend::cancelOAuth()
+{
+    if(m_oauthFlow)
+        m_oauthFlow->cancel();
+    setStatusMessage(tr("Вход отменён"), QStringLiteral("OAuth cancelled"));
+}
+
+void CloudDiskBackend::onOAuthFinished(bool success,
+                                       const QString &accessToken,
+                                       const QString &errorMessage)
+{
+    if(!success)
+    {
+        if(!errorMessage.isEmpty())
+            setStatusMessage(errorMessage, QStringLiteral("OAuth failed"));
+        return;
+    }
+
+    connectWithToken(accessToken);
+}
+
+void CloudDiskBackend::onOAuthProgressMessage(const QString &message)
+{
+    if(message.isEmpty())
+        return;
+    setStatusMessage(message, message);
+}
+
+void CloudDiskBackend::setOauthInProgress(bool value)
+{
+    if(m_oauthInProgress == value)
+        return;
+    m_oauthInProgress = value;
+    emit oauthInProgressChanged();
 }
 
 bool CloudDiskBackend::connectWithToken(const QString &tokenOrUrl)
@@ -171,6 +244,8 @@ bool CloudDiskBackend::connectWithToken(const QString &tokenOrUrl)
 void CloudDiskBackend::clearDiskData()
 {
     qInfo("CloudDiskBackend: clearDiskData (disconnect, token only)");
+    if(m_oauthFlow)
+        m_oauthFlow->cancel();
     m_token.clear();
     m_entries.clear();
     QSettingsStore store;
@@ -203,31 +278,13 @@ void CloudDiskBackend::ensureWorkOrderDirectory()
 void CloudDiskBackend::syncDatabases()
 {
     if(!beginOperation(PendingOp::Sync,
-                     tr("Синхронизация баз..."),
+                     tr("Синхронизация..."),
                      QStringLiteral("Syncing databases...")))
         return;
+    m_syncRecordsAdded = 0;
     qInfo("CloudDiskBackend: syncDatabases started");
     clearSyncIncomingDir();
-    startEnsureGet();
-}
-
-void CloudDiskBackend::forceUploadDatabases()
-{
-    if(!beginOperation(PendingOp::ForceUpload,
-                     tr("Выгрузка баз на диск..."),
-                     QStringLiteral("Force uploading databases to disk...")))
-        return;
-    qInfo("CloudDiskBackend: forceUploadDatabases started");
-    startEnsureGet();
-}
-
-void CloudDiskBackend::downloadDatabases()
-{
-    if(!beginOperation(PendingOp::Download,
-                     tr("Загрузка баз с диска..."),
-                     QStringLiteral("Downloading databases from disk...")))
-        return;
-    qInfo("CloudDiskBackend: downloadDatabases started");
+    clearSyncOutgoingDir();
     startEnsureGet();
 }
 
@@ -246,7 +303,6 @@ bool CloudDiskBackend::beginOperation(PendingOp op, const QString &busyMessage, 
     }
 
     m_pendingOp = op;
-    m_deletePaths.clear();
     m_transferQueue.clear();
     m_transferIndex = 0;
     setBusy(true);
@@ -267,10 +323,6 @@ void CloudDiskBackend::onEnsureReady()
         setStatusMessage(tr("Каталог workOrder готов"),
                      QStringLiteral("workOrder directory is ready"));
         break;
-    case PendingOp::ForceUpload:
-        startListForCloudClear();
-        break;
-    case PendingOp::Download:
     case PendingOp::Sync:
         startListForDownload();
         break;
@@ -320,20 +372,6 @@ void CloudDiskBackend::startListRequest()
     connect(reply, &QNetworkReply::finished, this, [this, reply]()
     {
         handleListReply(reply);
-        reply->deleteLater();
-    });
-}
-
-void CloudDiskBackend::startListForCloudClear()
-{
-    setStatusMessage(tr("Очистка облачного каталога..."),
-                     QStringLiteral("Clearing cloud directory..."));
-    const QString url = resourcesUrl(QString::fromUtf8(WORKORDER_FOLDER_PATH), LIST_LIMIT);
-    qInfo("CloudDiskBackend: clear-list GET %s", qPrintable(url));
-    QNetworkReply *reply = m_network->get(authorizedRequest(QUrl(url)));
-    connect(reply, &QNetworkReply::finished, this, [this, reply]()
-    {
-        handleCloudClearListReply(reply);
         reply->deleteLater();
     });
 }
@@ -482,91 +520,17 @@ void CloudDiskBackend::handleListReply(QNetworkReply *reply)
     qInfo("CloudDiskBackend: listed %d entries", static_cast<int>(entries.size()));
 }
 
-void CloudDiskBackend::handleCloudClearListReply(QNetworkReply *reply)
-{
-    const int status = httpStatusOf(reply);
-    const QByteArray body = reply ? reply->readAll() : QByteArray();
-    if(status != 200)
-    {
-        qWarning("CloudDiskBackend: clear-list failed status=%d body=%s",
-                 status,
-                 qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось прочитать облачный каталог (%1)").arg(status),
-                    QStringLiteral("Failed to read cloud directory (%1)").arg(status));
-        return;
-    }
-
-    const QJsonObject root = QJsonDocument::fromJson(body).object();
-    const QJsonArray items = root.value(QStringLiteral("_embedded")).toObject()
-                                 .value(QStringLiteral("items")).toArray();
-    m_deletePaths.clear();
-    for(const QJsonValue &value : items)
-    {
-        const QJsonObject item = value.toObject();
-        const QString path = item.value(QStringLiteral("path")).toString();
-        if(!path.isEmpty())
-            m_deletePaths.push_back(path);
-    }
-
-    qInfo("CloudDiskBackend: cloud clear queued %d items",
-          static_cast<int>(m_deletePaths.size()));
-    processNextCloudDelete();
-}
-
-void CloudDiskBackend::processNextCloudDelete()
-{
-    if(m_deletePaths.isEmpty())
-    {
-        beginUploadQueue();
-        return;
-    }
-
-    const QString path = m_deletePaths.takeFirst();
-    setStatusMessage(tr("Удаление на диске: %1 (осталось %2)")
-                         .arg(path)
-                         .arg(m_deletePaths.size()),
-                     QStringLiteral("Deleting on disk: %1 (remaining %2)")
-                         .arg(path)
-                         .arg(m_deletePaths.size()));
-
-    QUrl url(m_diskUrl + QStringLiteral("/resources"));
-    QUrlQuery query;
-    query.addQueryItem(QStringLiteral("path"), path);
-    query.addQueryItem(QStringLiteral("permanently"), QStringLiteral("true"));
-    url.setQuery(query);
-
-    qInfo("CloudDiskBackend: DELETE %s", qPrintable(url.toString()));
-    QNetworkReply *reply = m_network->deleteResource(authorizedRequest(url));
-    connect(reply, &QNetworkReply::finished, this, [this, reply]()
-    {
-        handleCloudDeleteReply(reply);
-        reply->deleteLater();
-    });
-}
-
-void CloudDiskBackend::handleCloudDeleteReply(QNetworkReply *reply)
-{
-    const int status = httpStatusOf(reply);
-    const QByteArray body = reply ? reply->readAll() : QByteArray();
-    // 202 = async folder delete started; 204 = deleted
-    if(status != 204 && status != 202 && status != 404)
-    {
-        qWarning("CloudDiskBackend: DELETE failed status=%d body=%s",
-                 status,
-                 qPrintable(QString::fromUtf8(body.left(300))));
-        finishWithError(tr("Не удалось очистить облако (%1)").arg(status),
-                    QStringLiteral("Failed to clear cloud (%1)").arg(status));
-        return;
-    }
-
-    processNextCloudDelete();
-}
-
 void CloudDiskBackend::beginUploadQueue()
 {
     closeAllSqlConnections();
 
-    const QString dataDir = AppPaths::dbDir();
+    if(!exportLocalDatabasesToOutgoingJson())
+    {
+        finishWithError(tr("Не удалось подготовить JSON для выгрузки"),
+                        QStringLiteral("Failed to prepare JSON for upload"));
+        return;
+    }
+
     const QStringList names = localDatabaseFileNames();
     m_transferQueue.clear();
     m_transferIndex = 0;
@@ -574,15 +538,24 @@ void CloudDiskBackend::beginUploadQueue()
     {
         TransferItem item;
         item.name = name;
-        item.localPath = QDir(dataDir).filePath(name);
+        item.localPath = QDir(syncOutgoingDir()).filePath(name);
         item.remotePath = remoteDbPath(name);
+        if(!QFileInfo::exists(item.localPath))
+            continue;
+        const QString incomingPath = QDir(syncIncomingDir()).filePath(name);
+        if(QFileInfo::exists(incomingPath)
+           && JsonRecordStore::documentsEqual(JsonRecordStore::loadDocument(item.localPath),
+                                               JsonRecordStore::loadDocument(incomingPath)))
+            continue;
         m_transferQueue.push_back(item);
     }
 
     if(m_transferQueue.isEmpty())
     {
-        finishWithError(tr("Локальные файлы баз данных не найдены"),
-                    QStringLiteral("Local database files not found"));
+        clearSyncIncomingDir();
+        clearSyncOutgoingDir();
+        finishTransferSuccess(tr("Синхронизация завершена: выгрузка не требуется"),
+                              QStringLiteral("Cloud data unchanged; upload skipped"));
         return;
     }
 
@@ -595,20 +568,12 @@ void CloudDiskBackend::processNextUpload()
 {
     if(m_transferIndex >= m_transferQueue.size())
     {
-        if(m_pendingOp == PendingOp::Sync)
-        {
-            finishTransferSuccess(tr("Синхронизация завершена: выгружено %1 файл(ов)")
-                                      .arg(m_transferQueue.size()),
-                                  QStringLiteral("Sync finished: uploaded %1 file(s)")
-                                      .arg(m_transferQueue.size()));
-        }
-        else
-        {
-            finishTransferSuccess(tr("Выгрузка завершена: %1 файл(ов)")
-                                      .arg(m_transferQueue.size()),
-                                  QStringLiteral("Upload finished: %1 file(s)")
-                                      .arg(m_transferQueue.size()));
-        }
+        clearSyncIncomingDir();
+        clearSyncOutgoingDir();
+        finishTransferSuccess(tr("Синхронизация завершена: подгружено %1 новых записей")
+                                  .arg(m_syncRecordsAdded),
+                              QStringLiteral("Sync finished: pulled %1 new records")
+                                  .arg(m_syncRecordsAdded));
         return;
     }
 
@@ -674,7 +639,7 @@ void CloudDiskBackend::handleUploadHrefReply(QNetworkReply *reply)
 
     QNetworkRequest request{QUrl(href)};
     request.setHeader(QNetworkRequest::ContentTypeHeader,
-                      QStringLiteral("application/octet-stream"));
+                      QStringLiteral("application/json"));
     qInfo("CloudDiskBackend: upload PUT %s size=%lld",
           qPrintable(item.name),
           static_cast<long long>(file->size()));
@@ -723,17 +688,13 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
     const QJsonArray items = root.value(QStringLiteral("_embedded")).toObject()
                                  .value(QStringLiteral("items")).toArray();
 
-    const bool syncMode = (m_pendingOp == PendingOp::Sync);
-    const QString targetDir = syncMode ? syncIncomingDir() : AppPaths::dbDir();
-    if(syncMode)
+    const QString targetDir = syncIncomingDir();
+    clearSyncIncomingDir();
+    if(!QDir().mkpath(targetDir))
     {
-        clearSyncIncomingDir();
-        if(!QDir().mkpath(targetDir))
-        {
-            finishWithError(tr("Не удалось создать временный каталог синхронизации"),
-                    QStringLiteral("Failed to create sync temp directory"));
-            return;
-        }
+        finishWithError(tr("Не удалось создать временный каталог синхронизации"),
+                        QStringLiteral("Failed to create sync temp directory"));
+        return;
     }
 
     m_transferQueue.clear();
@@ -759,33 +720,15 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
 
     if(m_transferQueue.isEmpty())
     {
-        if(syncMode)
-        {
-            qInfo("CloudDiskBackend: sync cloud has no db files, upload local only");
-            setStatusMessage(tr("На диске нет баз, выгружаем локальные..."),
-                             QStringLiteral("No databases on disk, uploading local ones..."));
-            startListForCloudClear();
-            return;
-        }
-        finishWithError(tr("На диске нет файлов баз данных (*.db)"),
-                    QStringLiteral("No database files (*.db) on disk"));
+        qInfo("CloudDiskBackend: sync cloud has no db files, upload local JSON only");
+        setStatusMessage(tr("На диске нет данных, выгружаем локальные..."),
+                         QStringLiteral("No cloud data files, uploading local JSON..."));
+        beginUploadQueue();
         return;
     }
 
-    if(!syncMode)
-    {
-        closeAllSqlConnections();
-        if(!clearLocalDatabaseFiles())
-        {
-            finishWithError(tr("Не удалось очистить локальные базы данных"),
-                    QStringLiteral("Failed to clear local databases"));
-            return;
-        }
-    }
-
-    qInfo("CloudDiskBackend: download queue size=%d sync=%d",
-          static_cast<int>(m_transferQueue.size()),
-          syncMode ? 1 : 0);
+    qInfo("CloudDiskBackend: download queue size=%d",
+          static_cast<int>(m_transferQueue.size()));
     processNextDownload();
 }
 
@@ -906,7 +849,6 @@ void CloudDiskBackend::handleDownloadContentReply(QNetworkReply *reply)
 void CloudDiskBackend::finishTransferSuccess(const QString &message, const QString &logMessage)
 {
     m_pendingOp = PendingOp::None;
-    m_deletePaths.clear();
     m_transferQueue.clear();
     m_transferIndex = 0;
     setStatusMessage(message, logMessage);
@@ -917,39 +859,34 @@ void CloudDiskBackend::finishTransferSuccess(const QString &message, const QStri
 
 void CloudDiskBackend::finishWithError(const QString &message, const QString &logMessage)
 {
-    clearSyncIncomingDir();
-    m_pendingOp = PendingOp::None;
-    m_deletePaths.clear();
-    m_transferQueue.clear();
-    m_transferIndex = 0;
-    setBusy(false);
-    setStatusMessage(message, logMessage);
-    NotificationManager::notifyError(message);
+    qWarning("CloudDiskBackend: %s", qPrintable(logMessage));
+    // Defer UI reset: calling from QNetworkReply while a modal dialog is open can
+    // trigger a macOS/Qt Cocoa focusWindowChanged crash (NSImage imageNamed assert).
+    QTimer::singleShot(0, this, [this, message, logMessage]()
+    {
+        clearSyncIncomingDir();
+        clearSyncOutgoingDir();
+        m_pendingOp = PendingOp::None;
+        m_transferQueue.clear();
+        m_transferIndex = 0;
+        setBusy(false);
+        setStatusMessage(message, logMessage);
+    });
 }
 
 void CloudDiskBackend::finishDownloadPhase()
 {
-    if(m_pendingOp == PendingOp::Sync)
+    setStatusMessage(tr("Объединение с локальными базами..."),
+                     QStringLiteral("Merging cloud JSON into local SQLite..."));
+    if(!mergeIncomingDatabases())
     {
-        setStatusMessage(tr("Объединение локальных баз..."),
-                     QStringLiteral("Merging local databases..."));
-        if(!mergeIncomingDatabases())
-        {
-            finishWithError(tr("Ошибка объединения баз данных"),
-                    QStringLiteral("Database merge error"));
-            return;
-        }
-        clearSyncIncomingDir();
-        setStatusMessage(tr("Выгрузка объединённых баз на диск..."),
-                         QStringLiteral("Uploading merged databases to disk..."));
-        startListForCloudClear();
+        finishWithError(tr("Ошибка объединения данных"),
+                        QStringLiteral("Data merge error"));
         return;
     }
-
-    finishTransferSuccess(tr("Загрузка завершена: %1 файл(ов)")
-                              .arg(m_transferQueue.size()),
-                          QStringLiteral("Download finished: %1 file(s)")
-                              .arg(m_transferQueue.size()));
+    setStatusMessage(tr("Выгрузка на диск..."),
+                     QStringLiteral("Uploading merged JSON to disk..."));
+    beginUploadQueue();
 }
 
 QString CloudDiskBackend::syncIncomingDir() const
@@ -969,6 +906,7 @@ void CloudDiskBackend::clearSyncIncomingDir() const
 }
 
 bool CloudDiskBackend::mergeIncomingDatabases()
+try
 {
     closeAllSqlConnections();
 
@@ -981,32 +919,40 @@ bool CloudDiskBackend::mergeIncomingDatabases()
     for(const QString &name : names)
     {
         const QString sourcePath = incoming.filePath(name);
-        const QString targetPath = QDir(dataDir).filePath(name);
-        if(!QFileInfo::exists(targetPath))
+        QFile sourceFile(sourcePath);
+        if(!sourceFile.open(QIODevice::ReadOnly))
         {
-            if(!QFile::copy(sourcePath, targetPath))
-            {
-                qWarning("CloudDiskBackend: failed to copy new db %s", qPrintable(name));
-                return false;
-            }
-            qInfo("CloudDiskBackend: sync added missing file %s", qPrintable(name));
-            continue;
+            qWarning("CloudDiskBackend: failed to read incoming %s", qPrintable(name));
+            return false;
         }
+        const QByteArray payload = sourceFile.readAll();
+        sourceFile.close();
+        if(!JsonRecordStore::isJsonPayload(payload))
+        {
+            qWarning("CloudDiskBackend: unsupported cloud format in %s; sync stopped", qPrintable(name));
+            return false;
+        }
+        const QJsonDocument document = QJsonDocument::fromJson(payload);
+        if(!document.isObject() || document.object().isEmpty())
+            return false;
 
+        const QString targetPath = QDir(dataDir).filePath(name);
         if(name.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
         {
-            const int inserted = ClientsDatabase::mergeFromDatabase(sourcePath, targetPath);
-            qInfo("CloudDiskBackend: merge %s clients inserted=%d",
-                  qPrintable(name),
-                  inserted);
+            if(!QFileInfo::exists(targetPath))
+                ClientsDatabase::createClientTable(targetPath);
+            const int added = DatabaseCloudJson::mergeClientsFromJsonFile(sourcePath, targetPath);
+            if(added < 0)
+                return false;
+            m_syncRecordsAdded += added;
             continue;
         }
         if(name.compare(QLatin1String("services.db"), Qt::CaseInsensitive) == 0)
         {
-            const int inserted = ServicesDatabase::mergeFromDatabase(sourcePath);
-            qInfo("CloudDiskBackend: merge %s services inserted=%d",
-                  qPrintable(name),
-                  inserted);
+            const int added = DatabaseCloudJson::mergeServicesFromJsonFile(sourcePath);
+            if(added < 0)
+                return false;
+            m_syncRecordsAdded += added;
             continue;
         }
 
@@ -1018,21 +964,27 @@ bool CloudDiskBackend::mergeIncomingDatabases()
             continue;
         }
 
-        const int objectsInserted = ObjectsDatabase::mergeFromDatabase(
+        if(!QFileInfo::exists(targetPath))
+        {
+            ObjectsDatabase::createObjectDatabase(clientName, clientId);
+            WorksDatabase::createWorksTable(clientName, clientId);
+            ExpensesDatabase::createExpensesTable(clientName, clientId);
+        }
+
+        const int added = DatabaseCloudJson::mergeClientDbFromJsonFile(
             sourcePath, clientName, clientId);
-        const int worksInserted = WorksDatabase::mergeFromDatabase(
-            sourcePath, clientName, clientId);
-        const int expensesInserted = ExpensesDatabase::mergeFromDatabase(
-            sourcePath, clientName, clientId);
-        qInfo("CloudDiskBackend: merge %s objects inserted=%d works inserted=%d expenses inserted=%d",
-              qPrintable(name),
-              objectsInserted,
-              worksInserted,
-              expensesInserted);
+        if(added < 0)
+            return false;
+        m_syncRecordsAdded += added;
     }
 
     closeAllSqlConnections();
     return true;
+}
+catch(const std::exception &error)
+{
+    qWarning("Cloud sync read failed: %s", error.what());
+    return false;
 }
 
 void CloudDiskBackend::closeAllSqlConnections() const
@@ -1056,23 +1008,63 @@ QStringList CloudDiskBackend::localDatabaseFileNames() const
     return dir.entryList({QStringLiteral("*.db")}, QDir::Files, QDir::Name);
 }
 
-bool CloudDiskBackend::clearLocalDatabaseFiles()
+QString CloudDiskBackend::syncOutgoingDir() const
 {
-    QDir dir(AppPaths::dbDir());
-    const QStringList names = dir.entryList(
-        {QStringLiteral("*.db"), QStringLiteral("*.db-wal"), QStringLiteral("*.db-shm")},
-        QDir::Files);
+    return QDir(AppPaths::dataDir()).filePath(QStringLiteral("_cloud_sync_outgoing"));
+}
+
+void CloudDiskBackend::clearSyncOutgoingDir() const
+{
+    QDir dir(syncOutgoingDir());
+    if(!dir.exists())
+        return;
+    const QStringList names = dir.entryList(QDir::Files | QDir::NoDotAndDotDot);
+    for(const QString &name : names)
+        QFile::remove(dir.filePath(name));
+    dir.rmdir(dir.absolutePath());
+}
+
+bool CloudDiskBackend::exportLocalDatabasesToOutgoingJson() const
+try
+{
+    clearSyncOutgoingDir();
+    const QString outDir = syncOutgoingDir();
+    if(!QDir().mkpath(outDir))
+        return false;
+
+    const QString dataDir = AppPaths::dbDir();
+    const QStringList names = localDatabaseFileNames();
     for(const QString &name : names)
     {
-        const QString path = dir.filePath(name);
-        if(!QFile::remove(path))
+        const QString sqlitePath = QDir(dataDir).filePath(name);
+        const QString jsonPath = QDir(outDir).filePath(name);
+        if(name.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
         {
-            qWarning("CloudDiskBackend: failed to remove local file %s", qPrintable(path));
-            return false;
+            if(!DatabaseCloudJson::exportClientsToJsonFile(sqlitePath, jsonPath))
+                return false;
+            continue;
         }
-        qInfo("CloudDiskBackend: removed local %s", qPrintable(name));
+        if(name.compare(QLatin1String("services.db"), Qt::CaseInsensitive) == 0)
+        {
+            if(!DatabaseCloudJson::exportServicesToJsonFile(jsonPath))
+                return false;
+            continue;
+        }
+
+        QString clientName;
+        QString clientId;
+        if(!DatabaseStorage::parseObjectDbFileName(name, &clientName, &clientId))
+            continue;
+        if(!DatabaseCloudJson::exportClientDbToJsonFile(clientName, clientId, jsonPath))
+            return false;
     }
+
     return true;
+}
+catch(const std::exception &error)
+{
+    qWarning("Cloud export read failed: %s", error.what());
+    return false;
 }
 
 QString CloudDiskBackend::remoteDbPath(const QString &fileName) const

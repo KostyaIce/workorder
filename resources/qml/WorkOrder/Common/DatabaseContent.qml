@@ -635,7 +635,6 @@ Item {
         function onServiceAdded() { refreshServicesList() }
         function onServiceUpdated() { refreshServicesList() }
         function onServiceDeleted() { refreshServicesList() }
-        function onErrorOccurred(error) { console.log("Ошибка:", error) }
         function onDatabaseRepaired(summary) { console.log("БД исправлена:", summary) }
     }
 
