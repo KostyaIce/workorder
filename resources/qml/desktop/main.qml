@@ -42,7 +42,7 @@ ApplicationWindow
         Rectangle
         {
             id: sidebar
-            width: 210
+            width: 92
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
@@ -51,46 +51,47 @@ ApplicationWindow
             ColumnLayout
             {
                 anchors.fill: parent
-                anchors.margins: 16
-                spacing: 8
+                anchors.margins: 8
+                spacing: 6
 
                 Label
                 {
-                    text: "WorkOrder"
-                    font.pixelSize: 24
+                    text: "WO"
+                    font.pixelSize: 18
                     font.bold: true
                     color: primaryColor
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.bottomMargin: 20
+                    Layout.topMargin: 8
+                    Layout.bottomMargin: 12
                 }
 
-                SidebarButton
+                DesktopSidebarButton
                 {
-                    text: "Создать счет"
+                    text: qsTr("Счёт")
                     iconText: "\u270F"
                     active: currentPage === 0
                     onClicked: currentPage = 0
                 }
 
-                SidebarButton
+                DesktopSidebarButton
                 {
-                    text: "База услуг"
+                    text: qsTr("Услуги")
                     iconText: "\u2630"
                     active: currentPage === 1
                     onClicked: currentPage = 1
                 }
 
-                SidebarButton
+                DesktopSidebarButton
                 {
-                    text: "Отчёты"
+                    text: qsTr("Отчёты")
                     iconText: "\u2637"
                     active: currentPage === 2
                     onClicked: currentPage = 2
                 }
 
-                SidebarButton
+                DesktopSidebarButton
                 {
-                    text: "Настройки"
+                    text: qsTr("Настройки")
                     iconText: "\u2699"
                     active: currentPage === 3
                     onClicked: currentPage = 3
@@ -101,9 +102,10 @@ ApplicationWindow
                 Label
                 {
                     text: "v" + settingsBackend.appVersion
-                    font.pixelSize: 12
+                    font.pixelSize: 10
                     color: textSecondaryColor
                     Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 4
                 }
             }
         }
@@ -189,52 +191,6 @@ ApplicationWindow
         SettingsPage
         {
             anchors.fill: parent
-        }
-    }
-
-    component SidebarButton: Rectangle
-    {
-        property string text: ""
-        property string iconText: ""
-        property bool active: false
-        signal clicked()
-
-        height: 48
-        Layout.fillWidth: true
-        color: active ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1) : "transparent"
-        radius: 8
-
-        RowLayout
-        {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            spacing: 12
-
-            Label
-            {
-                text: iconText
-                font.pixelSize: 18
-                font.bold: true
-                color: active ? primaryColor : textSecondaryColor
-                Layout.preferredWidth: 18
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            Label
-            {
-                text: parent.parent.text
-                font.pixelSize: 14
-                color: active ? primaryColor : textColor
-                Layout.fillWidth: true
-            }
-        }
-
-        MouseArea
-        {
-            anchors.fill: parent
-            onClicked: parent.clicked()
-            cursorShape: Qt.PointingHandCursor
         }
     }
 }

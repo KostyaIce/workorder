@@ -7,6 +7,7 @@ Item {
     id: root
 
     property string layoutStyle: "desktop"
+    property real bottomScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
 
     function isPercentUnit(unitValue)
@@ -567,6 +568,12 @@ Item {
                 }
             }
         }
+
+        Item
+        {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.bottomScrollPadding
+        }
     }
 
     Rectangle {
@@ -578,7 +585,7 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: compact ? 16 : 24
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: compact ? 16 : 24
+        anchors.bottomMargin: compact ? (16 + root.bottomScrollPadding) : 24
         z: 10
 
         Rectangle {

@@ -8,6 +8,7 @@ Item
 
     property bool compact: true
     property int desktopTopCardHeight: 160
+    property real bottomScrollPadding: 0
 
     Layout.fillWidth: true
     Layout.fillHeight: !compact
@@ -109,7 +110,11 @@ Item
                 }
             }
 
-            Item { Layout.preferredHeight: 20 }
+            Item
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(20, root.bottomScrollPadding)
+            }
         }
     }
 

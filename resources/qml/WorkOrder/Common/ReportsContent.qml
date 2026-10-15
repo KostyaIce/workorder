@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string layoutStyle: "desktop"
+    property real bottomScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
     readonly property int compactHorizontalMargin: 16
 
@@ -455,6 +456,12 @@ Item {
                         onClicked: reportOrderDialog.openForOrder(start_order_at)
                     }
                 }
+            }
+
+            Item
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.bottomScrollPadding
             }
         }
     }

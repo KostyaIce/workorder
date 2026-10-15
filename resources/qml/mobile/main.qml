@@ -23,6 +23,7 @@ ApplicationWindow
 
     property int currentPage: 0
     property bool startupFocusPending: true
+    readonly property real bottomTabOverlayHeight: tabBar.totalOverlayHeight
 
     function clearStartupFocus()
     {
@@ -108,95 +109,66 @@ ApplicationWindow
             anchors.top: header.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: tabBar.top
+            anchors.bottom: parent.bottom
 
             Loader
             {
+                id: invoiceLoader
                 active: currentPage === 0
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: invoicePageComponent
+                onLoaded: bindBottomScrollPadding(invoiceLoader.item)
             }
 
             Loader
             {
+                id: databaseLoader
                 active: currentPage === 1
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: databasePageComponent
+                onLoaded: bindBottomScrollPadding(databaseLoader.item)
             }
 
             Loader
             {
+                id: reportsLoader
                 active: currentPage === 2
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: reportsPageComponent
+                onLoaded: bindBottomScrollPadding(reportsLoader.item)
             }
 
             Loader
             {
+                id: settingsLoader
                 active: currentPage === 3
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: settingsPageComponent
+                onLoaded: bindBottomScrollPadding(settingsLoader.item)
             }
         }
 
-        Rectangle
+        MobileBottomTabBar
         {
             id: tabBar
-            width: parent.width
-            height: 64
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.bottom: parent.bottom
-            color: cardColor
-
-            Rectangle
-            {
-                anchors.top: parent.top
-                width: parent.width
-                height: 1
-                color: "#E0E0E0"
-            }
-
-            RowLayout
-            {
-                anchors.fill: parent
-                anchors.topMargin: 8
-
-                TabButton
-                {
-                    text: "Счет"
-                    iconText: "\u270F"
-                    active: currentPage === 0
-                    onClicked: currentPage = 0
-                }
-
-                TabButton
-                {
-                    text: "Услуги"
-                    iconText: "\u2630"
-                    active: currentPage === 1
-                    onClicked: currentPage = 1
-                }
-
-                TabButton
-                {
-                    text: "Отчёты"
-                    iconText: "\u2637"
-                    active: currentPage === 2
-                    onClicked: currentPage = 2
-                }
-
-                TabButton
-                {
-                    text: "Настройки"
-                    iconText: "\u2699"
-                    active: currentPage === 3
-                    onClicked: currentPage = 3
-                }
-            }
+            z: 20
+            currentIndex: currentPage
+            onTabActivated: function(index) { currentPage = index }
         }
+    }
+
+    function bindBottomScrollPadding(pageItem)
+    {
+        if(!pageItem || pageItem.bottomScrollPadding === undefined)
+            return
+        pageItem.bottomScrollPadding = Qt.binding(function() { return bottomTabOverlayHeight })
     }
 
     NotificationToast
@@ -241,43 +213,4 @@ ApplicationWindow
         }
     }
 
-    component TabButton: Rectangle
-    {
-        property string text: ""
-        property string iconText: ""
-        property bool active: false
-        signal clicked()
-
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        color: "transparent"
-
-        ColumnLayout
-        {
-            anchors.centerIn: parent
-            spacing: 4
-
-            Label
-            {
-                text: iconText
-                font.pixelSize: 20
-                color: active ? primaryColor : textSecondaryColor
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Label
-            {
-                text: parent.parent.text
-                font.pixelSize: 12
-                color: active ? primaryColor : textSecondaryColor
-                Layout.alignment: Qt.AlignHCenter
-            }
-        }
-
-        MouseArea
-        {
-            anchors.fill: parent
-            onClicked: parent.clicked()
-        }
-    }
 }

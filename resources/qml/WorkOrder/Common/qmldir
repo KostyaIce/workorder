@@ -51,3 +51,5 @@ ReportOrderDialog 1.0 ReportOrderDialog.qml
 ReportOptionCheckRow 1.0 ReportOptionCheckRow.qml
 ReportResultDialog 1.0 ReportResultDialog.qml
 NotificationToast 1.0 NotificationToast.qml
+MobileBottomTabBar 1.0 MobileBottomTabBar.qml
+DesktopSidebarButton 1.0 DesktopSidebarButton.qml

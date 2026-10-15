@@ -6,6 +6,7 @@ ColumnLayout {
     id: root
 
     property string layoutStyle: "desktop"
+    property real bottomScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
 
     SelectionDialog {
@@ -467,9 +468,10 @@ ColumnLayout {
             //     onClicked: settingsBackend.saveSettings()
             // }
 
-            Item {
+            Item
+            {
                 visible: compact
-                Layout.preferredHeight: 20
+                Layout.preferredHeight: Math.max(20, root.bottomScrollPadding)
             }
         }
     }
