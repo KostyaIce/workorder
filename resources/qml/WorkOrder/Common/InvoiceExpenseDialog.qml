@@ -21,17 +21,71 @@ Dialog
     title: qsTr("Добавить затраты")
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    width: Math.min(compact ? parent.width - 24 : 520, parent.width - 16)
-    height: Math.min(contentColumn.implicitHeight + header.height + footer.height + 32,
-                     parent.height - 24)
-    padding: compact ? 8 : 12
+    width: Math.min(compact ? parent.width - 32 : 520, parent.width - 16)
+    height: Math.min(contentColumn.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
+                     parent.height - 32)
+    padding: compact ? 16 : 12
 
-    background: DialogSurface { }
-
-    header: DialogTitleBar
+    background: Rectangle
     {
-        text: root.title
-        compact: root.compact
+        color: backgroundColor
+        radius: 20
+    }
+
+    header: Item
+    {
+        implicitHeight: 52
+        implicitWidth: root.width
+
+        RowLayout
+        {
+            anchors.fill: parent
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            spacing: 4
+
+            Item
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+            }
+
+            Label
+            {
+                Layout.fillWidth: true
+                text: root.title
+                font.pixelSize: 20
+                font.bold: true
+                color: textColor
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            Rectangle
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                Layout.alignment: Qt.AlignVCenter
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2715"
+                    font.pixelSize: 16
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: root.close()
+                }
+            }
+        }
     }
 
     function openForAdd()
@@ -51,8 +105,6 @@ Dialog
         {
             id: descriptionField
             Layout.fillWidth: true
-            Layout.leftMargin: 8
-            Layout.rightMargin: 8
             compact: root.compact
             preferredHeight: root.compact ? 100 : 84
             label: qsTr("Описание затрат")
@@ -61,7 +113,6 @@ Dialog
 
         Label
         {
-            Layout.leftMargin: 8
             text: qsTr("Сумма")
             font.pixelSize: 14
             color: textSecondaryColor
@@ -71,32 +122,44 @@ Dialog
         {
             id: amountField
             Layout.fillWidth: true
-            Layout.leftMargin: 8
-            Layout.rightMargin: 8
+            Layout.preferredHeight: 56
             placeholderText: qsTr("0,00 ₽")
-            horizontalAlignment: Text.AlignRight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 22
+            font.bold: true
+            leftPadding: 12
+            rightPadding: 12
             validator: RegularExpressionValidator { regularExpression: /^[0-9]*[.,]?[0-9]{0,2}$/ }
             background: Rectangle
             {
-                radius: 8
+                radius: 14
                 color: cardColor
                 border.width: amountField.activeFocus ? 2 : 1
-                border.color: amountField.activeFocus ? primaryColor : "#E0E0E0"
+                border.color: amountField.activeFocus ? primaryColor : "#E4EAF2"
             }
         }
     }
 
-    footer: DialogEdgeButtons
+    footer: Item
     {
-        width: root.width
-        cancelText: qsTr("Отмена")
-        acceptText: qsTr("Добавить")
-        acceptEnabled: root.valid
-        onCancelled: root.reject()
-        onAccepted:
+        implicitHeight: 64
+        implicitWidth: root.width
+
+        PrimaryButton
         {
-            if(reportBackend.addExpense(descriptionField.text.trim(), root.amountKopecks))
-                root.close()
+            anchors.right: parent.right
+            anchors.rightMargin: 4
+            anchors.verticalCenter: parent.verticalCenter
+            Layout.fillWidth: false
+            width: 148
+            text: qsTr("Добавить")
+            enabled: root.valid
+            onClicked:
+            {
+                if(reportBackend.addExpense(descriptionField.text.trim(), root.amountKopecks))
+                    root.close()
+            }
         }
     }
 }

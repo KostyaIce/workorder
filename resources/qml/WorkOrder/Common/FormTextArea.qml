@@ -43,14 +43,14 @@ ColumnLayout
 
         background: Rectangle
         {
-            radius: 8
+            radius: 12
             color: root.readOnly
                    ? Qt.rgba(0, 0, 0, 0.04)
                    : cardColor
             border.width: field.activeFocus && !root.readOnly ? 2 : 1
             border.color: field.activeFocus && !root.readOnly
                           ? primaryColor
-                          : "#E0E0E0"
+                          : "#E4EAF2"
         }
     }
 }

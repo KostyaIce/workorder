@@ -163,6 +163,8 @@ Dialog
                             validator: IntValidator { bottom: 100; top: 9999 }
                             onTextChanged:
                             {
+                                if(!percentField.activeFocus)
+                                    return
                                 var value = parseInt(text, 10)
                                 if(!isNaN(value))
                                     reportBackend.setCurrentPercentSum(value)
@@ -228,6 +230,8 @@ Dialog
                         text: reportBackend.currentCoefficients
                         field.onTextChanged:
                         {
+                            if(!coefficientsEdit.field.activeFocus)
+                                return
                             if(coefficientsEdit.text !== reportBackend.currentCoefficients)
                                 reportBackend.setCurrentCoefficients(coefficientsEdit.text)
                         }

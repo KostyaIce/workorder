@@ -1,4 +1,5 @@
 module WorkOrder.Common
+singleton Theme 1.0 Theme.qml
 Card 1.0 Card.qml
 PageHeader 1.0 PageHeader.qml
 DividerLine 1.0 DividerLine.qml
@@ -27,6 +28,8 @@ OutlinedIconToolButton 1.0 OutlinedIconToolButton.qml
 ServiceNameText 1.0 ServiceNameText.qml
 SubobjectSearchField 1.0 SubobjectSearchField.qml
 InvoiceFormContent 1.0 InvoiceFormContent.qml
+InvoiceMobileHome 1.0 InvoiceMobileHome.qml
+WorkOrderIcon 1.0 WorkOrderIcon.qml
 InvoiceClientField 1.0 InvoiceClientField.qml
 ClientObjectDialog 1.0 ClientObjectDialog.qml
 ClientObjectSummary 1.0 ClientObjectSummary.qml
@@ -52,4 +55,5 @@ ReportOptionCheckRow 1.0 ReportOptionCheckRow.qml
 ReportResultDialog 1.0 ReportResultDialog.qml
 NotificationToast 1.0 NotificationToast.qml
 MobileBottomTabBar 1.0 MobileBottomTabBar.qml
+MobileTopTitleBar 1.0 MobileTopTitleBar.qml
 DesktopSidebarButton 1.0 DesktopSidebarButton.qml

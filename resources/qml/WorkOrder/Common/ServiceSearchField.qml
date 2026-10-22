@@ -15,6 +15,8 @@ ColumnLayout
     property bool requireReportReady: true
     property bool preserveServiceDataOnReselect: false
     property string labelText: qsTr("Услуга")
+    // When true, matches stay in a list under the field instead of a popup.
+    property bool inlineSuggestions: false
 
     readonly property int suggestionRowHeight: compact ? 56 : 36
     readonly property int suggestionMaxRowHeight: compact ? 56 : 48
@@ -145,7 +147,7 @@ ColumnLayout
 
     function updateSuggestions()
     {
-        if(suppressSearch || hasPendingInputValue)
+        if(inlineSuggestions || suppressSearch || hasPendingInputValue)
         {
             suggestionsPopup.close()
             return
@@ -167,6 +169,7 @@ ColumnLayout
 
     Label
     {
+        visible: root.labelText !== ""
         text: root.labelText
         font.pixelSize: 14
         color: textSecondaryColor
@@ -208,26 +211,39 @@ ColumnLayout
                     commitPendingInputValue()
                 }
             }
+
+            leftPadding: 12
+            rightPadding: 12
+
+            background: Rectangle
+            {
+                radius: 12
+                color: cardColor
+                border.width: serviceInput.activeFocus ? 2 : 1
+                border.color: serviceInput.activeFocus ? primaryColor : "#E4EAF2"
+            }
         }
 
         Rectangle
         {
             id: clearFieldButton
             visible: root.reportReady && currentQuery() !== ""
-            Layout.preferredWidth: clearButtonSize
-            Layout.preferredHeight: clearButtonSize
-            radius: 8
-            color: clearFieldMouse.pressed
-                   ? Qt.darker(textSecondaryColor, 1.15)
-                   : textSecondaryColor
+            Layout.preferredWidth: root.inlineSuggestions ? 36 : clearButtonSize
+            Layout.preferredHeight: root.inlineSuggestions ? 36 : clearButtonSize
+            radius: root.inlineSuggestions ? 18 : 8
+            color: root.inlineSuggestions
+                   ? "transparent"
+                   : (clearFieldMouse.pressed
+                      ? Qt.darker(textSecondaryColor, 1.15)
+                      : textSecondaryColor)
 
             Label
             {
                 anchors.centerIn: parent
                 text: "\u2715"
-                font.pixelSize: clearButtonSize > 40 ? 18 : 16
-                font.bold: true
-                color: "white"
+                font.pixelSize: root.inlineSuggestions ? 16 : (clearButtonSize > 40 ? 18 : 16)
+                font.bold: !root.inlineSuggestions
+                color: root.inlineSuggestions ? textSecondaryColor : "white"
             }
 
             MouseArea
@@ -242,6 +258,99 @@ ColumnLayout
             {
                 visible: clearFieldMouse.containsMouse
                 text: qsTr("Очистить фильтр")
+            }
+        }
+    }
+
+    Label
+    {
+        visible: root.inlineSuggestions && currentQuery().length > 0 && servicesFilterModel.count > 0
+        text: qsTr("Найденные услуги")
+        font.pixelSize: 16
+        font.bold: true
+        color: textColor
+        Layout.topMargin: 8
+    }
+
+    ListView
+    {
+        id: inlineList
+        visible: root.inlineSuggestions && currentQuery().length > 0 && servicesFilterModel.count > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: contentHeight
+        implicitHeight: contentHeight
+        interactive: false
+        clip: false
+        spacing: 10
+        model: servicesFilterModel
+
+        delegate: Rectangle
+        {
+            id: serviceCard
+            width: inlineList.width
+            implicitHeight: serviceCardBody.implicitHeight + 20
+            height: implicitHeight
+            radius: 16
+            readonly property bool selected: reportBackend.currentServiceName === model.name
+                                              && reportBackend.currentUnit === model.unit
+                                              && reportBackend.currentPrice === model.price
+            color: selected
+                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+                   : cardColor
+            border.width: selected ? 1.5 : 1
+            border.color: selected ? primaryColor : "#E6EBF2"
+
+            RowLayout
+            {
+                id: serviceCardBody
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                spacing: 8
+
+                ColumnLayout
+                {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    ServiceNameText
+                    {
+                        text: model.name
+                        baseFontSize: 15
+                        compactFontSize: 14
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    Label
+                    {
+                        text: (model.price / 100).toFixed(2) + " \u20BD"
+                        font.pixelSize: 15
+                        font.bold: true
+                        color: primaryColor
+                    }
+                }
+
+                WorkOrderIcon
+                {
+                    name: "chevron-right"
+                    tone: "muted"
+                    Layout.preferredWidth: 16
+                    Layout.preferredHeight: 16
+                    Layout.alignment: Qt.AlignVCenter
+                }
+            }
+
+            MouseArea
+            {
+                anchors.fill: parent
+                onClicked:
+                {
+                    var sameService = serviceCard.selected
+                    if(!root.preserveServiceDataOnReselect || !sameService)
+                        reportBackend.selectService(model.id, model.name, model.unit, model.price)
+                }
             }
         }
     }

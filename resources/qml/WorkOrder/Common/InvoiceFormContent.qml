@@ -9,6 +9,7 @@ Item
     property bool compact: true
     property int desktopTopCardHeight: 160
     property real bottomScrollPadding: 0
+    property real topScrollPadding: 0
 
     Layout.fillWidth: true
     Layout.fillHeight: !compact
@@ -21,101 +22,15 @@ Item
         Layout.fillWidth: true
     }
 
-    Flickable
+    InvoiceMobileHome
     {
-        id: mobileScroll
         visible: compact
         anchors.fill: parent
-        contentWidth: width
-        contentHeight: mobileColumn.implicitHeight
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-
-        ScrollBar.vertical: ScrollBar
-        {
-            policy: ScrollBar.AsNeeded
-        }
-
-        ColumnLayout
-        {
-            id: mobileColumn
-            width: mobileScroll.width - 32
-            x: 16
-            spacing: 16
-
-            Card
-            {
-                Layout.fillWidth: true
-                compact: true
-
-                ColumnLayout
-                {
-                    width: parent.width
-                    spacing: 12
-
-                    SectionTitle
-                    {
-                        text: qsTr("Клиент и объект")
-                    }
-
-                    ClientObjectSummary
-                    {
-                        compact: true
-                        onOpenRequested: clientObjectDialog.open()
-                    }
-                }
-            }
-
-            Card
-            {
-                Layout.fillWidth: true
-                compact: true
-
-                ColumnLayout
-                {
-                    width: parent.width
-                    spacing: 8
-
-                    SectionTitle
-                    {
-                        text: qsTr("Работы")
-                    }
-
-                    PrimaryButton
-                    {
-                        text: qsTr("Добавить работу")
-                        onClicked: invoiceWorkDialog.openForAdd()
-                    }
-
-                    PrimaryButton
-                    {
-                        text: qsTr("Добавить затраты")
-                        enabled: reportBackend.selectedObjectLastOrder > 0
-                        onClicked: invoiceExpenseDialog.openForAdd()
-                    }
-                }
-            }
-
-            Card
-            {
-                Layout.fillWidth: true
-                compact: true
-
-                TotalPanel
-                {
-                    width: parent.width
-                    compact: true
-                    onClearRequested: root.clearForm()
-                    onReportOptionsRequested: reportOptionsDialog.open()
-                }
-            }
-
-            Item
-            {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(20, root.bottomScrollPadding)
-            }
-        }
+        bottomScrollPadding: root.bottomScrollPadding
+        onOpenClientRequested: clientObjectDialog.open()
+        onAddWorkRequested: invoiceWorkDialog.openForAdd()
+        onAddExpenseRequested: invoiceExpenseDialog.openForAdd()
+        onReportOptionsRequested: reportOptionsDialog.open()
     }
 
     ColumnLayout

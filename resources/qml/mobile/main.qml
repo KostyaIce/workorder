@@ -14,16 +14,17 @@ ApplicationWindow
     minimumWidth: 320
     minimumHeight: 568
 
-    property color primaryColor: "#2196F3"
-    property color secondaryColor: "#1976D2"
-    property color backgroundColor: "#F5F5F5"
-    property color cardColor: "#FFFFFF"
-    property color textColor: "#212121"
-    property color textSecondaryColor: "#757575"
+    readonly property color primaryColor: Theme.primaryColor
+    readonly property color secondaryColor: Theme.secondaryColor
+    readonly property color backgroundColor: Theme.backgroundColor
+    readonly property color cardColor: Theme.cardColor
+    readonly property color textColor: Theme.textColor
+    readonly property color textSecondaryColor: Theme.textSecondaryColor
 
     property int currentPage: 0
     property bool startupFocusPending: true
     readonly property real bottomTabOverlayHeight: tabBar.totalOverlayHeight
+    readonly property real topTitleOverlayHeight: titleBar.totalOverlayHeight
 
     function clearStartupFocus()
     {
@@ -86,30 +87,9 @@ ApplicationWindow
         anchors.fill: parent
         color: backgroundColor
 
-        Rectangle
-        {
-            id: header
-            width: parent.width
-            height: 56
-            color: primaryColor
-            z: 10
-
-            Label
-            {
-                anchors.centerIn: parent
-                text: ["Счет", "Услуги", "Отчёты", "Настройки"][currentPage]
-                font.pixelSize: 18
-                font.bold: true
-                color: "white"
-            }
-        }
-
         Item
         {
-            anchors.top: header.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.fill: parent
 
             Loader
             {
@@ -118,7 +98,7 @@ ApplicationWindow
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: invoicePageComponent
-                onLoaded: bindBottomScrollPadding(invoiceLoader.item)
+                onLoaded: bindPageChromePadding(invoiceLoader.item)
             }
 
             Loader
@@ -128,7 +108,7 @@ ApplicationWindow
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: databasePageComponent
-                onLoaded: bindBottomScrollPadding(databaseLoader.item)
+                onLoaded: bindPageChromePadding(databaseLoader.item)
             }
 
             Loader
@@ -138,7 +118,7 @@ ApplicationWindow
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: reportsPageComponent
-                onLoaded: bindBottomScrollPadding(reportsLoader.item)
+                onLoaded: bindPageChromePadding(reportsLoader.item)
             }
 
             Loader
@@ -148,8 +128,19 @@ ApplicationWindow
                 anchors.fill: parent
                 asynchronous: false
                 sourceComponent: settingsPageComponent
-                onLoaded: bindBottomScrollPadding(settingsLoader.item)
+                onLoaded: bindPageChromePadding(settingsLoader.item)
             }
+        }
+
+        MobileTopTitleBar
+        {
+            id: titleBar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            z: 20
+            visible: currentPage !== 0
+            title: [qsTr("Счет"), qsTr("Услуги"), qsTr("Отчёты"), qsTr("Настройки")][currentPage]
         }
 
         MobileBottomTabBar
@@ -164,11 +155,16 @@ ApplicationWindow
         }
     }
 
-    function bindBottomScrollPadding(pageItem)
+    function bindPageChromePadding(pageItem)
     {
-        if(!pageItem || pageItem.bottomScrollPadding === undefined)
+        if(!pageItem)
             return
-        pageItem.bottomScrollPadding = Qt.binding(function() { return bottomTabOverlayHeight })
+        if(pageItem.bottomScrollPadding !== undefined)
+            pageItem.bottomScrollPadding = Qt.binding(function() { return bottomTabOverlayHeight })
+        if(pageItem.topScrollPadding !== undefined)
+            pageItem.topScrollPadding = Qt.binding(function() {
+                return currentPage === 0 ? 0 : topTitleOverlayHeight
+            })
     }
 
     NotificationToast

@@ -25,6 +25,9 @@ function(workorder_setup_qrc_resources target)
         "${WORKORDER_ROOT}/resources/icons/appIcons/icon_win32.ico"
         "${WORKORDER_ROOT}/resources/icons/appIcons/icon_macos.icns"
     )
+    file(GLOB _ui_icons CONFIGURE_DEPENDS
+        "${WORKORDER_ROOT}/resources/icons/ui/*.png"
+    )
 
     qt_add_resources(${target} "workorder_qml_assets"
         PREFIX "/"
@@ -35,6 +38,7 @@ function(workorder_setup_qrc_resources target)
             ${_qml_common}
             ${_fonts}
             ${_app_icons}
+            ${_ui_icons}
     )
 
     set_target_properties(${target} PROPERTIES AUTORCC ON)

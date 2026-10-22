@@ -7,6 +7,7 @@ Item {
 
     property string layoutStyle: "desktop"
     property real bottomScrollPadding: 0
+    property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
     readonly property int compactHorizontalMargin: 16
 
@@ -314,6 +315,12 @@ Item {
             Layout.alignment: Qt.AlignTop
             spacing: 12
             visible: compact
+
+            Item
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.topScrollPadding
+            }
 
             WorkOrderComboBox {
                 Layout.fillWidth: true

@@ -33,7 +33,7 @@ ColumnLayout {
         rightPadding: 12
 
         background: Rectangle {
-            radius: 8
+            radius: 12
             color: root.readOnly
                    ? Qt.rgba(0, 0, 0, 0.04)
                    : cardColor

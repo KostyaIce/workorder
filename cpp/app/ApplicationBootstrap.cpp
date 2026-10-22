@@ -97,17 +97,17 @@ void ApplicationBootstrap::setupEnvironment()
 void ApplicationBootstrap::setupLightPalette(QGuiApplication &app)
 {
     QPalette palette;
-    palette.setColor(QPalette::Window, QColor("#F5F5F5"));
-    palette.setColor(QPalette::WindowText, QColor("#212121"));
+    palette.setColor(QPalette::Window, QColor("#E0ECF9"));
+    palette.setColor(QPalette::WindowText, QColor("#1B2430"));
     palette.setColor(QPalette::Base, QColor("#FFFFFF"));
-    palette.setColor(QPalette::AlternateBase, QColor("#F5F5F5"));
-    palette.setColor(QPalette::Text, QColor("#212121"));
+    palette.setColor(QPalette::AlternateBase, QColor("#E0ECF9"));
+    palette.setColor(QPalette::Text, QColor("#1B2430"));
     palette.setColor(QPalette::Button, QColor("#FFFFFF"));
-    palette.setColor(QPalette::ButtonText, QColor("#212121"));
-    palette.setColor(QPalette::Highlight, QColor("#2196F3"));
+    palette.setColor(QPalette::ButtonText, QColor("#1B2430"));
+    palette.setColor(QPalette::Highlight, QColor("#2878F5"));
     palette.setColor(QPalette::HighlightedText, QColor("#FFFFFF"));
     palette.setColor(QPalette::Mid, QColor("#E0E0E0"));
-    palette.setColor(QPalette::Dark, QColor("#757575"));
+    palette.setColor(QPalette::Dark, QColor("#8B95A5"));
     palette.setColor(QPalette::Light, QColor("#FFFFFF"));
     palette.setColor(QPalette::Shadow, QColor("#BDBDBD"));
     app.setPalette(palette);
@@ -145,12 +145,14 @@ void ApplicationBootstrap::setQmlThemeContext(QQmlContext *context)
     if(!context)
         return;
 
-    context->setContextProperty("primaryColor", "#2196F3");
-    context->setContextProperty("secondaryColor", "#1976D2");
-    context->setContextProperty("backgroundColor", "#F5F5F5");
+    // Keep in sync with resources/qml/WorkOrder/Common/Theme.qml.
+    // Context names stay available in every window, including dialogs outside the main tree.
+    context->setContextProperty("primaryColor", "#2878F5");
+    context->setContextProperty("secondaryColor", "#1F66D6");
+    context->setContextProperty("backgroundColor", "#E0ECF9");
     context->setContextProperty("cardColor", "#FFFFFF");
-    context->setContextProperty("textColor", "#212121");
-    context->setContextProperty("textSecondaryColor", "#757575");
+    context->setContextProperty("textColor", "#1B2430");
+    context->setContextProperty("textSecondaryColor", "#8B95A5");
 }
 
 void ApplicationBootstrap::applyWindowIcons(QGuiApplication &app, QQmlApplicationEngine &engine)

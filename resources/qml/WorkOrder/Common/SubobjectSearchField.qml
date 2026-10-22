@@ -114,6 +114,17 @@ ColumnLayout
                     closeSuggestionsTimer.start()
                 }
             }
+
+            leftPadding: 12
+            rightPadding: 12
+
+            background: Rectangle
+            {
+                radius: 12
+                color: cardColor
+                border.width: subobjectInputRow.activeFocus ? 2 : 1
+                border.color: subobjectInputRow.activeFocus ? primaryColor : "#E4EAF2"
+            }
         }
     }
 
@@ -150,6 +161,17 @@ ColumnLayout
             {
                 closeSuggestionsTimer.start()
             }
+        }
+
+        leftPadding: 12
+        rightPadding: 12
+
+        background: Rectangle
+        {
+            radius: 12
+            color: cardColor
+            border.width: subobjectInput.activeFocus ? 2 : 1
+            border.color: subobjectInput.activeFocus ? primaryColor : "#E4EAF2"
         }
     }
 

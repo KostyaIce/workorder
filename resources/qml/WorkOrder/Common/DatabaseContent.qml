@@ -8,6 +8,7 @@ Item {
 
     property string layoutStyle: "desktop"
     property real bottomScrollPadding: 0
+    property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
 
     function isPercentUnit(unitValue)
@@ -373,206 +374,225 @@ Item {
         }
     }
 
-    ColumnLayout {
+    Item
+    {
+        id: mobileServicesRoot
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 12
         visible: compact
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 6
+        readonly property int mobileActionsSideMargin: 14
+        readonly property int mobileActionsBarHeight: 56
+        readonly property int mobileActionsTopGap: 6
+        readonly property real mobileActionsReserveHeight:
+            mobileActionsTopGap + mobileActionsBarHeight + 8
 
-            Label {
-                text: qsTr("Услуги")
-                font.pixelSize: 20
-                font.bold: true
-                color: textColor
-            }
+        component MobileServiceActionCapsule: Rectangle
+        {
+            id: actionCapsule
 
-            Label {
-                text: "(" + servicesModel.count + ")"
-                font.pixelSize: 14
-                color: textSecondaryColor
-            }
+            property string label: ""
+            signal activated()
 
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 56
-            spacing: 8
-
-            PrimaryButton {
-                text: qsTr("Импорт")
-                filled: false
-                multiline: true
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                onClicked: importInfoDialog.open()
-            }
-
-            PrimaryButton {
-                text: qsTr("Экспорт")
-                filled: false
-                multiline: true
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                onClicked: exportInfoDialog.open()
-            }
-
-            PrimaryButton {
-                text: qsTr("Презентация")
-                filled: false
-                multiline: true
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                onClicked: presentationInfoDialog.open()
-            }
-        }
-
-        Card {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            compact: true
-            sideMargin: 0
-            verticalPadding: 6
-            horizontalPadding: 6
+            radius: 18
+            color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.88)
+            border.width: 1
+            border.color: Qt.rgba(0, 0, 0, 0.1)
 
-            ListView {
-                id: mobileList
+            PrimaryButton
+            {
                 anchors.fill: parent
-                clip: true
-                spacing: 1
-                bottomMargin: 80
-                model: servicesModel
+                anchors.margins: 4
+                text: actionCapsule.label
+                filled: false
+                multiline: true
+                onClicked: actionCapsule.activated()
+            }
+        }
 
-                section.property: "paragraph"
-                section.criteria: ViewSection.FullString
-                section.delegate: Rectangle
+        ListView
+        {
+            id: mobileList
+            anchors.fill: parent
+            clip: true
+            spacing: 0
+            model: servicesModel
+
+            header: Item
+            {
+                width: mobileList.width
+                height: root.topScrollPadding + mobileServicesRoot.mobileActionsReserveHeight
+            }
+
+            footer: Item
+            {
+                width: mobileList.width
+                height: root.bottomScrollPadding + 72
+            }
+
+            section.property: "paragraph"
+            section.criteria: ViewSection.FullString
+            section.delegate: Rectangle
+            {
+                required property string section
+
+                width: mobileList.width
+                height: section.trim() === "" ? 0 : 38
+                visible: height > 0
+                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.09)
+
+                Label
                 {
-                    required property string section
+                    anchors.fill: parent
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    text: parent.section
+                    color: textColor
+                    font.pixelSize: 14
+                    font.bold: true
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+            }
 
-                    width: mobileList.width
-                    height: section.trim() === "" ? 0 : 38
-                    visible: height > 0
-                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.09)
+            delegate: Rectangle
+            {
+                width: mobileList.width
+                height: Math.max(60, serviceRow.implicitHeight + 12)
+                color: index % 2 === 0
+                       ? Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.45)
+                       : "transparent"
 
-                    Label
+                RowLayout
+                {
+                    id: serviceRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 12
+                    anchors.topMargin: 6
+                    spacing: 8
+
+                    ColumnLayout
                     {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        text: parent.section
-                        color: textColor
-                        font.pixelSize: 14
-                        font.bold: true
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 4
+
+                        ServiceNameText
+                        {
+                            text: name
+                            baseFontSize: 15
+                            compactFontSize: 13
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout
+                        {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text
+                            {
+                                text: formatServicePrice(price, unit)
+                                font.pixelSize: 15
+                                color: primaryColor
+                                horizontalAlignment: Text.AlignRight
+                            }
+
+                            Label
+                            {
+                                text: servicePriceSuffix(unit)
+                                font.pixelSize: 15
+                                color: primaryColor
+                                font.bold: true
+                            }
+
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+
+                    ColumnLayout
+                    {
+                        Layout.alignment: Qt.AlignTop
+                        spacing: 8
+
+                        OutlinedIconToolButton
+                        {
+                            compact: root.compact
+                            tooltipText: qsTr("Редактировать")
+                            onClicked:
+                            {
+                                serviceDialog.service_id = id
+                                serviceDialog.name = name
+                                serviceDialog.price = price
+                                serviceDialog.keywords = keywords
+                                serviceDialog.unit = unit
+                                serviceDialog.note = note
+                                serviceDialog.paragraph = paragraph
+                                serviceDialog.open()
+                            }
+                        }
+
+                        OutlinedIconToolButton
+                        {
+                            compact: root.compact
+                            destructive: true
+                            tooltipText: qsTr("Удалить")
+                            onClicked:
+                            {
+                                deleteServiceDialog.id = id
+                                deleteServiceDialog.name = name
+                                deleteServiceDialog.open()
+                            }
+                        }
                     }
                 }
 
-                delegate: Rectangle {
-                    width: mobileList.width
-                    height: Math.max(60, serviceRow.implicitHeight + 12)
-                    color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
-
-                    RowLayout {
-                        id: serviceRow
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 4
-                        anchors.topMargin: 6
-                        spacing: 8
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                            spacing: 4
-
-                            ServiceNameText {
-                                text: name
-                                baseFontSize: 15
-                                compactFontSize: 13
-                                Layout.fillWidth: true
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 6
-
-                                Text {
-                                    text: formatServicePrice(price, unit)
-                                    font.pixelSize: 15
-                                    color: primaryColor
-                                    horizontalAlignment: Text.AlignRight
-                                }
-
-                                Label {
-                                    text: servicePriceSuffix(unit)
-                                    font.pixelSize: 15
-                                    color: primaryColor
-                                    font.bold: true
-                                }
-
-                                Item { Layout.fillWidth: true }
-                            }
-                        }
-
-                        ColumnLayout
-                        {
-                            Layout.alignment: Qt.AlignTop
-                            spacing: 8
-
-                            OutlinedIconToolButton
-                            {
-                                compact: root.compact
-                                tooltipText: qsTr("Редактировать")
-                                onClicked:
-                                {
-                                    serviceDialog.service_id = id
-                                    serviceDialog.name = name
-                                    serviceDialog.price = price
-                                    serviceDialog.keywords = keywords
-                                    serviceDialog.unit = unit
-                                    serviceDialog.note = note
-                                    serviceDialog.paragraph = paragraph
-                                    serviceDialog.open()
-                                }
-                            }
-
-                            OutlinedIconToolButton
-                            {
-                                compact: root.compact
-                                destructive: true
-                                tooltipText: qsTr("Удалить")
-                                onClicked:
-                                {
-                                    deleteServiceDialog.id = id
-                                    deleteServiceDialog.name = name
-                                    deleteServiceDialog.open()
-                                }
-                            }
-                        }
-                    }
-
-                    DividerLine {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        visible: index < mobileList.count - 1
-                    }
+                DividerLine
+                {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    visible: index < mobileList.count - 1
                 }
             }
         }
 
-        Item
+        RowLayout
         {
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.bottomScrollPadding
+            id: mobileActionsRow
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.leftMargin: mobileServicesRoot.mobileActionsSideMargin
+            anchors.rightMargin: mobileServicesRoot.mobileActionsSideMargin
+            anchors.topMargin: root.topScrollPadding + mobileServicesRoot.mobileActionsTopGap
+            height: mobileServicesRoot.mobileActionsBarHeight
+            spacing: 8
+            z: 12
+
+            MobileServiceActionCapsule
+            {
+                label: qsTr("Импорт")
+                onActivated: importInfoDialog.open()
+            }
+
+            MobileServiceActionCapsule
+            {
+                label: qsTr("Экспорт")
+                onActivated: exportInfoDialog.open()
+            }
+
+            MobileServiceActionCapsule
+            {
+                label: qsTr("Презентация")
+                onActivated: presentationInfoDialog.open()
+            }
         }
     }
 
@@ -586,7 +606,7 @@ Item {
         anchors.rightMargin: compact ? 16 : 24
         anchors.bottom: parent.bottom
         anchors.bottomMargin: compact ? (16 + root.bottomScrollPadding) : 24
-        z: 10
+        z: compact ? 14 : 10
 
         Rectangle {
             anchors.fill: parent

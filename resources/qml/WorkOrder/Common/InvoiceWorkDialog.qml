@@ -13,7 +13,7 @@ Dialog
     property string serviceSignature: ""
 
     readonly property bool hasService: reportBackend.currentServiceName !== ""
-    readonly property real quantity: Math.max(0.1, parseFloat(quantityField.text) || 0.1)
+    readonly property real quantity: Math.max(0.1, parseFloat(quantityField.text.replace(",", ".")) || 0.1)
     readonly property int quantityThousandths: Math.round(quantity * 1000)
     readonly property int totalPrice:
         Math.round(reportBackend.currentPrice * quantityThousandths
@@ -28,21 +28,95 @@ Dialog
     }
 
     parent: Overlay.overlay
-    anchors.centerIn: parent
     modal: true
     title: qsTr("Добавить работу")
     standardButtons: Dialog.NoButton
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    width: Math.min(compact ? parent.width - 24 : 680, parent.width - 16)
-    height: Math.min(compact ? parent.height - 24 : 650, parent.height - 24)
-    padding: compact ? 8 : 12
+    closePolicy: Popup.CloseOnEscape
+    padding: compact ? 16 : 12
+    x: parent ? (compact ? 0 : Math.round((parent.width - width) / 2)) : 0
+    y: parent ? (compact ? 0 : Math.round((parent.height - height) / 2)) : 0
+    width: parent ? (compact ? parent.width : Math.min(680, parent.width - 16)) : 360
+    height: parent ? (compact ? parent.height : Math.min(650, parent.height - 24)) : 640
 
-    background: DialogSurface { }
-
-    header: DialogTitleBar
+    background: Rectangle
     {
-        text: root.title
-        compact: root.compact
+        color: backgroundColor
+        radius: root.compact ? 0 : 14
+    }
+
+    header: Item
+    {
+        implicitHeight: 52
+        implicitWidth: root.width
+
+        RowLayout
+        {
+            anchors.fill: parent
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            spacing: 4
+
+            Rectangle
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                Layout.alignment: Qt.AlignVCenter
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2039"
+                    font.pixelSize: 28
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: root.goBack()
+                }
+            }
+
+            Label
+            {
+                Layout.fillWidth: true
+                text: root.title
+                font.pixelSize: 20
+                font.bold: true
+                color: textColor
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            Rectangle
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                Layout.alignment: Qt.AlignVCenter
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2715"
+                    font.pixelSize: 16
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: root.close()
+                }
+            }
+        }
     }
 
     function openForAdd()
@@ -73,6 +147,13 @@ Dialog
         if(serviceSignature !== "" && serviceSignature !== signature)
             quantityField.text = "1.00"
         serviceSignature = signature
+    }
+
+    function bumpQuantity(delta)
+    {
+        var raw = quantityField.text.replace(",", ".")
+        var value = Math.max(0.1, (parseFloat(raw) || 0) + delta)
+        quantityField.text = value.toFixed(2)
     }
 
     function goForward()
@@ -136,80 +217,102 @@ Dialog
             width: dialogFlickable.width
             spacing: 14
 
-            RowLayout
+            Item
             {
+                id: stepsBar
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
-                spacing: 4
+                implicitHeight: stepsRow.implicitHeight + 24
+
+                readonly property var stepTitles: [
+                    qsTr("Услуга"),
+                    qsTr("Параметры"),
+                    qsTr("Коэф."),
+                    qsTr("Итог")
+                ]
+
+                Rectangle
+                {
+                    anchors.fill: parent
+                    radius: 16
+                    color: cardColor
+                    border.width: 1
+                    border.color: "#E4EAF2"
+                }
 
                 Repeater
                 {
-                    model: 4
+                    model: 3
 
-                    RowLayout
+                    Rectangle
                     {
                         required property int index
-
-                        Layout.fillWidth: index < 3
-                        spacing: 4
-
-                        Rectangle
-                        {
-                            Layout.preferredWidth: root.compact ? 28 : 32
-                            Layout.preferredHeight: width
-                            radius: width / 2
-                            color: index + 1 <= root.currentStep ? primaryColor : "#E0E0E0"
-
-                            Label
-                            {
-                                anchors.centerIn: parent
-                                text: index + 1
-                                font.pixelSize: root.compact ? 13 : 14
-                                font.bold: true
-                                color: index + 1 <= root.currentStep ? "white" : textSecondaryColor
-                            }
-                        }
-
-                        Rectangle
-                        {
-                            visible: index < 3
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 2
-                            color: index + 1 < root.currentStep ? primaryColor : "#E0E0E0"
-                        }
+                        y: stepsRow.y + 13
+                        height: 2
+                        x: (index + 0.5) * stepsBar.width / 4
+                        width: stepsBar.width / 4
+                        color: index + 1 < root.currentStep ? primaryColor : "#E0E0E0"
                     }
                 }
-            }
 
-            RowLayout
-            {
-                Layout.fillWidth: true
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                spacing: 4
-
-                Repeater
+                Row
                 {
-                    model: [
-                        qsTr("Услуга"),
-                        qsTr("Параметры"),
-                        qsTr("Коэффициенты"),
-                        qsTr("Итог")
-                    ]
+                    id: stepsRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: implicitHeight
 
-                    Label
+                    Repeater
                     {
-                        required property int index
-                        required property string modelData
+                        model: stepsBar.stepTitles
 
-                        Layout.fillWidth: true
-                        text: modelData
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: root.compact ? 10 : 12
-                        font.bold: index + 1 === root.currentStep
-                        color: index + 1 <= root.currentStep ? primaryColor : textSecondaryColor
-                        elide: Text.ElideRight
+                        Item
+                        {
+                            required property int index
+                            required property string modelData
+
+                            width: stepsBar.width / 4
+                            implicitHeight: stepsColumn.implicitHeight
+                            height: implicitHeight
+
+                            Column
+                            {
+                                id: stepsColumn
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: parent.width - 4
+                                spacing: 4
+
+                                Rectangle
+                                {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: 28
+                                    height: 28
+                                    radius: 14
+                                    color: index + 1 <= root.currentStep ? primaryColor : "#E0E0E0"
+
+                                    Label
+                                    {
+                                        anchors.centerIn: parent
+                                        text: index + 1
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        color: index + 1 <= root.currentStep ? "white" : textSecondaryColor
+                                    }
+                                }
+
+                                Label
+                                {
+                                    width: parent.width
+                                    text: modelData
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: root.compact ? 11 : 12
+                                    font.bold: index + 1 === root.currentStep
+                                    color: index + 1 <= root.currentStep ? primaryColor : textSecondaryColor
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -221,10 +324,10 @@ Dialog
                 Layout.rightMargin: 8
                 visible: root.currentStep > 1
                 implicitHeight: previousInfo.implicitHeight + 20
-                radius: 10
-                color: backgroundColor
+                radius: 12
+                color: cardColor
                 border.width: 1
-                border.color: "#E0E0E0"
+                border.color: "#E4EAF2"
 
                 ColumnLayout
                 {
@@ -307,7 +410,7 @@ Dialog
                 Label
                 {
                     Layout.fillWidth: true
-                    text: qsTr("Найдите услугу для текущего счёта")
+                    text: qsTr("Выберите услугу для текущего счёта")
                     font.pixelSize: root.compact ? 14 : 15
                     color: textSecondaryColor
                     wrapMode: Text.WordWrap
@@ -319,12 +422,14 @@ Dialog
                     Layout.fillWidth: true
                     compact: root.compact
                     preserveServiceDataOnReselect: true
+                    inlineSuggestions: true
+                    labelText: ""
                 }
 
                 Rectangle
                 {
                     Layout.fillWidth: true
-                    visible: root.hasService
+                    visible: root.hasService && searchField.currentQuery() === ""
                     implicitHeight: selectedServiceColumn.implicitHeight + 20
                     radius: 10
                     color: backgroundColor
@@ -379,19 +484,84 @@ Dialog
                 Label
                 {
                     text: qsTr("Количество")
-                    font.pixelSize: 14
-                    color: textSecondaryColor
+                    font.pixelSize: 16
+                    font.bold: true
+                    color: textColor
                 }
 
-                TextField
+                RowLayout
                 {
-                    id: quantityField
                     Layout.fillWidth: true
-                    text: "1.00"
-                    horizontalAlignment: Text.AlignHCenter
-                    validator: RegularExpressionValidator
+                    spacing: 8
+
+                    Rectangle
                     {
-                        regularExpression: /^[0-9]*\.?[0-9]{0,2}$/
+                        Layout.preferredWidth: 56
+                        Layout.preferredHeight: 56
+                        radius: 14
+                        color: "#E7F1FE"
+
+                        Label
+                        {
+                            anchors.centerIn: parent
+                            text: "\u2212"
+                            font.pixelSize: 26
+                            color: primaryColor
+                        }
+
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            onClicked: root.bumpQuantity(-1)
+                        }
+                    }
+
+                    TextField
+                    {
+                        id: quantityField
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 56
+                        text: "1.00"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.pixelSize: 22
+                        font.bold: true
+                        leftPadding: 12
+                        rightPadding: 12
+                        validator: RegularExpressionValidator
+                        {
+                            regularExpression: /^[0-9]*[.,]?[0-9]{0,2}$/
+                        }
+
+                        background: Rectangle
+                        {
+                            radius: 14
+                            color: cardColor
+                            border.width: quantityField.activeFocus ? 2 : 1
+                            border.color: quantityField.activeFocus ? primaryColor : "#E4EAF2"
+                        }
+                    }
+
+                    Rectangle
+                    {
+                        Layout.preferredWidth: 56
+                        Layout.preferredHeight: 56
+                        radius: 14
+                        color: "#E7F1FE"
+
+                        Label
+                        {
+                            anchors.centerIn: parent
+                            text: "+"
+                            font.pixelSize: 26
+                            color: primaryColor
+                        }
+
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            onClicked: root.bumpQuantity(1)
+                        }
                     }
                 }
 
@@ -437,14 +607,16 @@ Dialog
                                 text: pickButton.modelData
                             }
 
+                            readonly property bool picked: reportBackend.currentSubObject === modelData
+
                             background: Rectangle
                             {
-                                radius: 8
-                                border.width: 1
-                                border.color: primaryColor
-                                color: pickButton.pressed
-                                       ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.22)
-                                       : Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                                radius: 12
+                                border.width: pickButton.picked ? 0 : 1
+                                border.color: "#D5DDE8"
+                                color: pickButton.picked
+                                       ? primaryColor
+                                       : (pickButton.pressed ? "#F4F7FB" : cardColor)
                             }
 
                             contentItem: Label
@@ -453,7 +625,8 @@ Dialog
 
                                 text: pickButton.modelData
                                 font.pixelSize: root.compact ? 14 : 13
-                                color: textColor
+                                font.bold: pickButton.picked
+                                color: pickButton.picked ? "white" : textColor
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 wrapMode: pickButton.usesFullWidth ? Text.WordWrap : Text.NoWrap
@@ -474,18 +647,11 @@ Dialog
                 visible: root.currentStep === 3
                 spacing: 10
 
-                CoefficientSearchField
-                {
-                    id: coefficientSearch
-                    Layout.fillWidth: true
-                    compact: root.compact
-                    clearAfterSelect: true
-                }
-
                 FormTextArea
                 {
                     id: coefficientsEdit
                     Layout.fillWidth: true
+                    visible: reportBackend.currentCoefficients !== ""
                     compact: root.compact
                     preferredHeight: root.compact ? 88 : 76
                     label: qsTr("Выбранные коэффициенты")
@@ -493,6 +659,10 @@ Dialog
                     text: reportBackend.currentCoefficients
                     field.onTextChanged:
                     {
+                        // Ignore updates pushed from the backend. Writing them back
+                        // replaces the accumulated coefficient list with a stale value.
+                        if(!coefficientsEdit.field.activeFocus)
+                            return
                         if(coefficientsEdit.text !== reportBackend.currentCoefficients)
                             reportBackend.setCurrentCoefficients(coefficientsEdit.text)
                     }
@@ -501,6 +671,7 @@ Dialog
                 RowLayout
                 {
                     Layout.fillWidth: true
+                    visible: reportBackend.currentCoefficients !== ""
                     spacing: 8
 
                     Label
@@ -516,11 +687,24 @@ Dialog
                     {
                         id: percentField
                         Layout.preferredWidth: 84
+                        Layout.preferredHeight: 40
                         horizontalAlignment: Text.AlignRight
+                        leftPadding: 10
+                        rightPadding: 10
                         text: String(reportBackend.currentPercentSum)
                         validator: IntValidator { bottom: 100; top: 9999 }
+
+                        background: Rectangle
+                        {
+                            radius: 12
+                            color: cardColor
+                            border.width: percentField.activeFocus ? 2 : 1
+                            border.color: percentField.activeFocus ? primaryColor : "#E4EAF2"
+                        }
                         onTextChanged:
                         {
+                            if(!percentField.activeFocus)
+                                return
                             var value = parseInt(text, 10)
                             if(!isNaN(value))
                                 reportBackend.setCurrentPercentSum(value)
@@ -532,6 +716,15 @@ Dialog
                         text: "%"
                         color: textSecondaryColor
                     }
+                }
+
+                CoefficientSearchField
+                {
+                    id: coefficientSearch
+                    Layout.fillWidth: true
+                    compact: root.compact
+                    clearAfterSelect: true
+                    inlineSuggestions: true
                 }
             }
 
@@ -593,14 +786,22 @@ Dialog
         }
     }
 
-    footer: DialogEdgeButtons
+    footer: Item
     {
-        width: root.width
-        cancelText: root.currentStep === 1 ? qsTr("Закрыть") : qsTr("Назад")
-        acceptText: root.currentStep === 4 ? qsTr("Добавить") : qsTr("Далее")
-        acceptEnabled: root.hasService
-        onCancelled: root.goBack()
-        onAccepted: root.goForward()
+        implicitHeight: 72
+        implicitWidth: root.width
+
+        PrimaryButton
+        {
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            Layout.fillWidth: false
+            width: 148
+            text: root.currentStep === 4 ? qsTr("Добавить") : qsTr("Далее")
+            enabled: root.hasService
+            onClicked: root.goForward()
+        }
     }
 
     Connections

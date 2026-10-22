@@ -8,6 +8,8 @@ ColumnLayout
 
     property bool compact: true
     property bool useRowLayout: false
+    // When true: show matches under the field instead of a popup.
+    property bool inlineSuggestions: false
     // When true: clear search field after picking a coefficient from suggestions.
     property bool clearAfterSelect: false
 
@@ -160,7 +162,7 @@ ColumnLayout
 
     function updateSuggestions()
     {
-        if(suppressSearch || hasPendingInputValue)
+        if(inlineSuggestions || suppressSearch || hasPendingInputValue)
         {
             suggestionsPopup.close()
             return
@@ -183,7 +185,7 @@ ColumnLayout
     Label
     {
         visible: !useRowLayout
-        text: root.clearAfterSelect ? qsTr("Выбрать другой коэффициент") : qsTr("Коэффициенты")
+        text: root.clearAfterSelect ? qsTr("Выбрать коэффициент") : qsTr("Коэффициенты")
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -196,7 +198,7 @@ ColumnLayout
 
         Label
         {
-            text: root.clearAfterSelect ? qsTr("Выбрать другой коэффициент") : qsTr("Коэффициенты")
+            text: root.clearAfterSelect ? qsTr("Выбрать коэффициент") : qsTr("Коэффициенты")
             font.pixelSize: 12
             color: textSecondaryColor
         }
@@ -206,9 +208,7 @@ ColumnLayout
             id: coefficientInputRow
             Layout.fillWidth: true
             focusPolicy: Qt.ClickFocus
-            placeholderText: root.clearAfterSelect
-                             ? qsTr("Выбрать другой коэффициент...")
-                             : qsTr("Введите название коэффициента...")
+            placeholderText: qsTr("Введите название коэффициента...")
             onTextChanged: root.runSearch()
             onDisplayTextChanged:
             {
@@ -227,6 +227,17 @@ ColumnLayout
                     root.commitPendingInputValue()
                 }
             }
+
+            leftPadding: 12
+            rightPadding: 12
+
+            background: Rectangle
+            {
+                radius: 12
+                color: cardColor
+                border.width: coefficientInputRow.activeFocus ? 2 : 1
+                border.color: coefficientInputRow.activeFocus ? primaryColor : "#E4EAF2"
+            }
         }
     }
 
@@ -236,9 +247,7 @@ ColumnLayout
         visible: !useRowLayout
         Layout.fillWidth: true
         focusPolicy: Qt.ClickFocus
-        placeholderText: root.clearAfterSelect
-                         ? qsTr("Выбрать другой коэффициент...")
-                         : qsTr("Введите название коэффициента...")
+        placeholderText: qsTr("Введите название коэффициента...")
         onTextChanged: root.runSearch()
         onDisplayTextChanged:
         {
@@ -255,6 +264,107 @@ ColumnLayout
             else
             {
                 root.commitPendingInputValue()
+            }
+        }
+
+        leftPadding: 12
+        rightPadding: 12
+
+        background: Rectangle
+        {
+            radius: 12
+            color: cardColor
+            border.width: coefficientInput.activeFocus ? 2 : 1
+            border.color: coefficientInput.activeFocus ? primaryColor : "#E4EAF2"
+        }
+    }
+
+    Label
+    {
+        visible: root.inlineSuggestions && currentQuery().length > 0 && coefficientsFilterModel.count > 0
+        text: qsTr("Найденные коэффициенты")
+        font.pixelSize: 16
+        font.bold: true
+        color: textColor
+        Layout.topMargin: 8
+    }
+
+    ListView
+    {
+        id: inlineList
+        visible: root.inlineSuggestions && currentQuery().length > 0 && coefficientsFilterModel.count > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: contentHeight
+        implicitHeight: contentHeight
+        interactive: false
+        clip: false
+        spacing: 10
+        model: coefficientsFilterModel
+
+        delegate: Rectangle
+        {
+            id: coefficientCard
+            width: inlineList.width
+            implicitHeight: coefficientCardBody.implicitHeight + 20
+            height: implicitHeight
+            radius: 16
+            color: coefficientCardMouse.pressed
+                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+                   : cardColor
+            border.width: 1
+            border.color: "#E6EBF2"
+
+            RowLayout
+            {
+                id: coefficientCardBody
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                spacing: 8
+
+                ColumnLayout
+                {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    ServiceNameText
+                    {
+                        text: model.name
+                        baseFontSize: 15
+                        compactFontSize: 14
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    Label
+                    {
+                        text: (model.price / 100).toFixed(0) + " %"
+                        font.pixelSize: 15
+                        font.bold: true
+                        color: primaryColor
+                    }
+                }
+
+                WorkOrderIcon
+                {
+                    name: "chevron-right"
+                    tone: "muted"
+                    Layout.preferredWidth: 16
+                    Layout.preferredHeight: 16
+                    Layout.alignment: Qt.AlignVCenter
+                }
+            }
+
+            MouseArea
+            {
+                id: coefficientCardMouse
+                anchors.fill: parent
+                onClicked:
+                {
+                    reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
+                    applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
+                }
             }
         }
     }

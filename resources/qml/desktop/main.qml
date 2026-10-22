@@ -14,12 +14,12 @@ ApplicationWindow
     minimumWidth: 800
     minimumHeight: 600
 
-    property color primaryColor: "#2196F3"
-    property color secondaryColor: "#1976D2"
-    property color backgroundColor: "#F5F5F5"
-    property color cardColor: "#FFFFFF"
-    property color textColor: "#212121"
-    property color textSecondaryColor: "#757575"
+    readonly property color primaryColor: Theme.primaryColor
+    readonly property color secondaryColor: Theme.secondaryColor
+    readonly property color backgroundColor: Theme.backgroundColor
+    readonly property color cardColor: Theme.cardColor
+    readonly property color textColor: Theme.textColor
+    readonly property color textSecondaryColor: Theme.textSecondaryColor
 
     property int currentPage: 0
 

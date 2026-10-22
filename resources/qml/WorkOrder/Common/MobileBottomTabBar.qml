@@ -44,7 +44,7 @@ Item
             MobileTabButton
             {
                 text: qsTr("Счет")
-                iconText: "\u270F"
+                iconName: "file-text"
                 active: root.currentIndex === 0
                 onClicked: root.tabActivated(0)
             }
@@ -52,7 +52,7 @@ Item
             MobileTabButton
             {
                 text: qsTr("Услуги")
-                iconText: "\u2630"
+                iconName: "menu"
                 active: root.currentIndex === 1
                 onClicked: root.tabActivated(1)
             }
@@ -60,7 +60,7 @@ Item
             MobileTabButton
             {
                 text: qsTr("Отчёты")
-                iconText: "\u2637"
+                iconName: "list"
                 active: root.currentIndex === 2
                 onClicked: root.tabActivated(2)
             }
@@ -68,7 +68,7 @@ Item
             MobileTabButton
             {
                 text: qsTr("Настройки")
-                iconText: "\u2699"
+                iconName: "settings"
                 active: root.currentIndex === 3
                 onClicked: root.tabActivated(3)
             }
@@ -80,7 +80,7 @@ Item
         id: tabRoot
 
         property string text: ""
-        property string iconText: ""
+        property string iconName: ""
         property bool active: false
 
         signal clicked()
@@ -102,11 +102,12 @@ Item
             anchors.centerIn: parent
             spacing: 3
 
-            Label
+            WorkOrderIcon
             {
-                text: tabRoot.iconText
-                font.pixelSize: 20
-                color: tabRoot.active ? primaryColor : textSecondaryColor
+                name: tabRoot.iconName
+                tone: tabRoot.active ? "accent" : "muted"
+                Layout.preferredWidth: 22
+                Layout.preferredHeight: 22
                 Layout.alignment: Qt.AlignHCenter
             }
 

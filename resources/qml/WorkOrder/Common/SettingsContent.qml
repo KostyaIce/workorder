@@ -7,6 +7,7 @@ ColumnLayout {
 
     property string layoutStyle: "desktop"
     property real bottomScrollPadding: 0
+    property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
 
     SelectionDialog {
@@ -78,6 +79,13 @@ ColumnLayout {
             id: settingsColumn
             width: parent.width
             spacing: 16
+
+            Item
+            {
+                visible: compact
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.topScrollPadding
+            }
 
             SettingsSection {
                 visible: false
