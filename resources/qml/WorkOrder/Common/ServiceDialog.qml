@@ -34,6 +34,12 @@ Dialog
         radius: 22
     }
 
+    function showFieldStart(input)
+    {
+        input.deselect()
+        input.cursorPosition = 0
+    }
+
     onOpened:
     {
         nameField.text = name
@@ -42,6 +48,16 @@ Dialog
         priceField.text = (price / 100).toFixed(2)
         keywordsField.text = keywords
         unitField.text = unit
+        flick.contentY = 0
+        Qt.callLater(function()
+        {
+            showFieldStart(nameField.field)
+            showFieldStart(noteField.field)
+            showFieldStart(paragraphField.field)
+            showFieldStart(priceField.field)
+            showFieldStart(keywordsField.field)
+            showFieldStart(unitField.field)
+        })
     }
 
     onAccepted:
@@ -91,56 +107,49 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 52
+        implicitHeight: Math.max(52, titleLabel.implicitHeight + 16)
         implicitWidth: root.width
 
-        RowLayout
+        Label
         {
-            anchors.fill: parent
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
-            spacing: 4
+            id: titleLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 52
+            anchors.rightMargin: 52
+            text: root.title
+            wrapMode: Text.WordWrap
+            font.pixelSize: 18
+            font.bold: true
+            color: textColor
+            horizontalAlignment: Text.AlignHCenter
+        }
 
-            Item
-            {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-            }
+        Rectangle
+        {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 40
+            height: 40
+            radius: 20
+            color: cardColor
+            border.width: 1
+            border.color: "#E4EAF2"
 
             Label
             {
-                Layout.fillWidth: true
-                text: root.title
-                font.pixelSize: 20
-                font.bold: true
+                anchors.centerIn: parent
+                text: "\u2715"
+                font.pixelSize: 16
                 color: textColor
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
             }
 
-            Rectangle
+            MouseArea
             {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-                Layout.alignment: Qt.AlignVCenter
-                radius: 20
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: "\u2715"
-                    font.pixelSize: 16
-                    color: textColor
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    onClicked: root.close()
-                }
+                anchors.fill: parent
+                onClicked: root.close()
             }
         }
     }

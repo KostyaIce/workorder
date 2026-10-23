@@ -31,6 +31,11 @@ ColumnLayout {
         color: root.readOnly ? textSecondaryColor : textColor
         leftPadding: 12
         rightPadding: 12
+        // Programmatic text leaves the caret at the end, so a long value shows its tail.
+        onTextChanged: {
+            if(!activeFocus)
+                cursorPosition = 0
+        }
 
         background: Rectangle {
             radius: 12

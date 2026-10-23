@@ -380,218 +380,502 @@ Item {
         anchors.fill: parent
         visible: compact
 
-        readonly property int mobileActionsSideMargin: 14
-        readonly property int mobileActionsBarHeight: 56
-        readonly property int mobileActionsTopGap: 6
-        readonly property real mobileActionsReserveHeight:
-            mobileActionsTopGap + mobileActionsBarHeight + 8
+        property string categoryFilter: ""
+        property bool rebuilding: false
 
-        component MobileServiceActionCapsule: Rectangle
+        // GenericModel roles follow ServiceItem::fields(): id, name, note, paragraph, price, unit, keywords.
+        function readService(row)
         {
-            id: actionCapsule
-
-            property string label: ""
-            signal activated()
-
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: 18
-            color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.88)
-            border.width: 1
-            border.color: Qt.rgba(0, 0, 0, 0.1)
-
-            PrimaryButton
-            {
-                anchors.fill: parent
-                anchors.margins: 4
-                text: actionCapsule.label
-                filled: false
-                multiline: true
-                onClicked: actionCapsule.activated()
+            var idx = servicesModel.index(row, 0)
+            return {
+                id: String(servicesModel.data(idx, Qt.UserRole + 1) || ""),
+                name: String(servicesModel.data(idx, Qt.UserRole + 2) || ""),
+                note: String(servicesModel.data(idx, Qt.UserRole + 3) || ""),
+                paragraph: String(servicesModel.data(idx, Qt.UserRole + 4) || "").trim(),
+                price: Number(servicesModel.data(idx, Qt.UserRole + 5) || 0),
+                unit: String(servicesModel.data(idx, Qt.UserRole + 6) || ""),
+                keywords: String(servicesModel.data(idx, Qt.UserRole + 7) || "")
             }
         }
 
-        ListView
+        function openServiceEditor(service)
         {
-            id: mobileList
+            serviceDialog.service_id = service.id
+            serviceDialog.name = service.name
+            serviceDialog.price = service.price
+            serviceDialog.keywords = service.keywords
+            serviceDialog.unit = service.unit
+            serviceDialog.note = service.note
+            serviceDialog.paragraph = service.paragraph
+            serviceDialog.open()
+        }
+
+        function rebuild()
+        {
+            if(rebuilding)
+                return
+            rebuilding = true
+
+            var query = serviceSearch.text.trim().toLowerCase()
+            var rows = []
+            var counts = {}
+            var total = servicesModel.count
+            for(var i = 0; i < total; ++i)
+            {
+                var item = readService(i)
+                var haystack = (item.name + " " + item.keywords).toLowerCase()
+                if(query !== "" && haystack.indexOf(query) === -1)
+                    continue
+                rows.push(item)
+                if(item.paragraph !== "")
+                    counts[item.paragraph] = (counts[item.paragraph] || 0) + 1
+            }
+
+            var keys = Object.keys(counts)
+            keys.sort()
+            var keepFilter = categoryFilter === ""
+            for(var k = 0; k < keys.length; ++k)
+            {
+                if(keys[k] === categoryFilter)
+                    keepFilter = true
+            }
+            if(!keepFilter)
+                categoryFilter = ""
+
+            categoryModel.clear()
+            categoryModel.append({ title: qsTr("Все"), key: "", count: rows.length })
+            for(var c = 0; c < keys.length; ++c)
+                categoryModel.append({ title: keys[c], key: keys[c], count: counts[keys[c]] })
+
+            mobileServiceModel.clear()
+            for(var r = 0; r < rows.length; ++r)
+            {
+                if(categoryFilter !== "" && rows[r].paragraph !== categoryFilter)
+                    continue
+                mobileServiceModel.append(rows[r])
+            }
+
+            rebuilding = false
+        }
+
+        function openServiceMenu()
+        {
+            var pos = moreButton.mapToItem(Overlay.overlay, moreButton.width - serviceMenu.width, moreButton.height + 6)
+            serviceMenu.x = Math.max(8, pos.x)
+            serviceMenu.y = pos.y
+            serviceMenu.open()
+        }
+
+        ListModel { id: categoryModel }
+        ListModel { id: mobileServiceModel }
+
+        Connections
+        {
+            target: servicesModel
+            function onSizeChanged() { mobileServicesRoot.rebuild() }
+        }
+
+        Component.onCompleted: mobileServicesRoot.rebuild()
+
+        ColumnLayout
+        {
             anchors.fill: parent
-            clip: true
-            spacing: 0
-            model: servicesModel
+            anchors.topMargin: root.topScrollPadding + 8
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            spacing: 12
 
-            header: Item
+            RowLayout
             {
-                width: mobileList.width
-                height: root.topScrollPadding + mobileServicesRoot.mobileActionsReserveHeight
-            }
-
-            footer: Item
-            {
-                width: mobileList.width
-                height: root.bottomScrollPadding + 72
-            }
-
-            section.property: "paragraph"
-            section.criteria: ViewSection.FullString
-            section.delegate: Rectangle
-            {
-                required property string section
-
-                width: mobileList.width
-                height: section.trim() === "" ? 0 : 38
-                visible: height > 0
-                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.09)
+                Layout.fillWidth: true
+                spacing: 8
 
                 Label
                 {
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    text: parent.section
+                    Layout.fillWidth: true
+                    text: qsTr("Услуги")
+                    font.pixelSize: 28
+                    font.weight: Font.Black
                     color: textColor
-                    font.pixelSize: 14
-                    font.bold: true
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
+                }
+
+                Rectangle
+                {
+                    id: moreButton
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 36
+                    radius: 18
+                    color: cardColor
+                    border.width: 1
+                    border.color: "#E4EAF2"
+
+                    Column
+                    {
+                        anchors.centerIn: parent
+                        spacing: 3
+
+                        Repeater
+                        {
+                            model: 3
+                            Rectangle
+                            {
+                                width: 4
+                                height: 4
+                                radius: 2
+                                color: textSecondaryColor
+                            }
+                        }
+                    }
+
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked: mobileServicesRoot.openServiceMenu()
+                    }
                 }
             }
 
-            delegate: Rectangle
+            Rectangle
             {
-                width: mobileList.width
-                height: Math.max(60, serviceRow.implicitHeight + 12)
-                color: index % 2 === 0
-                       ? Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.45)
-                       : "transparent"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                radius: 14
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
 
-                RowLayout
+                Item
                 {
-                    id: serviceRow
                     anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 12
-                    anchors.topMargin: 6
-                    spacing: 8
+                    anchors.leftMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 18
+                    height: 18
 
-                    ColumnLayout
+                    Rectangle
                     {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                        spacing: 4
+                        width: 11
+                        height: 11
+                        radius: 6
+                        color: "transparent"
+                        border.width: 1.6
+                        border.color: textSecondaryColor
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                    }
 
-                        ServiceNameText
+                    Rectangle
+                    {
+                        width: 6
+                        height: 1.6
+                        radius: 1
+                        color: textSecondaryColor
+                        rotation: 45
+                        transformOrigin: Item.Center
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.rightMargin: 1
+                        anchors.bottomMargin: 2
+                    }
+                }
+
+                TextField
+                {
+                    id: serviceSearch
+                    anchors.fill: parent
+                    anchors.leftMargin: 34
+                    anchors.rightMargin: 8
+                    placeholderText: qsTr("Поиск услуг...")
+                    font.pixelSize: 15
+                    color: textColor
+                    leftPadding: 4
+                    rightPadding: 8
+                    verticalAlignment: Text.AlignVCenter
+                    background: Rectangle { color: "transparent" }
+                    onTextChanged: mobileServicesRoot.rebuild()
+                }
+            }
+
+            Flickable
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 36
+                contentWidth: chipRow.width
+                contentHeight: height
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.HorizontalFlick
+
+                Row
+                {
+                    id: chipRow
+                    spacing: 8
+                    height: 36
+
+                    Repeater
+                    {
+                        model: categoryModel
+
+                        Rectangle
                         {
-                            text: name
-                            baseFontSize: 15
-                            compactFontSize: 13
-                            Layout.fillWidth: true
-                        }
+                            required property string title
+                            required property string key
+                            required property int count
 
-                        RowLayout
-                        {
-                            Layout.fillWidth: true
-                            spacing: 6
+                            readonly property bool selected: mobileServicesRoot.categoryFilter === key
 
-                            Text
+                            width: chipLabel.implicitWidth + 28
+                            height: 36
+                            radius: 12
+                            color: selected ? primaryColor : cardColor
+                            border.width: selected ? 0 : 1
+                            border.color: "#E4EAF2"
+
+                            Label
                             {
-                                text: formatServicePrice(price, unit)
-                                font.pixelSize: 15
-                                color: primaryColor
-                                horizontalAlignment: Text.AlignRight
+                                id: chipLabel
+                                anchors.centerIn: parent
+                                text: title + " (" + count + ")"
+                                font.pixelSize: 14
+                                font.bold: selected
+                                color: selected ? "white" : textColor
+                            }
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                onClicked:
+                                {
+                                    mobileServicesRoot.categoryFilter = key
+                                    mobileServicesRoot.rebuild()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ListView
+            {
+                id: mobileList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 10
+                boundsBehavior: Flickable.StopAtBounds
+                model: mobileServiceModel
+
+                header: Label
+                {
+                    width: mobileList.width
+                    height: mobileServiceModel.count === 0 ? 48 : 0
+                    visible: height > 0
+                    text: qsTr("Услуги не найдены")
+                    color: textSecondaryColor
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                footer: Item
+                {
+                    width: mobileList.width
+                    height: root.bottomScrollPadding + 72
+                }
+
+                delegate: Rectangle
+                {
+                    id: serviceCard
+
+                    required property string id
+                    required property string name
+                    required property string note
+                    required property string paragraph
+                    required property real price
+                    required property string unit
+                    required property string keywords
+
+                    width: mobileList.width
+                    implicitHeight: serviceBody.implicitHeight + 24
+                    height: implicitHeight
+                    radius: 16
+                    color: cardColor
+
+                    RowLayout
+                    {
+                        id: serviceBody
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 8
+
+                        ColumnLayout
+                        {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Label
+                            {
+                                visible: serviceCard.paragraph !== ""
+                                text: serviceCard.paragraph
+                                font.pixelSize: 12
+                                color: textSecondaryColor
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
                             }
 
                             Label
                             {
-                                text: servicePriceSuffix(unit)
+                                text: serviceCard.name
                                 font.pixelSize: 15
-                                color: primaryColor
                                 font.bold: true
+                                color: textColor
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
                             }
 
-                            Item { Layout.fillWidth: true }
+                            Label
+                            {
+                                text: formatServicePrice(serviceCard.price, serviceCard.unit)
+                                      + " " + servicePriceSuffix(serviceCard.unit)
+                                font.pixelSize: 15
+                                font.bold: true
+                                color: primaryColor
+                            }
+                        }
+
+                        Row
+                        {
+                            Layout.alignment: Qt.AlignVCenter
+                            spacing: 8
+
+                            Rectangle
+                            {
+                                width: 36
+                                height: 36
+                                radius: 10
+                                color: "#E7F1FE"
+
+                                WorkOrderIcon
+                                {
+                                    anchors.centerIn: parent
+                                    name: "edit"
+                                    tone: "accent"
+                                    width: 18
+                                    height: 18
+                                }
+
+                                MouseArea
+                                {
+                                    anchors.fill: parent
+                                    onClicked: mobileServicesRoot.openServiceEditor(serviceCard)
+                                }
+                            }
+
+                            Rectangle
+                            {
+                                width: 36
+                                height: 36
+                                radius: 10
+                                color: "#FDECEC"
+
+                                Image
+                                {
+                                    anchors.centerIn: parent
+                                    width: 18
+                                    height: 18
+                                    source: "qrc:/resources/icons/ui/delete_danger.png"
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    mipmap: true
+                                    sourceSize.width: 96
+                                    sourceSize.height: 96
+                                }
+
+                                MouseArea
+                                {
+                                    anchors.fill: parent
+                                    onClicked:
+                                    {
+                                        deleteServiceDialog.id = serviceCard.id
+                                        deleteServiceDialog.name = serviceCard.name
+                                        deleteServiceDialog.open()
+                                    }
+                                }
+                            }
                         }
                     }
-
-                    ColumnLayout
-                    {
-                        Layout.alignment: Qt.AlignTop
-                        spacing: 8
-
-                        OutlinedIconToolButton
-                        {
-                            compact: root.compact
-                            tooltipText: qsTr("Редактировать")
-                            onClicked:
-                            {
-                                serviceDialog.service_id = id
-                                serviceDialog.name = name
-                                serviceDialog.price = price
-                                serviceDialog.keywords = keywords
-                                serviceDialog.unit = unit
-                                serviceDialog.note = note
-                                serviceDialog.paragraph = paragraph
-                                serviceDialog.open()
-                            }
-                        }
-
-                        OutlinedIconToolButton
-                        {
-                            compact: root.compact
-                            destructive: true
-                            tooltipText: qsTr("Удалить")
-                            onClicked:
-                            {
-                                deleteServiceDialog.id = id
-                                deleteServiceDialog.name = name
-                                deleteServiceDialog.open()
-                            }
-                        }
-                    }
-                }
-
-                DividerLine
-                {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    visible: index < mobileList.count - 1
                 }
             }
+
         }
 
-        RowLayout
+        Popup
         {
-            id: mobileActionsRow
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.leftMargin: mobileServicesRoot.mobileActionsSideMargin
-            anchors.rightMargin: mobileServicesRoot.mobileActionsSideMargin
-            anchors.topMargin: root.topScrollPadding + mobileServicesRoot.mobileActionsTopGap
-            height: mobileServicesRoot.mobileActionsBarHeight
-            spacing: 8
-            z: 12
+            id: serviceMenu
+            parent: Overlay.overlay
+            modal: true
+            padding: 8
+            width: 196
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-            MobileServiceActionCapsule
+            background: Rectangle
             {
-                label: qsTr("Импорт")
-                onActivated: importInfoDialog.open()
+                radius: 14
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
             }
 
-            MobileServiceActionCapsule
+            contentItem: Column
             {
-                label: qsTr("Экспорт")
-                onActivated: exportInfoDialog.open()
-            }
+                spacing: 2
 
-            MobileServiceActionCapsule
-            {
-                label: qsTr("Презентация")
-                onActivated: presentationInfoDialog.open()
+                Repeater
+                {
+                    model: [
+                        { label: qsTr("Импорт"), action: "import" },
+                        { label: qsTr("Экспорт"), action: "export" },
+                        { label: qsTr("Презентация"), action: "presentation" }
+                    ]
+
+                    Rectangle
+                    {
+                        required property var modelData
+                        width: serviceMenu.availableWidth
+                        height: 40
+                        radius: 10
+                        color: menuMouse.containsMouse ? "#F4F7FB" : "transparent"
+
+                        Label
+                        {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            text: modelData.label
+                            font.pixelSize: 15
+                            color: textColor
+                        }
+
+                        MouseArea
+                        {
+                            id: menuMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked:
+                            {
+                                serviceMenu.close()
+                                if(modelData.action === "import")
+                                    importInfoDialog.open()
+                                else if(modelData.action === "export")
+                                    exportInfoDialog.open()
+                                else
+                                    presentationInfoDialog.open()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -600,8 +884,10 @@ Item {
         id: addServiceButton
         width: 56
         height: 56
-        radius: 10
-        color: addServiceArea.pressed ? Qt.darker(primaryColor, 1.2) : primaryColor
+        radius: compact ? 28 : 10
+        color: compact
+               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, addServiceArea.pressed ? 0.72 : 0.82)
+               : (addServiceArea.pressed ? Qt.darker(primaryColor, 1.2) : primaryColor)
         anchors.right: parent.right
         anchors.rightMargin: compact ? 16 : 24
         anchors.bottom: parent.bottom
@@ -609,6 +895,7 @@ Item {
         z: compact ? 14 : 10
 
         Rectangle {
+            visible: !compact
             anchors.fill: parent
             anchors.topMargin: 3
             anchors.bottomMargin: -3
