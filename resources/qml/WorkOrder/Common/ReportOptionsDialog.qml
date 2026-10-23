@@ -30,10 +30,23 @@ Dialog
         var info = settingsBackend.personalInfo.trim()
         return info !== "" ? info : "—"
     }
-    readonly property string reportHeaderPreview:
+    readonly property bool canSave: reportBackend.selectedClientId !== ""
+                                 && reportBackend.selectedObjectName !== ""
+
+    function formatMoney(cents)
     {
-        var text = reportOptionsBackend.reportHeaderText.trim()
-        return text !== "" ? text : qsTr("ОТЧЁТ О ПРОДЕЛАННЫХ РАБОТАХ")
+        var negative = cents < 0
+        var fixed = (Math.abs(cents) / 100).toFixed(2)
+        var parts = fixed.split(".")
+        var whole = parts[0]
+        var grouped = ""
+        for(var i = 0; i < whole.length; ++i)
+        {
+            if(i > 0 && (whole.length - i) % 3 === 0)
+                grouped += " "
+            grouped += whole.charAt(i)
+        }
+        return (negative ? "-" : "") + grouped + "." + parts[1] + " \u20BD"
     }
 
     parent: Overlay.overlay
@@ -41,16 +54,15 @@ Dialog
     modal: true
     title: qsTr("Параметры отчёта")
     standardButtons: Dialog.NoButton
-    width: compact ? parent.width - 32 : 820
-    height: compact ? parent.height * 0.85 : 560
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 16
+    width: Math.min(compact ? parent.width - 24 : 560, parent.width - 16)
+    height: Math.min(compact ? parent.height - 32 : 760, parent.height - 24)
 
-    background: DialogSurface { }
-
-    header: DialogTitleBar
+    background: Rectangle
     {
-        text: root.title
-        compact: root.compact
+        color: backgroundColor
+        radius: 22
     }
 
     FileDialog
@@ -90,396 +102,319 @@ Dialog
         reportOptionsBackend.clearOrderSelection()
         reportBackend.refreshOrders()
         resetOrdersList()
+        optionsFlick.contentY = 0
     }
 
-    component OrderCheckDelegate: CheckDelegate
+    component OrderCheckCard: Rectangle
     {
+        id: orderCard
+
         required property int start_order_at
         required property int total_price
 
-        text: qsTr("Счет на %1 — %2 \u20BD")
-                .arg(
-                    Qt.formatDateTime(
-                        new Date(start_order_at * 1000),
-                        "dd.MM.yyyy hh:mm"
-                    )
-                )
-                .arg((total_price / 100).toFixed(2))
-        checked: reportBackend.selectedObjectLastOrder === start_order_at
+        property bool selected: false
+
+        function syncSelected()
+        {
+            selected = reportOptionsBackend.orderSelected(start_order_at)
+        }
+
+        Layout.fillWidth: true
+        implicitHeight: Math.max(52, orderLabel.implicitHeight + 24)
+        radius: 14
+        color: selected
+               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+               : cardColor
+        border.width: selected ? 1.5 : 1
+        border.color: selected ? primaryColor : "#E4EAF2"
 
         Component.onCompleted:
         {
-            reportOptionsBackend.setOrderSelected(start_order_at, checked)
+            reportOptionsBackend.setOrderSelected(
+                start_order_at,
+                reportBackend.selectedObjectLastOrder === start_order_at)
+            syncSelected()
         }
 
-        onToggled: reportOptionsBackend.setOrderSelected(start_order_at, checked)
-    }
-
-    contentItem: ColumnLayout
-    {
-        spacing: 12
+        Connections
+        {
+            target: reportOptionsBackend
+            function onOrderSelectionChanged()
+            {
+                orderCard.syncSelected()
+            }
+        }
 
         RowLayout
         {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: compact ? 12 : 16
-            visible: !compact
+            anchors.fill: parent
+            anchors.leftMargin: 14
+            anchors.rightMargin: 12
+            spacing: 10
 
-            ColumnLayout
+            Label
             {
-                Layout.preferredWidth: 400
-                Layout.fillHeight: true
-                spacing: 8
+                id: orderLabel
+                Layout.fillWidth: true
+                text: qsTr("Счет на %1 — %2")
+                      .arg(Qt.formatDateTime(new Date(orderCard.start_order_at * 1000), "dd.MM.yyyy HH:mm"))
+                      .arg(root.formatMoney(orderCard.total_price))
+                font.pixelSize: 14
+                font.bold: orderCard.selected
+                color: textColor
+                wrapMode: Text.WordWrap
+            }
+
+            Rectangle
+            {
+                Layout.alignment: Qt.AlignVCenter
+                width: 22
+                height: 22
+                radius: 6
+                color: orderCard.selected ? primaryColor : "transparent"
+                border.width: orderCard.selected ? 0 : 1.5
+                border.color: "#C5CEDA"
+
+                WorkOrderIcon
+                {
+                    anchors.centerIn: parent
+                    visible: orderCard.selected
+                    name: "check"
+                    tone: "white"
+                    width: 14
+                    height: 14
+                }
+            }
+        }
+
+        MouseArea
+        {
+            anchors.fill: parent
+            z: 1
+            preventStealing: true
+            onClicked: reportOptionsBackend.setOrderSelected(orderCard.start_order_at, !orderCard.selected)
+        }
+    }
+
+    header: Item
+    {
+        implicitHeight: 52
+        implicitWidth: root.width
+
+        Label
+        {
+            anchors.left: parent.left
+            anchors.right: closeMark.left
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 16
+            anchors.rightMargin: 8
+            text: root.title
+            font.pixelSize: 22
+            font.bold: true
+            color: textColor
+            elide: Text.ElideRight
+        }
+
+        Item
+        {
+            id: closeMark
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 40
+            height: 40
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: "\u2715"
+                font.pixelSize: 18
+                color: textSecondaryColor
+            }
+
+            MouseArea
+            {
+                anchors.fill: parent
+                onClicked: root.close()
+            }
+        }
+    }
+
+    footer: Item
+    {
+        implicitHeight: 72
+        implicitWidth: root.width
+
+        RowLayout
+        {
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.bottomMargin: 12
+            spacing: 10
+
+            Rectangle
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                radius: 14
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
 
                 Label
                 {
-                    text: qsTr("Счета")
-                    font.pixelSize: 14
-                    font.bold: true
-                    color: textColor
+                    anchors.centerIn: parent
+                    text: qsTr("Закрыть")
+                    font.pixelSize: 16
+                    color: textSecondaryColor
                 }
 
-                ScrollView
+                MouseArea
                 {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-
-                    ListView
-                    {
-                        id: ordersCheckList
-                        width: parent.width
-                        spacing: 4
-                        model: ordersListReady && !compact ? ordersModel : null
-
-                        delegate: OrderCheckDelegate
-                        {
-                            width: ordersCheckList.width
-                        }
-                    }
+                    anchors.fill: parent
+                    onClicked: root.close()
                 }
             }
 
             Rectangle
             {
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                color: "#E0E0E0"
-            }
-
-            ColumnLayout
-            {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 280
-                spacing: 8
+                Layout.preferredHeight: 48
+                radius: 14
+                color: root.canSave ? primaryColor : "#CCCCCC"
 
                 Label
                 {
-                    text: qsTr("Параметры отчёта")
-                    font.pixelSize: 14
+                    anchors.centerIn: parent
+                    text: qsTr("Сохранить")
+                    font.pixelSize: 16
                     font.bold: true
-                    color: textColor
+                    color: "white"
                 }
 
-                Flickable
+                MouseArea
                 {
-                    id: optionsFlickableDesktop
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    contentWidth: width
-                    contentHeight: optionsColumnDesktop.implicitHeight
-
-                    ScrollBar.vertical: ScrollBar
-                    {
-                        policy: ScrollBar.AsNeeded
-                    }
-
-                    ScrollBar.horizontal: ScrollBar
-                    {
-                        policy: ScrollBar.AlwaysOff
-                    }
-
-                    ColumnLayout
-                    {
-                        id: optionsColumnDesktop
-                        width: optionsFlickableDesktop.width - 8
-                        x: 4
-                        spacing: 4
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указать имя заказчика")
-                            previewText: root.clientNamePreview
-                            checked: reportOptionsBackend.includeClientName
-                            onCheckStateChanged: (value) => reportOptionsBackend.includeClientName = value
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указать адрес заказчика")
-                            previewText: root.clientAddressPreview
-                            checked: reportOptionsBackend.includeClientAddress
-                            onCheckStateChanged: (value) => reportOptionsBackend.includeClientAddress = value
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указать дату формирования отчёта")
-                            previewText: root.reportDatePreview
-                            checked: reportOptionsBackend.includeReportDate
-                            onCheckStateChanged: (value) => reportOptionsBackend.includeReportDate = value
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указать информацию о себе")
-                            previewText: root.personalInfoPreview
-                            checked: reportOptionsBackend.includePersonalInfo
-                            onCheckStateChanged: (value) => reportOptionsBackend.includePersonalInfo = value
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указать шапку отчёта")
-                            previewText: root.reportHeaderPreview
-                            checked: reportOptionsBackend.includeReportHeader
-                            onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
-                        }
-
-                        FormTextArea
-                        {
-                            id: reportHeaderFieldDesktop
-                            Layout.fillWidth: true
-                            Layout.maximumWidth: optionsColumnDesktop.width
-                            visible: reportOptionsBackend.includeReportHeader
-                            label: qsTr("Шапка отчёта")
-                            placeholder: qsTr("Отчет о проделанной работе по установке сантехники")
-                            text: reportOptionsBackend.reportHeaderText
-                            compact: false
-                            preferredHeight: 80
-
-                            Connections
-                            {
-                                target: reportHeaderFieldDesktop.field
-                                function onTextChanged()
-                                {
-                                    reportOptionsBackend.reportHeaderText = reportHeaderFieldDesktop.text
-                                }
-                            }
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указывать субобъекты (иначе сплошной список)")
-                            showPreview: false
-                            checked: reportOptionsBackend.groupBySubobjects
-                            onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
-                        }
-
-                        ReportOptionCheckRow
-                        {
-                            label: qsTr("Указывать коэффициент")
-                            showPreview: false
-                            checked: reportOptionsBackend.includeCoefficients
-                            onCheckStateChanged: (value) => reportOptionsBackend.includeCoefficients = value
-                        }
-                    }
+                    anchors.fill: parent
+                    enabled: root.canSave
+                    onClicked: root.openSaveReportDialog()
                 }
             }
+        }
+    }
+
+    contentItem: Flickable
+    {
+        id: optionsFlick
+
+        clip: true
+        contentWidth: width
+        contentHeight: optionsColumn.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
+
+        ScrollBar.vertical: ScrollBar
+        {
+            policy: ScrollBar.AsNeeded
         }
 
         ColumnLayout
         {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 12
-            visible: compact
+            id: optionsColumn
+            width: optionsFlick.width
+            spacing: 10
 
             Label
             {
                 text: qsTr("Счета")
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
                 color: textColor
             }
 
-            ScrollView
+            Repeater
+            {
+                model: ordersListReady ? ordersModel : null
+
+                delegate: OrderCheckCard { }
+            }
+
+            Label
             {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 160
-                clip: true
-
-                ListView
-                {
-                    id: mobileOrdersCheckList
-                    width: parent.width
-                    spacing: 4
-                    model: ordersListReady && compact ? ordersModel : null
-
-                    delegate: OrderCheckDelegate
-                    {
-                        width: mobileOrdersCheckList.width
-                    }
-                }
+                visible: ordersListReady && ordersModel.count === 0
+                text: qsTr("Нет счетов")
+                color: textSecondaryColor
+                font.pixelSize: 13
             }
 
             Label
             {
                 text: qsTr("Параметры отчёта")
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
                 color: textColor
+                Layout.topMargin: 6
             }
 
-            Flickable
+            ReportOptionCheckRow
             {
-                id: optionsFlickableMobile
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                contentWidth: width
-                contentHeight: optionsColumnMobile.implicitHeight
-
-                ScrollBar.vertical: ScrollBar
-                {
-                    policy: ScrollBar.AsNeeded
-                }
-
-                ScrollBar.horizontal: ScrollBar
-                {
-                    policy: ScrollBar.AlwaysOff
-                }
-
-                ColumnLayout
-                {
-                    id: optionsColumnMobile
-                    width: optionsFlickableMobile.width - 8
-                    x: 4
-                    spacing: 4
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указать имя заказчика")
-                        previewText: root.clientNamePreview
-                        checked: reportOptionsBackend.includeClientName
-                        onCheckStateChanged: (value) => reportOptionsBackend.includeClientName = value
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указать адрес заказчика")
-                        previewText: root.clientAddressPreview
-                        checked: reportOptionsBackend.includeClientAddress
-                        onCheckStateChanged: (value) => reportOptionsBackend.includeClientAddress = value
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указать дату формирования отчёта")
-                        previewText: root.reportDatePreview
-                        checked: reportOptionsBackend.includeReportDate
-                        onCheckStateChanged: (value) => reportOptionsBackend.includeReportDate = value
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указать информацию о себе")
-                        previewText: root.personalInfoPreview
-                        checked: reportOptionsBackend.includePersonalInfo
-                        onCheckStateChanged: (value) => reportOptionsBackend.includePersonalInfo = value
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указать шапку отчёта")
-                        previewText: root.reportHeaderPreview
-                        checked: reportOptionsBackend.includeReportHeader
-                        onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
-                    }
-
-                    FormTextArea
-                    {
-                        id: reportHeaderFieldMobile
-                        Layout.fillWidth: true
-                        Layout.maximumWidth: optionsColumnMobile.width
-                        visible: reportOptionsBackend.includeReportHeader
-                        label: qsTr("Шапка отчёта")
-                        placeholder: qsTr("Отчет о проделанной работе по установке сантехники")
-                        text: reportOptionsBackend.reportHeaderText
-                        compact: true
-                        preferredHeight: 120
-
-                        Connections
-                        {
-                            target: reportHeaderFieldMobile.field
-                            function onTextChanged()
-                            {
-                                reportOptionsBackend.reportHeaderText = reportHeaderFieldMobile.text
-                            }
-                        }
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указывать субобъекты (иначе сплошной список)")
-                        showPreview: false
-                        checked: reportOptionsBackend.groupBySubobjects
-                        onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
-                    }
-
-                    ReportOptionCheckRow
-                    {
-                        label: qsTr("Указывать коэффициент")
-                        showPreview: false
-                        checked: reportOptionsBackend.includeCoefficients
-                        onCheckStateChanged: (value) => reportOptionsBackend.includeCoefficients = value
-                    }
-                }
+                label: qsTr("Указать имя заказчика")
+                previewText: root.clientNamePreview
+                checked: reportOptionsBackend.includeClientName
+                onCheckStateChanged: (value) => reportOptionsBackend.includeClientName = value
             }
-        }
 
-        RowLayout
-        {
-            Layout.fillWidth: true
-            spacing: 8
-            visible: !compact
-
-            PrimaryButton
+            ReportOptionCheckRow
             {
-                Layout.fillWidth: false
-                text: qsTr("Закрыть")
-                filled: false
-                onClicked: root.close()
+                label: qsTr("Указать адрес заказчика")
+                previewText: root.clientAddressPreview
+                checked: reportOptionsBackend.includeClientAddress
+                onCheckStateChanged: (value) => reportOptionsBackend.includeClientAddress = value
             }
 
-            Item { Layout.fillWidth: true }
-
-            PrimaryButton
+            ReportOptionCheckRow
             {
-                Layout.fillWidth: false
-                text: qsTr("Сохранить")
-                enabled: reportBackend.selectedClientId !== ""
-                         && reportBackend.selectedObjectName !== ""
-                onClicked: root.openSaveReportDialog()
+                label: qsTr("Указать дату формирования отчёта")
+                previewText: root.reportDatePreview
+                checked: reportOptionsBackend.includeReportDate
+                onCheckStateChanged: (value) => reportOptionsBackend.includeReportDate = value
             }
-        }
 
-        DialogEdgeButtons
-        {
-            Layout.fillWidth: true
-            visible: compact
-            width: parent.width
-            cancelText: qsTr("Закрыть")
-            acceptText: qsTr("Сохранить")
-            acceptEnabled: reportBackend.selectedClientId !== ""
-                           && reportBackend.selectedObjectName !== ""
-            onCancelled: root.close()
-            onAccepted: root.openSaveReportDialog()
+            ReportOptionCheckRow
+            {
+                label: qsTr("Указать информацию о себе")
+                previewText: root.personalInfoPreview
+                checked: reportOptionsBackend.includePersonalInfo
+                onCheckStateChanged: (value) => reportOptionsBackend.includePersonalInfo = value
+            }
+
+            ReportOptionCheckRow
+            {
+                label: qsTr("Указать шапку отчёта")
+                showPreview: false
+                showEditor: true
+                editorText: reportOptionsBackend.reportHeaderText
+                editorPlaceholder: qsTr("Отчет о проделанной работе по установке сантехники")
+                checked: reportOptionsBackend.includeReportHeader
+                onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
+                onEditorTextEdited: (value) => reportOptionsBackend.reportHeaderText = value
+            }
+
+            ReportOptionCheckRow
+            {
+                label: qsTr("Указывать субобъекты (иначе сплошной список)")
+                showPreview: false
+                checked: reportOptionsBackend.groupBySubobjects
+                onCheckStateChanged: (value) => reportOptionsBackend.groupBySubobjects = value
+            }
+
+            ReportOptionCheckRow
+            {
+                label: qsTr("Указывать коэффициент")
+                showPreview: false
+                checked: reportOptionsBackend.includeCoefficients
+                onCheckStateChanged: (value) => reportOptionsBackend.includeCoefficients = value
+            }
         }
     }
 }

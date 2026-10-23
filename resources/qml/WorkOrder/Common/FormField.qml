@@ -40,7 +40,7 @@ ColumnLayout {
             border.width: field.activeFocus && !root.readOnly ? 2 : 1
             border.color: field.activeFocus && !root.readOnly
                           ? primaryColor
-                          : "#E0E0E0"
+                          : "#E4EAF2"
         }
     }
 }

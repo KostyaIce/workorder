@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
+Dialog
+{
     id: root
 
     property bool compact: true
@@ -14,88 +15,37 @@ Dialog {
     property string note: ""
     property string paragraph: ""
 
+    readonly property bool canSave: nameField.text.trim() !== ""
+
     title: service_id === "" ? qsTr("Новая услуга") : qsTr("Изменить параметры услуги")
     standardButtons: Dialog.NoButton
     modal: true
+    parent: Overlay.overlay
     anchors.centerIn: parent
-    width: compact ? parent.width - 32 : 400
-    height: compact ? parent.height * 0.85 : 560
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    padding: 16
+    width: Math.min(compact ? parent.width - 24 : 480, parent.width - 16)
+    height: Math.min(formLayout.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
+                     parent.height - 32)
 
-    background: DialogSurface { }
-
-    header: DialogTitleBar {
-        text: root.title
-        compact: root.compact
+    background: Rectangle
+    {
+        color: backgroundColor
+        radius: 22
     }
 
-    onOpened: {
+    onOpened:
+    {
         nameField.text = name
         noteField.text = note
         paragraphField.text = paragraph
-        priceField.text = (price/100).toFixed(2)
+        priceField.text = (price / 100).toFixed(2)
         keywordsField.text = keywords
         unitField.text = unit
     }
 
-    Flickable {
-        anchors.fill: parent
-        contentHeight: formLayout.implicitHeight
-        clip: true
-        flickableDirection: Flickable.VerticalFlick
-
-        ColumnLayout {
-            id: formLayout
-            width: parent.width
-            spacing: 12
-
-            FormField {
-                label: qsTr("Название услуги")
-                placeholder: qsTr("Например: Диагностика оборудования")
-                compact: root.compact
-                id: nameField
-            }
-
-            FormField {
-                label: qsTr("Примечание")
-                placeholder: qsTr("Дополнительное описание услуги")
-                compact: root.compact
-                id: noteField
-            }
-
-            FormField {
-                label: qsTr("Тип услуги")
-                placeholder: qsTr("Например: Монтажные работы")
-                compact: root.compact
-                id: paragraphField
-            }
-
-            FormField {
-                label: qsTr("Цена")
-                placeholder: qsTr("0.00")
-                compact: root.compact
-                id: priceField
-                field.validator: RegularExpressionValidator {
-                    regularExpression: /^[0-9]+(\.[0-9]{0,2})?$/
-                }
-            }
-
-            FormField {
-                label: qsTr("Единица измерения")
-                placeholder: qsTr("шт, м символ % будет коэфициентом")
-                compact: root.compact
-                id: unitField
-            }
-
-            FormField {
-                label: qsTr("Ключевые фразы")
-                placeholder: qsTr("Через запятую: диагностика, проверка, тест")
-                compact: root.compact
-                id: keywordsField
-            }
-        }
-    }
-
-    onAccepted: {
+    onAccepted:
+    {
         var trimmedName = nameField.text.trim()
         if(trimmedName === "")
             return
@@ -109,7 +59,7 @@ Dialog {
                 "price": priceField.text,
                 "unit": unitField.text,
                 "keywords": keywordsField.text
-            };
+            }
 
             invoiceBackend.addService(data)
         }
@@ -123,7 +73,7 @@ Dialog {
                 "price": priceField.text,
                 "unit": unitField.text,
                 "keywords": keywordsField.text
-            };
+            }
             invoiceBackend.updateService(data)
         }
     }
@@ -139,11 +89,197 @@ Dialog {
         paragraph = ""
     }
 
-    footer: DialogEdgeButtons {
-        width: root.width
-        cancelText: qsTr("Отмена")
-        acceptText: qsTr("OK")
-        onCancelled: root.reject()
-        onAccepted: root.accept()
+    header: Item
+    {
+        implicitHeight: 52
+        implicitWidth: root.width
+
+        RowLayout
+        {
+            anchors.fill: parent
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            spacing: 4
+
+            Item
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+            }
+
+            Label
+            {
+                Layout.fillWidth: true
+                text: root.title
+                font.pixelSize: 20
+                font.bold: true
+                color: textColor
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            Rectangle
+            {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                Layout.alignment: Qt.AlignVCenter
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2715"
+                    font.pixelSize: 16
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: root.close()
+                }
+            }
+        }
+    }
+
+    contentItem: Flickable
+    {
+        id: flick
+        clip: true
+        contentWidth: width
+        contentHeight: formLayout.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+        ColumnLayout
+        {
+            id: formLayout
+            width: flick.width
+            spacing: 12
+
+            FormField
+            {
+                id: nameField
+                Layout.fillWidth: true
+                label: qsTr("Название услуги")
+                placeholder: qsTr("Например: Диагностика оборудования")
+                compact: root.compact
+            }
+
+            FormField
+            {
+                id: noteField
+                Layout.fillWidth: true
+                label: qsTr("Примечание")
+                placeholder: qsTr("Дополнительное описание услуги")
+                compact: root.compact
+            }
+
+            FormField
+            {
+                id: paragraphField
+                Layout.fillWidth: true
+                label: qsTr("Тип услуги")
+                placeholder: qsTr("Например: Монтажные работы")
+                compact: root.compact
+            }
+
+            FormField
+            {
+                id: priceField
+                Layout.fillWidth: true
+                label: qsTr("Цена")
+                placeholder: qsTr("0.00")
+                compact: root.compact
+                field.validator: RegularExpressionValidator
+                {
+                    regularExpression: /^[0-9]+(\.[0-9]{0,2})?$/
+                }
+            }
+
+            FormField
+            {
+                id: unitField
+                Layout.fillWidth: true
+                label: qsTr("Единица измерения")
+                placeholder: qsTr("шт, м символ % будет коэфициентом")
+                compact: root.compact
+            }
+
+            FormField
+            {
+                id: keywordsField
+                Layout.fillWidth: true
+                label: qsTr("Ключевые фразы")
+                placeholder: qsTr("Через запятую: диагностика, проверка, тест")
+                compact: root.compact
+            }
+        }
+    }
+
+    footer: Item
+    {
+        implicitHeight: 72
+        implicitWidth: root.width
+
+        RowLayout
+        {
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.bottomMargin: 12
+            spacing: 10
+
+            Rectangle
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                radius: 14
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: qsTr("Закрыть")
+                    font.pixelSize: 16
+                    color: textSecondaryColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: root.reject()
+                }
+            }
+
+            Rectangle
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                radius: 14
+                color: root.canSave ? primaryColor : "#CCCCCC"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: root.service_id === "" ? qsTr("Добавить") : qsTr("Сохранить")
+                    font.pixelSize: 16
+                    font.bold: true
+                    color: "white"
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    enabled: root.canSave
+                    onClicked: root.accept()
+                }
+            }
+        }
     }
 }

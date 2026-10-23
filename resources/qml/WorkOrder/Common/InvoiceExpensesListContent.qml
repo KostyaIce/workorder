@@ -7,8 +7,26 @@ ColumnLayout
     id: root
 
     property bool compact: true
+    // Negative limit shows every line.
+    property int itemLimit: -1
 
-    spacing: 8
+    spacing: 10
+
+    function formatMoney(cents)
+    {
+        var negative = cents < 0
+        var fixed = (Math.abs(cents) / 100).toFixed(2)
+        var parts = fixed.split(".")
+        var whole = parts[0]
+        var grouped = ""
+        for(var i = 0; i < whole.length; ++i)
+        {
+            if(i > 0 && (whole.length - i) % 3 === 0)
+                grouped += " "
+            grouped += whole.charAt(i)
+        }
+        return (negative ? "-" : "") + grouped + "." + parts[1] + " \u20BD"
+    }
 
     InvoiceExpenseEditDialog
     {
@@ -16,63 +34,49 @@ ColumnLayout
         compact: root.compact
     }
 
-    Rectangle
+    Repeater
     {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        Layout.minimumHeight: root.compact ? 160 : 200
-        color: cardColor
-        radius: 8
-        border.color: "#E0E0E0"
-        border.width: 1
-        clip: true
+        model: expensesModel
 
-        ListView
+        delegate: Rectangle
         {
-            id: expensesList
-            anchors.fill: parent
-            anchors.margins: root.compact ? 4 : 8
-            clip: true
-            model: expensesModel
+            id: expenseCard
 
-            delegate: Item
+            required property int index
+            required property var model
+
+            readonly property string expenseId: String(model.id)
+
+            Layout.fillWidth: true
+            visible: root.itemLimit < 0 || index < root.itemLimit
+            implicitHeight: expenseBody.implicitHeight + 24
+            radius: 16
+            color: cardColor
+
+            RowLayout
             {
-                id: expenseDelegate
+                id: expenseBody
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                spacing: 8
 
-                required property int index
-                required property var model
-
-                readonly property string expenseId: String(model.id)
-
-                width: expensesList.width
-                height: expenseRow.implicitHeight + (root.compact ? 12 : 16)
-
-                Rectangle
+                ColumnLayout
                 {
-                    anchors.fill: parent
-                    color: expenseDelegate.index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
-                }
+                    Layout.fillWidth: true
+                    spacing: 2
 
-                RowLayout
-                {
-                    id: expenseRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: root.compact ? 6 : 8
-                    spacing: 8
-
-                    ColumnLayout
+                    RowLayout
                     {
                         Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignTop
-                        spacing: 4
+                        spacing: 8
 
                         Label
                         {
                             Layout.fillWidth: true
-                            text: model.description
-                            font.pixelSize: root.compact ? 14 : 15
+                            text: expenseCard.model.description
+                            font.pixelSize: 15
                             font.bold: true
                             color: textColor
                             wrapMode: Text.WordWrap
@@ -80,42 +84,77 @@ ColumnLayout
 
                         Label
                         {
-                            Layout.fillWidth: true
-                            text: qsTr("Добавлено: %1").arg(
-                                Qt.formatDateTime(new Date(model.created_at * 1000), "dd.MM.yyyy hh:mm"))
-                            font.pixelSize: 12
-                            color: textSecondaryColor
-                            wrapMode: Text.WordWrap
+                            text: root.formatMoney(expenseCard.model.amount)
+                            font.pixelSize: 15
+                            font.bold: true
+                            color: primaryColor
                         }
                     }
 
                     Label
                     {
-                        Layout.alignment: Qt.AlignTop
-                        text: (model.amount / 100).toFixed(2) + " \u20BD"
-                        font.pixelSize: root.compact ? 14 : 15
-                        font.bold: true
-                        color: primaryColor
+                        Layout.fillWidth: true
+                        visible: expenseCard.model.created_at > 0
+                        text: qsTr("Добавлено: %1").arg(
+                            Qt.formatDateTime(new Date(expenseCard.model.created_at * 1000), "dd.MM.yyyy hh:mm"))
+                        font.pixelSize: 12
+                        color: textSecondaryColor
+                        wrapMode: Text.WordWrap
                     }
+                }
 
-                    ColumnLayout
+                Row
+                {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 8
+
+                    Rectangle
                     {
-                        Layout.alignment: Qt.AlignTop
-                        spacing: 8
+                        width: 36
+                        height: 36
+                        radius: 10
+                        color: "#E7F1FE"
 
-                        OutlinedIconToolButton
+                        WorkOrderIcon
                         {
-                            compact: root.compact
-                            tooltipText: qsTr("Редактировать")
-                            onClicked: editDialog.openForEdit(expenseDelegate.expenseId)
+                            anchors.centerIn: parent
+                            name: "edit"
+                            tone: "accent"
+                            width: 18
+                            height: 18
                         }
 
-                        OutlinedIconToolButton
+                        MouseArea
                         {
-                            compact: root.compact
-                            destructive: true
-                            tooltipText: qsTr("Удалить")
-                            onClicked: reportBackend.deleteExpense(expenseDelegate.expenseId)
+                            anchors.fill: parent
+                            onClicked: editDialog.openForEdit(expenseCard.expenseId)
+                        }
+                    }
+
+                    Rectangle
+                    {
+                        width: 36
+                        height: 36
+                        radius: 10
+                        color: "#FDECEC"
+
+                        Image
+                        {
+                            anchors.centerIn: parent
+                            width: 18
+                            height: 18
+                            source: "qrc:/resources/icons/ui/delete_danger.png"
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: true
+                            sourceSize.width: 96
+                            sourceSize.height: 96
+                        }
+
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            onClicked: reportBackend.deleteExpense(expenseCard.expenseId)
                         }
                     }
                 }
