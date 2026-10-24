@@ -12,6 +12,17 @@ ColumnLayout
 
     spacing: 10
 
+    ConfirmDialog
+    {
+        id: deleteConfirm
+        parent: Overlay.overlay
+        compact: root.compact
+        title: qsTr("Удаление")
+        message: qsTr("Вы действительно хотите удалить?")
+        property string itemId: ""
+        onAccepted: reportBackend.deleteWork(itemId)
+    }
+
     function formatMoney(cents)
     {
         var negative = cents < 0
@@ -201,7 +212,11 @@ ColumnLayout
                         MouseArea
                         {
                             anchors.fill: parent
-                            onClicked: reportBackend.deleteWork(workCard.workId)
+                            onClicked:
+                            {
+                                deleteConfirm.itemId = workCard.workId
+                                deleteConfirm.open()
+                            }
                         }
                     }
                 }

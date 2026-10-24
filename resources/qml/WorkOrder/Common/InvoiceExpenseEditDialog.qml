@@ -42,7 +42,15 @@ Dialog
         if(!expense || Object.keys(expense).length === 0)
             return
 
-        expenseId = id
+        openWithData(expense)
+    }
+
+    function openWithData(expense)
+    {
+        if(!expense || !expense.id)
+            return
+
+        expenseId = expense.id
         descriptionField.text = expense.description || ""
         amountField.text = (Number(expense.amount) / 100).toFixed(2)
         open()

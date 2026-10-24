@@ -15,12 +15,20 @@ struct OrderItem : public GenericItem
 {
     qint64 startOrderAt = 0;
     double totalPrice = 0.0;
+    int workCount = 0;
+    int expenseCount = 0;
+    qint64 worksTotal = 0;
+    qint64 expensesTotal = 0;
 
     static OrderItem fromMap(const QVariantMap &map)
     {
         OrderItem item;
         item.startOrderAt = map.value("start_order_at").toLongLong();
         item.totalPrice = map.value("total_price").toDouble();
+        item.workCount = map.value("work_count").toInt();
+        item.expenseCount = map.value("expense_count").toInt();
+        item.worksTotal = map.value("works_total").toLongLong();
+        item.expensesTotal = map.value("expenses_total").toLongLong();
         return item;
     }
 
@@ -29,6 +37,10 @@ struct OrderItem : public GenericItem
         QVariantMap map;
         map.insert("start_order_at", startOrderAt);
         map.insert("total_price", totalPrice);
+        map.insert("work_count", workCount);
+        map.insert("expense_count", expenseCount);
+        map.insert("works_total", worksTotal);
+        map.insert("expenses_total", expensesTotal);
         return map;
     }
 
@@ -49,7 +61,11 @@ struct OrderItem : public GenericItem
     {
         return std::make_tuple(
             std::make_pair("start_order_at", &OrderItem::startOrderAt),
-            std::make_pair("total_price", &OrderItem::totalPrice)
+            std::make_pair("total_price", &OrderItem::totalPrice),
+            std::make_pair("work_count", &OrderItem::workCount),
+            std::make_pair("expense_count", &OrderItem::expenseCount),
+            std::make_pair("works_total", &OrderItem::worksTotal),
+            std::make_pair("expenses_total", &OrderItem::expensesTotal)
         );
     }
 

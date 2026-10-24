@@ -9,6 +9,8 @@ Dialog
     id: root
 
     property bool compact: true
+    // 0 uses the object's latest invoice. A positive value attaches the work to that invoice.
+    property int startOrderAt: 0
     property int currentStep: 1
     property string serviceSignature: ""
 
@@ -165,7 +167,7 @@ Dialog
             return
         }
 
-        if(reportBackend.addWork(quantity))
+        if(reportBackend.addWork(quantity, startOrderAt))
         {
             clearSelection()
             close()

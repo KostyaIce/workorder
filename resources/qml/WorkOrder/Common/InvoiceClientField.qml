@@ -221,6 +221,30 @@ ColumnLayout
         }
     }
 
+    function syncCombo(box, value)
+    {
+        if(!box)
+            return
+        var index = value === "" ? -1 : box.indexOfValue(value)
+        if(box.currentIndex !== index)
+            box.currentIndex = index
+    }
+
+    function syncPickers()
+    {
+        syncCombo(clientBox, reportBackend.selectedClientId)
+        syncCombo(objectBox, reportBackend.selectedObjectId)
+    }
+
+    Connections
+    {
+        target: reportBackend
+        function onClientSelected() { Qt.callLater(root.syncPickers) }
+        function onObjectSelected() { Qt.callLater(root.syncPickers) }
+    }
+
+    Component.onCompleted: syncPickers()
+
     RowLayout
     {
         visible: showInvoiceDate

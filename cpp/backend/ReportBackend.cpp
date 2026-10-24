@@ -159,9 +159,16 @@ bool ReportBackend::addClient(const QVariantMap &data)
         return false;
     }
 
-    const bool result = ClientsDatabase::addClientEntry(data);
+    const QString clientId = ClientsDatabase::addClientEntry(data);
+    if(clientId.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось добавить заказчика"));
+        return false;
+    }
+
     loadClients();
-    return result;
+    selectClient(clientId);
+    return true;
 }
 
 bool ReportBackend::updateClient(const QVariantMap &data)
@@ -256,12 +263,22 @@ void ReportBackend::selectObject(const QString &objectId)
 
 void ReportBackend::selectOrder(int startOrderAt)
 {
-    const int value = startOrderAt;
-    if(m_selectedStartOrderAt == value)
-        return;
-
-    m_selectedStartOrderAt = value;
+    m_selectedStartOrderAt = startOrderAt;
     reloadSelectedOrderWorks();
+}
+
+QVariantList ReportBackend::selectedOrderExpenses() const
+{
+    if(m_selectedStartOrderAt <= 0
+       || m_currentClient.id.isEmpty()
+       || m_currentObject.id.isEmpty())
+        return {};
+
+    return mapsToVariantList(ExpensesDatabase::loadExpensesByStartOrder(
+        m_currentClient.name,
+        m_currentClient.id,
+        m_currentObject.id,
+        m_selectedStartOrderAt));
 }
 
 void ReportBackend::activateInvoiceContext()
@@ -604,10 +621,16 @@ bool ReportBackend::deleteWork(const QString &workId)
     return true;
 }
 
-bool ReportBackend::addExpense(const QString &description, int amount)
+bool ReportBackend::addExpense(const QString &description, int amount, int startOrderAt)
 {
-    if(m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty()
-       || m_currentObject.lastOrderAt <= 0)
+    if(m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Сначала начните новый отчёт"));
+        return false;
+    }
+
+    const qint64 orderAt = startOrderAt > 0 ? startOrderAt : m_currentObject.lastOrderAt;
+    if(orderAt <= 0)
     {
         NotificationManager::notifyError(QStringLiteral("Сначала начните новый отчёт"));
         return false;
@@ -615,7 +638,7 @@ bool ReportBackend::addExpense(const QString &description, int amount)
 
     QVariantMap data;
     data.insert("object_id", m_currentObject.id);
-    data.insert("start_order_at", m_currentObject.lastOrderAt);
+    data.insert("start_order_at", orderAt);
     data.insert("description", description.trimmed());
     data.insert("amount", amount);
     const QVariantMap result = ExpensesDatabase::addExpense(
@@ -626,8 +649,11 @@ bool ReportBackend::addExpense(const QString &description, int amount)
         return false;
     }
 
-    m_expenses->addItem(result);
+    if(orderAt == m_currentObject.lastOrderAt)
+        m_expenses->addItem(result);
     emit expensesChanged();
+    if(m_selectedStartOrderAt > 0)
+        reloadSelectedOrderWorks();
     return true;
 }
 
@@ -643,6 +669,8 @@ bool ReportBackend::updateExpense(const QVariantMap &data)
     }
 
     reloadExpenses();
+    if(m_selectedStartOrderAt > 0)
+        reloadSelectedOrderWorks();
     return true;
 }
 
@@ -659,6 +687,8 @@ bool ReportBackend::deleteExpense(const QString &expenseId)
 
     m_expenses->removeItem(expenseId);
     emit expensesChanged();
+    if(m_selectedStartOrderAt > 0)
+        reloadSelectedOrderWorks();
     return true;
 }
 
@@ -673,13 +703,20 @@ bool ReportBackend::addObject(const QVariantMap &data)
     }
 
     ObjectsDatabase::createObjectDatabase(m_currentClient.name, m_currentClient.id);
-    const bool result = ObjectsDatabase::addObjectEntry(
+    const QString objectId = ObjectsDatabase::addObjectEntry(
         m_currentClient.name,
         m_currentClient.id,
         data.value("name").toString().trimmed(),
         data.value("address").toString());
+    if(objectId.isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Не удалось добавить объект"));
+        return false;
+    }
+
     loadObjects();
-    return result;
+    selectObject(objectId);
+    return true;
 }
 
 bool ReportBackend::updateObject(const QVariantMap &data)
@@ -810,15 +847,28 @@ void ReportBackend::loadObjects()
 
 void ReportBackend::loadOrders()
 {
-    clearSelectedOrder();
+    // Report options refresh the order list while an invoice screen is open.
+    // Keep that invoice selected so its works and expenses stay on screen.
+    const int preservedOrder = m_selectedStartOrderAt;
 
     if(m_currentClient.id.isEmpty() || m_currentObject.id.isEmpty())
     {
         m_orders->updateModelFromMaps({});
+        clearSelectedOrder();
         return;
     }
 
     m_orders->updateModelFromMaps(currentOrderTotals());
+
+    if(preservedOrder > 0 && !m_orders->itemData(preservedOrder).isEmpty())
+    {
+        m_selectedStartOrderAt = preservedOrder;
+        reloadSelectedOrderWorks();
+    }
+    else
+    {
+        clearSelectedOrder();
+    }
 }
 
 void ReportBackend::loadSubobjects(const QString &objectId)
@@ -885,16 +935,27 @@ QVariantList ReportBackend::currentOrderTotals() const
         m_currentClient.name, m_currentClient.id, m_currentObject.id);
 
     QMap<qint64, qint64> totals;
+    QMap<qint64, int> workCounts;
+    QMap<qint64, qint64> worksTotals;
+    QMap<qint64, int> expenseCounts;
+    QMap<qint64, qint64> expensesTotals;
     for(const QVariant &value : works)
     {
         const QVariantMap work = value.toMap();
-        totals[work.value("start_order_at").toLongLong()] += workAmountKopecks(work);
+        const qint64 orderAt = work.value("start_order_at").toLongLong();
+        const qint64 amount = workAmountKopecks(work);
+        totals[orderAt] += amount;
+        worksTotals[orderAt] += amount;
+        workCounts[orderAt] += 1;
     }
     for(const QVariant &value : expenseOrders)
     {
         const QVariantMap order = value.toMap();
-        totals[order.value("start_order_at").toLongLong()]
-            += order.value("total_price").toLongLong();
+        const qint64 orderAt = order.value("start_order_at").toLongLong();
+        const qint64 amount = order.value("total_price").toLongLong();
+        totals[orderAt] += amount;
+        expensesTotals[orderAt] += amount;
+        expenseCounts[orderAt] += order.value("expense_count").toInt();
     }
 
     QVariantList result;
@@ -903,6 +964,10 @@ QVariantList ReportBackend::currentOrderTotals() const
         QVariantMap order;
         order.insert("start_order_at", it.key());
         order.insert("total_price", it.value());
+        order.insert("work_count", workCounts.value(it.key()));
+        order.insert("expense_count", expenseCounts.value(it.key()));
+        order.insert("works_total", worksTotals.value(it.key()));
+        order.insert("expenses_total", expensesTotals.value(it.key()));
         result.append(order);
     }
     return result;

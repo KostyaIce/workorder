@@ -63,10 +63,10 @@ void ClientsDatabase::createClientTable(const QString &dbPath)
     query.exec(QStringLiteral("UPDATE clients SET updated_at = created_at WHERE updated_at IS NULL"));
 }
 
-bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPath)
+QString ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPath)
 {
     if(data.isEmpty())
-        return false;
+        return {};
 
     createClientTable(dbPath);
     const QString path = resolveDbPath(dbPath);
@@ -75,7 +75,8 @@ bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPat
     query.prepare(QStringLiteral(
         "INSERT INTO clients(id, kind, name, address, contact, notes, created_at, updated_at)"
         " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
-    query.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
+    const QString clientId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    query.addBindValue(clientId);
     query.addBindValue(data.value("kind"));
     query.addBindValue(data.value("name"));
     query.addBindValue(data.value("address", QString()));
@@ -88,10 +89,10 @@ bool ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPat
     if(!query.exec())
     {
         qWarning("Failed to add client: %s", qPrintable(query.lastError().text()));
-        return false;
+        return {};
     }
 
-    return query.numRowsAffected() > 0;
+    return query.numRowsAffected() > 0 ? clientId : QString();
 }
 
 bool ClientsDatabase::updateClientEntry(const StringMap &data, const QString &dbPath)

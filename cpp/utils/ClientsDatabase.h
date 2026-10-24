@@ -12,7 +12,8 @@ class ClientsDatabase
 {
 public:
     static void createClientTable(const QString &dbPath = QString());
-    static bool addClientEntry(const StringMap &data, const QString &dbPath = QString());
+    // Returns the new client id, or an empty string when the insert fails.
+    static QString addClientEntry(const StringMap &data, const QString &dbPath = QString());
     static bool updateClientEntry(const StringMap &data, const QString &dbPath = QString());
     static StringMapList loadClients(const QString &dbPath = QString());
     static bool delClientEntry(const StringMap &data, const QString &dbPath = QString());

@@ -7,6 +7,7 @@ Dialog
     id: root
 
     property bool compact: true
+    property int startOrderAt: 0
 
     readonly property int amountKopecks:
     {
@@ -157,7 +158,7 @@ Dialog
             enabled: root.valid
             onClicked:
             {
-                if(reportBackend.addExpense(descriptionField.text.trim(), root.amountKopecks))
+                if(reportBackend.addExpense(descriptionField.text.trim(), root.amountKopecks, root.startOrderAt))
                     root.close()
             }
         }

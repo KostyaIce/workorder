@@ -68,8 +68,8 @@ void ObjectsDatabase::closeDatabase(const QString &clientName, const QString &cl
     QSqlDatabase::removeDatabase(name);
 }
 
-bool ObjectsDatabase::addObjectEntry(const QString &clientName, const QString &clientId,
-                               const QString &name, const QString &address)
+QString ObjectsDatabase::addObjectEntry(const QString &clientName, const QString &clientId,
+                                        const QString &name, const QString &address)
 {
     createObjectDatabase(clientName, clientId);
     QSqlDatabase db = openDatabase(clientName, clientId);
@@ -77,16 +77,17 @@ bool ObjectsDatabase::addObjectEntry(const QString &clientName, const QString &c
     query.prepare(QStringLiteral(
         "INSERT INTO objects(id, name, address, updated_at, last_order_at)"
         " VALUES (?, ?, ?, ?, ?)"));
-    query.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
+    const QString objectId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    query.addBindValue(objectId);
     query.addBindValue(name);
     query.addBindValue(address);
     query.addBindValue(QDateTime::currentSecsSinceEpoch());
     query.addBindValue(0);
 
     if(!query.exec())
-        return false;
+        return {};
 
-    return query.numRowsAffected() > 0;
+    return query.numRowsAffected() > 0 ? objectId : QString();
 }
 
 StringMapList ObjectsDatabase::loadObjects(const QString &clientName, const QString &clientId)

@@ -226,7 +226,7 @@ StringMapList ExpensesDatabase::getOrderTotals(const QString &clientName,
     QSqlDatabase db = openDatabase(clientName, clientId);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "SELECT start_order_at, SUM(amount) FROM expenses"
+        "SELECT start_order_at, SUM(amount), COUNT(*) FROM expenses"
         " WHERE object_id = ? GROUP BY start_order_at"));
     query.addBindValue(objectId);
     if(!query.exec())
@@ -238,6 +238,7 @@ StringMapList ExpensesDatabase::getOrderTotals(const QString &clientName,
         StringMap row;
         row.insert("start_order_at", query.value(0));
         row.insert("total_price", query.value(1));
+        row.insert("expense_count", query.value(2));
         result.append(row);
     }
     return result;

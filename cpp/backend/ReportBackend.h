@@ -34,6 +34,7 @@ class ReportBackend : public QObject
     Q_PROPERTY(QString selectedClientId READ selectedClientId NOTIFY clientSelected)
     Q_PROPERTY(QString selectedClientName READ selectedClientName NOTIFY clientSelected)
     Q_PROPERTY(QString selectedClientAddress READ selectedClientAddress NOTIFY clientSelected)
+    Q_PROPERTY(QString selectedObjectId READ selectedObjectId NOTIFY objectSelected)
     Q_PROPERTY(QString selectedObjectName READ selectedObjectName NOTIFY objectSelected)
     Q_PROPERTY(QString selectedObjectAddress READ selectedObjectAddress NOTIFY objectSelected)
     Q_PROPERTY(int selectedObjectLastOrder READ selectedObjectLastOrder NOTIFY objectUpdated)
@@ -65,6 +66,7 @@ public:
     QString selectedClientId() const { return m_currentClient.id; }
     QString selectedClientName() const { return m_currentClient.name; }
     QString selectedClientAddress() const { return m_currentClient.address; }
+    QString selectedObjectId() const { return m_currentObject.id; }
     QString selectedObjectName() const { return m_currentObject.name; }
     QString selectedObjectAddress() const { return m_currentObject.address; }
     int selectedObjectLastOrder() const { return static_cast<int>(m_currentObject.lastOrderAt); }
@@ -89,6 +91,7 @@ public:
     Q_INVOKABLE void updateLastTimeObject();
     Q_INVOKABLE void selectObject(const QString &objectId);
     Q_INVOKABLE void selectOrder(int startOrderAt);
+    Q_INVOKABLE QVariantList selectedOrderExpenses() const;
     Q_INVOKABLE void activateInvoiceContext();
     Q_INVOKABLE void activateReportsContext();
     Q_INVOKABLE void clearWorks();
@@ -108,7 +111,8 @@ public:
     Q_INVOKABLE bool updateCurrentWork(const QString &workId, double quantity);
     Q_INVOKABLE bool updateWork(const QVariantMap &data);
     Q_INVOKABLE bool deleteWork(const QString &workId);
-    Q_INVOKABLE bool addExpense(const QString &description, int amount);
+    // startOrderAt > 0 attaches the expense to that invoice; otherwise the object's latest order.
+    Q_INVOKABLE bool addExpense(const QString &description, int amount, int startOrderAt = 0);
     Q_INVOKABLE bool updateExpense(const QVariantMap &data);
     Q_INVOKABLE bool deleteExpense(const QString &expenseId);
     Q_INVOKABLE bool addObject(const QVariantMap &data);
