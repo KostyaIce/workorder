@@ -27,6 +27,8 @@ class CloudDiskBackend : public QObject
     Q_PROPERTY(QString clientId READ clientId CONSTANT)
     Q_PROPERTY(QString authUrl READ authUrl CONSTANT)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
+    Q_PROPERTY(QString lastSyncText READ lastSyncText NOTIFY lastSyncChanged)
+    Q_PROPERTY(QString lastSyncWhen READ lastSyncWhen NOTIFY lastSyncChanged)
     Q_PROPERTY(QVariantList entries READ entries NOTIFY entriesChanged)
 
 public:
@@ -41,6 +43,8 @@ public:
     QString clientId() const;
     QString authUrl() const;
     QString statusMessage() const;
+    QString lastSyncText() const;
+    QString lastSyncWhen() const;
     QVariantList entries() const;
 
     Q_INVOKABLE bool openAuthInBrowser();
@@ -57,6 +61,7 @@ signals:
     void busyChanged();
     void oauthInProgressChanged();
     void statusMessageChanged();
+    void lastSyncChanged();
     void entriesChanged();
 
 private:
@@ -113,6 +118,7 @@ private:
     void closeAllSqlConnections() const;
     bool exportLocalDatabasesToOutgoingJson() const;
     void finishTransferSuccess(const QString &message, const QString &logMessage);
+    void rememberLastSync();
     void finishWithError(const QString &message, const QString &logMessage);
     void onOAuthFinished(bool success, const QString &accessToken, const QString &errorMessage);
     void onOAuthProgressMessage(const QString &message);
@@ -124,6 +130,7 @@ private:
     QString m_diskUrl;
     QString m_token;
     QString m_statusMessage;
+    qint64 m_lastSyncAt = 0;
     QVariantList m_entries;
     bool m_busy = false;
     PendingOp m_pendingOp = PendingOp::None;

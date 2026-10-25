@@ -10,6 +10,177 @@ ColumnLayout {
     property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
 
+    component SettingsGlyph: Item
+    {
+        property string kind: "user"
+        property color tint: primaryColor
+
+        implicitWidth: 20
+        implicitHeight: 20
+
+        WorkOrderIcon
+        {
+            anchors.centerIn: parent
+            width: 18
+            height: 18
+            visible: kind === "user"
+            name: "user"
+            tone: "accent"
+        }
+
+        Item
+        {
+            visible: kind === "cloud"
+            anchors.centerIn: parent
+            width: 18
+            height: 14
+
+            Rectangle { width: 10; height: 10; radius: 5; color: tint; x: 0; y: 4 }
+            Rectangle { width: 8; height: 8; radius: 4; color: tint; x: 6; y: 0 }
+            Rectangle { width: 12; height: 8; radius: 4; color: tint; x: 5; y: 6 }
+        }
+
+        Rectangle
+        {
+            visible: kind === "info"
+            anchors.centerIn: parent
+            width: 18
+            height: 18
+            radius: 9
+            color: "transparent"
+            border.width: 1.6
+            border.color: primaryColor
+
+            Rectangle
+            {
+                width: 2
+                height: 2
+                radius: 1
+                color: primaryColor
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 4
+            }
+
+            Rectangle
+            {
+                width: 2
+                height: 7
+                radius: 1
+                color: primaryColor
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 8
+            }
+        }
+    }
+
+    component SettingsNavRow: Item
+    {
+        id: navRow
+
+        property string title: ""
+        property string subtitle: ""
+        property string detail: ""
+        property string glyph: "user"
+        property color wellColor: "#E7F1FE"
+        property color glyphTint: primaryColor
+        property color subtitleColor: textSecondaryColor
+        property bool showChevron: true
+        property bool showBadge: false
+        signal clicked()
+
+        implicitHeight: detail !== "" ? 78 : (subtitle === "" ? 56 : 64)
+
+        Row
+        {
+            anchors.fill: parent
+            spacing: 10
+
+            Rectangle
+            {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 40
+                height: 40
+                radius: 12
+                color: wellColor
+
+                SettingsGlyph
+                {
+                    anchors.centerIn: parent
+                    kind: glyph
+                    tint: glyphTint
+                }
+
+                WorkOrderIcon
+                {
+                    visible: showBadge
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 7
+                    width: 12
+                    height: 12
+                    name: "check"
+                    tone: "white"
+                }
+            }
+
+            Column
+            {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 74
+                spacing: 2
+
+                Label
+                {
+                    width: parent.width
+                    text: title
+                    font.pixelSize: 15
+                    font.bold: true
+                    color: textColor
+                    elide: Text.ElideRight
+                }
+
+                Label
+                {
+                    visible: subtitle !== ""
+                    width: parent.width
+                    text: subtitle
+                    font.pixelSize: 12
+                    color: subtitleColor
+                    elide: Text.ElideRight
+                }
+
+                Label
+                {
+                    visible: detail !== ""
+                    width: parent.width
+                    text: detail
+                    font.pixelSize: 12
+                    color: textSecondaryColor
+                    elide: Text.ElideRight
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+
+        WorkOrderIcon
+        {
+            id: chevron
+            visible: showChevron
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 16
+            height: 16
+            name: "chevron-right"
+            tone: "muted"
+        }
+
+        MouseArea
+        {
+            anchors.fill: parent
+            onClicked: navRow.clicked()
+        }
+    }
+
     SelectionDialog {
         id: languageDialog
         title: qsTr("Выберите язык")
@@ -67,6 +238,88 @@ ColumnLayout {
     CloudDiskDialog {
         id: cloudDiskDialog
         compact: root.compact
+    }
+
+    PersonalInfoDialog
+    {
+        id: personalInfoDialog
+        compact: root.compact
+    }
+
+    Dialog
+    {
+        id: aboutDialog
+        parent: Overlay.overlay
+        modal: true
+        anchors.centerIn: parent
+        title: qsTr("О приложении")
+        standardButtons: Dialog.NoButton
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 16
+        width: Math.min(root.compact ? parent.width - 24 : 440, parent.width - 16)
+        height: Math.min(aboutColumn.implicitHeight + header.implicitHeight + padding * 2, parent.height - 32)
+
+        background: Rectangle
+        {
+            color: cardColor
+            radius: 22
+        }
+
+        header: Item
+        {
+            implicitHeight: 52
+            implicitWidth: aboutDialog.width
+
+            Label
+            {
+                anchors.centerIn: parent
+                width: parent.width - 104
+                horizontalAlignment: Text.AlignHCenter
+                text: aboutDialog.title
+                font.pixelSize: 18
+                font.bold: true
+                color: textColor
+                elide: Text.ElideRight
+            }
+
+            Rectangle
+            {
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                width: 40
+                height: 40
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2715"
+                    font.pixelSize: 16
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: aboutDialog.close()
+                }
+            }
+        }
+
+        ColumnLayout
+        {
+            id: aboutColumn
+            width: parent.width
+
+            SettingsAboutSection
+            {
+                centered: false
+            }
+        }
     }
 
     Flickable {
@@ -316,7 +569,198 @@ ColumnLayout {
                 }
             }
 
+            Column
+            {
+                visible: compact
+                Layout.fillWidth: true
+                spacing: 12
+                topPadding: 8
+                leftPadding: 16
+                rightPadding: 16
+
+                Label
+                {
+                    text: qsTr("Настройки")
+                    font.pixelSize: 28
+                    font.weight: Font.Black
+                    color: textColor
+                }
+
+                Rectangle
+                {
+                    width: parent.width - 32
+                    radius: 18
+                    color: cardColor
+                    implicitHeight: cloudCard.implicitHeight + 36
+
+                    Column
+                    {
+                        id: cloudCard
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 8
+
+                        Label
+                        {
+                            text: qsTr("Синхронизация")
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: textColor
+                        }
+
+                        SettingsNavRow
+                        {
+                            width: parent.width
+                            title: qsTr("Яндекс.Диск")
+                            subtitle: cloudDiskBackend.connected
+                                      ? qsTr("Подключено")
+                                      : qsTr("Не подключён")
+                            detail: cloudDiskBackend.connected ? cloudDiskBackend.lastSyncText : ""
+                            subtitleColor: cloudDiskBackend.connected ? "#1F9D55" : textSecondaryColor
+                            glyph: "cloud"
+                            wellColor: cloudDiskBackend.connected ? "#E7F8EE" : "#E7F1FE"
+                            glyphTint: cloudDiskBackend.connected ? "#1F9D55" : primaryColor
+                            showBadge: cloudDiskBackend.connected
+                            onClicked: cloudDiskDialog.open()
+                        }
+                    }
+                }
+
+                Rectangle
+                {
+                    width: parent.width - 32
+                    radius: 18
+                    color: cardColor
+                    implicitHeight: reportCard.implicitHeight + 36
+
+                    Column
+                    {
+                        id: reportCard
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 8
+
+                        Label
+                        {
+                            text: qsTr("Данные для отчёта")
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: textColor
+                        }
+
+                        SettingsNavRow
+                        {
+                            width: parent.width
+                            title: qsTr("Личная информация")
+                            subtitle: qsTr("ФИО, телефон, email, реквизиты")
+                            glyph: "user"
+                            onClicked: personalInfoDialog.open()
+                        }
+                    }
+                }
+
+                Rectangle
+                {
+                    width: parent.width - 32
+                    radius: 18
+                    color: cardColor
+                    implicitHeight: aboutCard.implicitHeight + 24
+
+                    Column
+                    {
+                        id: aboutCard
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 8
+
+                        Label
+                        {
+                            text: qsTr("О приложении")
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: textColor
+                        }
+
+                        Item
+                        {
+                            width: parent.width
+                            implicitHeight: aboutTexts.implicitHeight
+
+                            Rectangle
+                            {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 40
+                                height: 40
+                                radius: 12
+                                color: "#E7F1FE"
+
+                                SettingsGlyph
+                                {
+                                    anchors.centerIn: parent
+                                    kind: "info"
+                                }
+                            }
+
+                            Column
+                            {
+                                id: aboutTexts
+                                x: 50
+                                width: parent.width - 76
+                                spacing: 2
+
+                                Label
+                                {
+                                    text: settingsBackend.appName
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: textColor
+                                }
+
+                                Label
+                                {
+                                    text: qsTr("Версия %1").arg(settingsBackend.appVersion)
+                                    font.pixelSize: 13
+                                    color: textSecondaryColor
+                                }
+
+                                Label
+                                {
+                                    width: parent.width
+                                    text: qsTr("Приложение для создания счетов и управления базой услуг.")
+                                    font.pixelSize: 13
+                                    color: textSecondaryColor
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+
+                            WorkOrderIcon
+                            {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 16
+                                height: 16
+                                name: "chevron-right"
+                                tone: "muted"
+                            }
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                onClicked: aboutDialog.open()
+                            }
+                        }
+                    }
+                }
+            }
+
             SettingsSection {
+                visible: !compact
                 title: qsTr("Яндекс.Диск")
                 compact: root.compact
 
@@ -364,6 +808,7 @@ ColumnLayout {
             }
 
             SettingsSection {
+                visible: !compact
                 title: qsTr("Личная информация для отчёта")
                 compact: root.compact
 
@@ -404,62 +849,7 @@ ColumnLayout {
             }
 
             SettingsSection {
-                title: qsTr("Данные приложения")
-                compact: root.compact
-
-                readonly property bool isAndroid: Qt.platform.os === "android"
-
-                Label {
-                    Layout.fillWidth: true
-                    text: parent.isAndroid
-                          ? qsTr("Отправить архив логов через системное меню")
-                          : qsTr("Открыть каталоги с логами и базами данных")
-                    font.pixelSize: compact ? 13 : 14
-                    color: textSecondaryColor
-                    wrapMode: Text.WordWrap
-                }
-
-                SettingsActionRow {
-                    visible: compact && parent.isAndroid
-                    label: qsTr("Поделиться логами")
-                    icon: ">"
-                    onActivated: settingsBackend.copyLogs()
-                }
-
-                SettingsActionRow {
-                    visible: compact && !parent.isAndroid
-                    label: qsTr("Каталог логов")
-                    icon: ">"
-                    onActivated: settingsBackend.openLogDirectory()
-                }
-
-                SettingsActionRow {
-                    visible: compact && !parent.isAndroid
-                    label: qsTr("Каталог баз данных")
-                    icon: ">"
-                    onActivated: settingsBackend.openDbDirectory()
-                }
-
-                RowLayout {
-                    visible: !compact
-                    Layout.fillWidth: true
-                    spacing: 12
-
-                    PrimaryButton {
-                        text: qsTr("Каталог логов")
-                        Layout.preferredWidth: 200
-                        onClicked: settingsBackend.openLogDirectory()
-                    }
-
-                    PrimaryButton {
-                        text: qsTr("Каталог баз данных")
-                        Layout.preferredWidth: 220
-                        onClicked: settingsBackend.openDbDirectory()
-                    }
-                }
-            }
-
-            SettingsSection {
+                visible: !compact
                 title: qsTr("О приложении")
                 compact: root.compact
                 SettingsAboutSection {

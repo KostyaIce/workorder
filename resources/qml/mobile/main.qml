@@ -139,7 +139,7 @@ ApplicationWindow
             anchors.right: parent.right
             anchors.top: parent.top
             z: 20
-            visible: currentPage !== 0 && currentPage !== 1 && currentPage !== 2
+            visible: currentPage !== 0 && currentPage !== 1 && currentPage !== 2 && currentPage !== 3
             title: [qsTr("Счет"), qsTr("Услуги"), qsTr("Отчёты"), qsTr("Настройки")][currentPage]
         }
 
@@ -163,7 +163,7 @@ ApplicationWindow
             pageItem.bottomScrollPadding = Qt.binding(function() { return bottomTabOverlayHeight })
         if(pageItem.topScrollPadding !== undefined)
             pageItem.topScrollPadding = Qt.binding(function() {
-                return currentPage === 0 || currentPage === 1 || currentPage === 2
+                return currentPage === 0 || currentPage === 1 || currentPage === 2 || currentPage === 3
                         ? 0 : topTitleOverlayHeight
             })
     }

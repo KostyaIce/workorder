@@ -30,6 +30,12 @@ class SettingsBackend : public QObject
     Q_PROPERTY(QString dbPath READ dbPath WRITE setDbPath NOTIFY settingsChanged)
     Q_PROPERTY(QString defaultImportPath READ defaultImportPath CONSTANT)
     Q_PROPERTY(QString personalInfo READ personalInfo WRITE setPersonalInfo NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalName READ personalName WRITE setPersonalName NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalPhone READ personalPhone WRITE setPersonalPhone NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalEmail READ personalEmail WRITE setPersonalEmail NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalOrganization READ personalOrganization WRITE setPersonalOrganization NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalInn READ personalInn WRITE setPersonalInn NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalOgrnip READ personalOgrnip WRITE setPersonalOgrnip NOTIFY settingsChanged)
 
 public:
     explicit SettingsBackend(QObject *parent = nullptr);
@@ -66,6 +72,18 @@ public:
 
     QString personalInfo() const;
     void setPersonalInfo(const QString &value);
+    QString personalName() const;
+    void setPersonalName(const QString &value);
+    QString personalPhone() const;
+    void setPersonalPhone(const QString &value);
+    QString personalEmail() const;
+    void setPersonalEmail(const QString &value);
+    QString personalOrganization() const;
+    void setPersonalOrganization(const QString &value);
+    QString personalInn() const;
+    void setPersonalInn(const QString &value);
+    QString personalOgrnip() const;
+    void setPersonalOgrnip(const QString &value);
 
     Q_INVOKABLE void setThemeSlot(const QString &theme);
     Q_INVOKABLE void setLanguageSlot(const QString &language);
@@ -91,6 +109,9 @@ signals:
 private:
     void loadPersistedSettings();
     QVariantMap collectSettings() const;
+    void setPersonalFieldsFromText(const QString &value);
+    QString composePersonalInfo() const;
+    void publishPersonalInfo();
 
     QString m_appVersion = QLatin1String(WORKORDER_VERSION);
     QString m_appName = QStringLiteral("WorkOrder");
@@ -104,6 +125,12 @@ private:
     QString m_invoicePrefix = QStringLiteral("INV");
     QString m_dbPath;
     QString m_personalInfo;
+    QString m_personalName;
+    QString m_personalPhone;
+    QString m_personalEmail;
+    QString m_personalOrganization;
+    QString m_personalInn;
+    QString m_personalOgrnip;
 };
 
 } // namespace workorder

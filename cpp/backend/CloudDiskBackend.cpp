@@ -14,6 +14,8 @@
 #include "ServicesDatabase.h"
 #include "WorksDatabase.h"
 
+#include <QDate>
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -38,6 +40,7 @@ namespace
 {
 
 const char *KEY_TOKEN = "cloud_disk/token";
+const char *KEY_LAST_SYNC = "cloud_disk/last_sync_at";
 const char *KEY_DISK_URL = "cloud_disk/disk_url";
 const char *KEY_CLIENT_ID_LEGACY = "cloud_disk/client_id";
 const char *DEFAULT_DISK_URL = "https://cloud-api.yandex.net/v1/disk";
@@ -151,6 +154,31 @@ QString CloudDiskBackend::authUrl() const
 QString CloudDiskBackend::statusMessage() const
 {
     return m_statusMessage;
+}
+
+QString CloudDiskBackend::lastSyncWhen() const
+{
+    if(m_lastSyncAt <= 0)
+        return {};
+
+    const QDateTime when = QDateTime::fromSecsSinceEpoch(m_lastSyncAt);
+    const QDate today = QDate::currentDate();
+    QString day;
+    if(when.date() == today)
+        day = tr("сегодня");
+    else if(when.date() == today.addDays(-1))
+        day = tr("вчера");
+    else
+        day = when.toString(QStringLiteral("dd.MM.yyyy"));
+    return QStringLiteral("%1, %2").arg(day, when.toString(QStringLiteral("HH:mm")));
+}
+
+QString CloudDiskBackend::lastSyncText() const
+{
+    const QString when = lastSyncWhen();
+    if(when.isEmpty())
+        return {};
+    return tr("Последняя синхронизация: %1").arg(when);
 }
 
 QVariantList CloudDiskBackend::entries() const
@@ -851,6 +879,7 @@ void CloudDiskBackend::finishTransferSuccess(const QString &message, const QStri
     m_pendingOp = PendingOp::None;
     m_transferQueue.clear();
     m_transferIndex = 0;
+    rememberLastSync();
     setStatusMessage(message, logMessage);
     qInfo("CloudDiskBackend: transfer success: %s", qPrintable(logMessage));
     // Keep busy until list refresh finishes.
@@ -1076,6 +1105,7 @@ void CloudDiskBackend::loadPersisted()
 {
     QSettingsStore store;
     m_token = store.read(QString::fromUtf8(KEY_TOKEN), QString()).toString().trimmed();
+    m_lastSyncAt = store.read(QString::fromUtf8(KEY_LAST_SYNC), 0).toLongLong();
     const QString savedUrl = store.read(QString::fromUtf8(KEY_DISK_URL), QString()).toString();
     m_diskUrl = normalizeDiskUrl(savedUrl.isEmpty()
                                      ? QString::fromUtf8(DEFAULT_DISK_URL)
@@ -1102,6 +1132,15 @@ void CloudDiskBackend::setBusy(bool value)
         return;
     m_busy = value;
     emit busyChanged();
+}
+
+void CloudDiskBackend::rememberLastSync()
+{
+    m_lastSyncAt = QDateTime::currentSecsSinceEpoch();
+    QSettingsStore store;
+    store.write(QString::fromUtf8(KEY_LAST_SYNC), m_lastSyncAt);
+    store.sync();
+    emit lastSyncChanged();
 }
 
 void CloudDiskBackend::setStatusMessage(const QString &message, const QString &logMessage)

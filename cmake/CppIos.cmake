@@ -27,7 +27,13 @@ function(workorder_setup_ios_target target)
 
     configure_file("${_ios_src}" "${_ios_pkg}/Info.plist" @ONLY)
 
+    set(_ios_icons "${WORKORDER_ROOT}/cpp/ios/Assets.xcassets")
+    if(EXISTS "${_ios_icons}")
+        file(COPY "${_ios_icons}" DESTINATION "${_ios_pkg}")
+    endif()
+
     set_target_properties(${target} PROPERTIES
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
         QT_IOS_PACKAGE_SOURCE_DIR "${_ios_pkg}"
         MACOSX_BUNDLE_GUI_IDENTIFIER "${WORKORDER_IOS_BUNDLE_ID}"
         QT_IOS_LAUNCH_SCREEN "${WORKORDER_ROOT}/cpp/ios/LaunchScreen.storyboard"

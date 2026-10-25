@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QStringList>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -172,12 +173,155 @@ QString SettingsBackend::defaultImportPath() const
 
 QString SettingsBackend::personalInfo() const { return m_personalInfo; }
 
+QString SettingsBackend::personalName() const { return m_personalName; }
+
+QString SettingsBackend::personalPhone() const { return m_personalPhone; }
+
+QString SettingsBackend::personalEmail() const { return m_personalEmail; }
+
+QString SettingsBackend::personalOrganization() const { return m_personalOrganization; }
+
+QString SettingsBackend::personalInn() const { return m_personalInn; }
+
+QString SettingsBackend::personalOgrnip() const { return m_personalOgrnip; }
+
+namespace
+{
+
+bool takePrefixed(const QString &line, const QString &prefix, QString *tail)
+{
+    if(!line.startsWith(prefix))
+        return false;
+    *tail = line.mid(prefix.size()).trimmed();
+    return true;
+}
+
+} // namespace
+
+void SettingsBackend::setPersonalFieldsFromText(const QString &value)
+{
+    QStringList nameLines;
+    QString phone;
+    QString email;
+    QString organization;
+    QString inn;
+    QString ogrnip;
+    const QStringList lines = value.split(QLatin1Char('\n'));
+    for(const QString &rawLine : lines)
+    {
+        const QString line = rawLine.trimmed();
+        if(line.isEmpty())
+            continue;
+
+        QString tail;
+        if(takePrefixed(line, QStringLiteral("Телефон:"), &tail))
+            phone = tail;
+        else if(takePrefixed(line, QStringLiteral("Email:"), &tail))
+            email = tail;
+        else if(takePrefixed(line, QStringLiteral("Организация:"), &tail))
+            organization = tail;
+        else if(takePrefixed(line, QStringLiteral("ИНН:"), &tail))
+            inn = tail;
+        else if(takePrefixed(line, QStringLiteral("ОГРНИП:"), &tail))
+            ogrnip = tail;
+        else
+            nameLines.append(line);
+    }
+
+    m_personalName = nameLines.join(QLatin1Char('\n'));
+    m_personalPhone = phone;
+    m_personalEmail = email;
+    m_personalOrganization = organization;
+    m_personalInn = inn;
+    m_personalOgrnip = ogrnip;
+}
+
+QString SettingsBackend::composePersonalInfo() const
+{
+    QStringList lines;
+    const QString name = m_personalName.trimmed();
+    if(!name.isEmpty())
+        lines.append(name);
+    const QString phone = m_personalPhone.trimmed();
+    if(!phone.isEmpty())
+        lines.append(QStringLiteral("Телефон: %1").arg(phone));
+    const QString email = m_personalEmail.trimmed();
+    if(!email.isEmpty())
+        lines.append(QStringLiteral("Email: %1").arg(email));
+    const QString organization = m_personalOrganization.trimmed();
+    if(!organization.isEmpty())
+        lines.append(QStringLiteral("Организация: %1").arg(organization));
+    const QString inn = m_personalInn.trimmed();
+    if(!inn.isEmpty())
+        lines.append(QStringLiteral("ИНН: %1").arg(inn));
+    const QString ogrnip = m_personalOgrnip.trimmed();
+    if(!ogrnip.isEmpty())
+        lines.append(QStringLiteral("ОГРНИП: %1").arg(ogrnip));
+    return lines.join(QLatin1Char('\n'));
+}
+
+void SettingsBackend::publishPersonalInfo()
+{
+    m_personalInfo = composePersonalInfo();
+    emit settingsChanged();
+}
+
 void SettingsBackend::setPersonalInfo(const QString &value)
 {
-    if(m_personalInfo == value)
+    setPersonalFieldsFromText(value);
+    const QString composed = composePersonalInfo();
+    if(m_personalInfo == composed)
         return;
-    m_personalInfo = value;
+    m_personalInfo = composed;
     emit settingsChanged();
+}
+
+void SettingsBackend::setPersonalName(const QString &value)
+{
+    if(m_personalName == value)
+        return;
+    m_personalName = value;
+    publishPersonalInfo();
+}
+
+void SettingsBackend::setPersonalPhone(const QString &value)
+{
+    if(m_personalPhone == value)
+        return;
+    m_personalPhone = value;
+    publishPersonalInfo();
+}
+
+void SettingsBackend::setPersonalEmail(const QString &value)
+{
+    if(m_personalEmail == value)
+        return;
+    m_personalEmail = value;
+    publishPersonalInfo();
+}
+
+void SettingsBackend::setPersonalOrganization(const QString &value)
+{
+    if(m_personalOrganization == value)
+        return;
+    m_personalOrganization = value;
+    publishPersonalInfo();
+}
+
+void SettingsBackend::setPersonalInn(const QString &value)
+{
+    if(m_personalInn == value)
+        return;
+    m_personalInn = value;
+    publishPersonalInfo();
+}
+
+void SettingsBackend::setPersonalOgrnip(const QString &value)
+{
+    if(m_personalOgrnip == value)
+        return;
+    m_personalOgrnip = value;
+    publishPersonalInfo();
 }
 
 void SettingsBackend::setThemeSlot(const QString &theme)
@@ -210,6 +354,12 @@ bool SettingsBackend::resetSettings()
     m_vatRate = 20;
     m_invoicePrefix = QStringLiteral("INV");
     m_dbPath = QDir(AppPaths::dbDir()).filePath("services.db");
+    m_personalName.clear();
+    m_personalPhone.clear();
+    m_personalEmail.clear();
+    m_personalOrganization.clear();
+    m_personalInn.clear();
+    m_personalOgrnip.clear();
     m_personalInfo.clear();
     emit settingsChanged();
     emit themeChanged();
@@ -322,7 +472,24 @@ void SettingsBackend::loadPersistedSettings()
     m_vatRate = stored.value("vat_rate", m_vatRate).toInt();
     m_invoicePrefix = stored.value("invoice_prefix", m_invoicePrefix).toString();
     m_dbPath = stored.value("db_path", m_dbPath).toString();
-    m_personalInfo = stored.value("personal_info", m_personalInfo).toString();
+    const bool structured = stored.contains(QStringLiteral("personal_name"))
+                            || stored.contains(QStringLiteral("personal_phone"))
+                            || stored.contains(QStringLiteral("personal_email"))
+                            || stored.contains(QStringLiteral("personal_organization"))
+                            || stored.contains(QStringLiteral("personal_inn"))
+                            || stored.contains(QStringLiteral("personal_ogrnip"));
+    if(structured)
+    {
+        m_personalName = stored.value(QStringLiteral("personal_name")).toString();
+        m_personalPhone = stored.value(QStringLiteral("personal_phone")).toString();
+        m_personalEmail = stored.value(QStringLiteral("personal_email")).toString();
+        m_personalOrganization = stored.value(QStringLiteral("personal_organization")).toString();
+        m_personalInn = stored.value(QStringLiteral("personal_inn")).toString();
+        m_personalOgrnip = stored.value(QStringLiteral("personal_ogrnip")).toString();
+    }
+    else
+        setPersonalFieldsFromText(stored.value(QStringLiteral("personal_info")).toString());
+    m_personalInfo = composePersonalInfo();
 }
 
 QVariantMap SettingsBackend::collectSettings() const
@@ -336,6 +503,12 @@ QVariantMap SettingsBackend::collectSettings() const
     map.insert("invoice_prefix", m_invoicePrefix);
     map.insert("db_path", m_dbPath);
     map.insert("personal_info", m_personalInfo);
+    map.insert("personal_name", m_personalName);
+    map.insert("personal_phone", m_personalPhone);
+    map.insert("personal_email", m_personalEmail);
+    map.insert("personal_organization", m_personalOrganization);
+    map.insert("personal_inn", m_personalInn);
+    map.insert("personal_ogrnip", m_personalOgrnip);
     return map;
 }
 
