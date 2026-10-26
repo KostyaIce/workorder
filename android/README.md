@@ -40,7 +40,7 @@ sudo apt install libffi-dev liblzma-dev uuid-dev zlib1g-dev libssl-dev \
 ```bash
 sudo apt install p7zip-full   # для распаковки .7z
 export LLVM_INSTALL_DIR=~/.local/libclang
-./scripts/android/build_wheels.sh aarch64   # скачает libclang автоматически
+./prod_build/android/build_wheels.sh aarch64   # скачает libclang автоматически
 ```
 
 Или вручную: [libclang 18.1.5 для Linux x86_64](https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_18.1.5-based-linux-Rhel8.6-gcc10.3-x86_64.7z)
@@ -61,15 +61,15 @@ cd /path/to/workorder
 .venv/bin/pip install -r .venv/lib/python3.12/site-packages/PySide6/scripts/requirements-android.txt
 
 # 2. Cross-compile wheels (один раз, ~30–90 мин)
-./scripts/android/build_wheels.sh aarch64
+./prod_build/android/build_wheels.sh aarch64
 
 # 3. Собрать APK (deploy только через Python 3.11!)
 export LLVM_INSTALL_DIR=$HOME/.local/libclang
-./scripts/android/build_apk.sh
+./prod_build/android/build_apk.sh
 adb install -r WorkOrder*.apk
 ```
 
-Переменные окружения — `scripts/android/env.sh`.
+Переменные окружения — `prod_build/android/env.sh`.
 
 ## Альтернатива: готовые wheels с Qt CDN
 
@@ -79,7 +79,7 @@ adb install -r WorkOrder*.apk
 ```bash
 export WHEEL_PYSIDE=/path/to/PySide6-...-android_aarch64.whl
 export WHEEL_SHIBOKEN=/path/to/shiboken6-...-android_aarch64.whl
-./scripts/android/build_apk.sh
+./prod_build/android/build_apk.sh
 ```
 
 ## Runtime

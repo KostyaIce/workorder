@@ -52,6 +52,12 @@ QIcon loadBundledAppIcon()
 
 QString ApplicationBootstrap::resolveAppType(const QString &cliType)
 {
+#if defined(Q_OS_IOS)
+    // iOS launches from SpringBoard without the CMake run target's --type.
+    // Always use the phone UI, including when environment/CLI says desktop.
+    Q_UNUSED(cliType);
+    return QStringLiteral("mobile");
+#else
     if(AppPaths::isAndroidRuntime())
         return QStringLiteral("mobile");
 
@@ -63,6 +69,7 @@ QString ApplicationBootstrap::resolveAppType(const QString &cliType)
         return cliType;
 
     return QStringLiteral("desktop");
+#endif
 }
 
 QString ApplicationBootstrap::qmlMainPath(const QString &appType)

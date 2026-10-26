@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=env.sh
 source "$SCRIPT_DIR/env.sh"
 
+
 resolve_python311()
 {
     local candidate user_set=false
@@ -191,7 +192,7 @@ if [[ -z "$WHEEL_PYSIDE" || -z "$WHEEL_SHIBOKEN" ]]; then
 fi
 
 if [[ ! -f "$WHEEL_PYSIDE" || ! -f "$WHEEL_SHIBOKEN" ]]; then
-    echo "Error: set WHEEL_PYSIDE and WHEEL_SHIBOKEN, or run scripts/android/build_wheels.sh first." >&2
+    echo "Error: set WHEEL_PYSIDE and WHEEL_SHIBOKEN, or run prod_build/android/build_wheels.sh first." >&2
     exit 1
 fi
 

@@ -6,8 +6,8 @@ function(workorder_add_python_run_target target_name app_type)
         set(_launcher "${_bundle}/Contents/MacOS/WorkOrder-${app_type}")
 
         add_custom_target("app-bundle-${app_type}"
-            COMMAND chmod +x "${WORKORDER_ROOT}/scripts/macos/create_app_bundle.sh"
-            COMMAND "${WORKORDER_ROOT}/scripts/macos/create_app_bundle.sh"
+            COMMAND chmod +x "${WORKORDER_ROOT}/prod_build/create_app_bundle.sh"
+            COMMAND "${WORKORDER_ROOT}/prod_build/create_app_bundle.sh"
                 "${WORKORDER_ROOT}"
                 "${CMAKE_BINARY_DIR}"
                 "${app_type}"
@@ -26,10 +26,10 @@ function(workorder_add_python_run_target target_name app_type)
         )
     else()
         add_custom_target(${target_name}
-            COMMAND chmod +x "${WORKORDER_ROOT}/scripts/run_workorder.sh"
+            COMMAND chmod +x "${WORKORDER_ROOT}/prod_build/run_workorder.sh"
             COMMAND ${CMAKE_COMMAND} -E env
                 "WORKORDER_BUILD_DIR=${CMAKE_BINARY_DIR}"
-                "${WORKORDER_ROOT}/scripts/run_workorder.sh"
+                "${WORKORDER_ROOT}/prod_build/run_workorder.sh"
                 ${app_type}
                 "${CMAKE_BINARY_DIR}"
             WORKING_DIRECTORY "${WORKORDER_ROOT}"

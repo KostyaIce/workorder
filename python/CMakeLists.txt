@@ -101,8 +101,8 @@ if(APPLE)
     )
 
     add_custom_target(app-bundle
-        COMMAND chmod +x "${WORKORDER_ROOT}/scripts/macos/create_app_bundle.sh"
-        COMMAND "${WORKORDER_ROOT}/scripts/macos/create_app_bundle.sh"
+        COMMAND chmod +x "${WORKORDER_ROOT}/prod_build/create_app_bundle.sh"
+        COMMAND "${WORKORDER_ROOT}/prod_build/create_app_bundle.sh"
             "${WORKORDER_ROOT}"
             "${CMAKE_BINARY_DIR}"
             "${Type}"
@@ -125,10 +125,10 @@ if(APPLE)
     )
 else()
     add_custom_target(run
-        COMMAND chmod +x "${WORKORDER_ROOT}/scripts/run_workorder.sh"
+        COMMAND chmod +x "${WORKORDER_ROOT}/prod_build/run_workorder.sh"
         COMMAND ${CMAKE_COMMAND} -E env
             "WORKORDER_BUILD_DIR=${CMAKE_BINARY_DIR}"
-            "${WORKORDER_ROOT}/scripts/run_workorder.sh"
+            "${WORKORDER_ROOT}/prod_build/run_workorder.sh"
             ${Type}
             "${CMAKE_BINARY_DIR}"
         WORKING_DIRECTORY "${WORKORDER_ROOT}"

@@ -12,6 +12,64 @@ prod_build/
 └── mac/                   # bash build/pack + PyInstaller + артефакты
 ```
 
+## Мобильные сборки и production-подпись
+
+Команды запускаются из корня проекта. iOS требует macOS, Xcode и Qt iOS;
+Android — Qt Android, host Qt, CMake/Ninja, JDK и Android SDK/NDK.
+Обе мобильные платформы собираются из `cpp/` с `-DType=mobile`.
+
+```bash
+# iOS: тесты на зарегистрированном iPhone (automatic signing)
+bash prod_build/build_ios.sh development
+bash prod_build/build_ios.sh ad-hoc
+# iOS: App Store / TestFlight (manual distribution signing)
+bash prod_build/build_ios_app_store.sh --check
+bash prod_build/build_ios_app_store.sh
+# Android: debug / production APK
+export ANDROID_NDK_ROOT=/absolute/path/to/android-ndk
+export ANDROID_BUILD_TOOLS_VERSION=35.0.0
+bash prod_build/build_android_apk.sh debug
+bash prod_build/build_android_apk.sh release
+```
+
+Тестовые IPA: `build/ios-local/WorkOrder-development.ipa` или
+`WorkOrder-ad-hoc.ipa`. Distribution IPA: `build/ios-app-store/WorkOrder.ipa`.
+App Store IPA загружается через Transporter; для прямой установки нужен тестовый режим.
+Android release создаётся через Qt/CMake и подписывается `apksigner` с production-ключом.
+Результат: `build/android-cpp-release/WorkOrder-release.apk`.
+
+Файлы подписи располагаются **вне репозитория**, рядом с проектом:
+
+```text
+Project/
+  workorder/
+  workorder-signing/
+    key.properties
+    workorder-key.jks
+    ios/
+      distribution.p12
+      WorkOrder_AppStore.mobileprovision
+```
+
+`key.properties` — строки `key=value` (без Java-properties escape-последовательностей):
+
+```properties
+storeFile=workorder-key.jks
+storePassword=<пароль хранилища>
+keyAlias=workorder
+keyPassword=<пароль ключа>
+```
+
+`storeFile` может быть абсолютным или относительным к каталогу подписи.
+Переопределение общего каталога: `SIGNING_DIR=/absolute/path`.
+Для iOS доступны `IOS_CERT_DIR`, `IOS_PROFILE`, `SIGN_IDENTITY` (SHA-1).
+Импортируйте `distribution.p12` с приватным ключом в Keychain вручную.
+Скрипт проверяет срок, тип и bundle ID профиля, выбирает установленный сертификат
+из профиля и берёт production Team ID из него. Если сертификатов несколько,
+укажите `SIGN_IDENTITY`. `--check` также устанавливает профиль для Xcode.
+По умолчанию bundle ID — `com.workorder`; можно задать `BUNDLE_ID`.
+Тестовая команда по умолчанию — `74FAM6RATH`, переопределяется через `TEAM_ID`.
+
 ## Windows (C++ desktop)
 
 ```powershell
@@ -43,6 +101,9 @@ powershell -ExecutionPolicy Bypass -File .\prod_build\windows\pack.ps1
 
 ## macOS (Python / PyInstaller)
 
+Этот раздел относится только к старому Python-прототипу. Для актуального
+Qt/C++ приложения используйте нативные команды из [prod_build/README.md](../prod_build/README.md).
+
 ```bash
 ./prod_build/mac/build.sh desktop
 ./prod_build/mac/pack.sh
@@ -68,5 +129,5 @@ powershell -ExecutionPolicy Bypass -File .\prod_build\windows\pack.ps1
 `resources/icons/appIcons/icon_win32.ico` (из `icon_linux.png`):
 
 ```powershell
-python scripts\generate_win_icon.py
+python prod_build\generate_win_icon.py
 ```

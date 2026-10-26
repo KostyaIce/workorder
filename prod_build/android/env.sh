@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Source before build_wheels.sh / build_apk.sh:
-#   source scripts/android/env.sh
+#   source prod_build/android/env.sh
 
 export WORKORDER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export QT_ANDROID_ROOT="${QT_ANDROID_ROOT:-$HOME/Qt/6.8.3}"

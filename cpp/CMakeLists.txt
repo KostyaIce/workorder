@@ -31,8 +31,8 @@ set(WORKORDER_OAUTH_CALLBACK_SCHEME "workorder"
 set(WORKORDER_MOBILE_APPLICATION_ID "com.workorder"
     CACHE STRING "Android application id / iOS bundle id")
 
-if(ANDROID)
-    set(Type "mobile" CACHE STRING "Application UI type on Android" FORCE)
+if(ANDROID OR IOS)
+    set(Type "mobile" CACHE STRING "Application UI type on Android/iOS" FORCE)
 else()
     set(Type "desktop" CACHE STRING "Default UI type for generic run target: desktop or mobile")
 endif()

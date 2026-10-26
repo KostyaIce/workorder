@@ -141,7 +141,7 @@ ensure_qt_libclang()
             echo "  1. Browser: https://download.qt.io/development_releases/prebuilt/libclang/$archive" >&2
             echo "  2. 7z x $archive -o\$HOME/.local    # note: use \$HOME, not literal ~ in -o" >&2
             echo "  3. export LLVM_INSTALL_DIR=\$HOME/.local/libclang" >&2
-            echo "  4. ./scripts/android/build_wheels.sh aarch64" >&2
+            echo "  4. ./prod_build/android/build_wheels.sh aarch64" >&2
             exit 1
         fi
     fi

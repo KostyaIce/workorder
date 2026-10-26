@@ -3,8 +3,8 @@
 ## Logcat (adb)
 
 ```bash
-chmod +x scripts/android/logcat_workorder.sh
-./scripts/android/logcat_workorder.sh
+chmod +x prod_build/android/logcat_workorder.sh
+./prod_build/android/logcat_workorder.sh
 ```
 
 Запустите WorkOrder на устройстве. В терминале должны появиться строки с префиксом `[workorder]` (Python/Qt/QML через `console.log`).
@@ -35,7 +35,7 @@ adb shell run-as com.workorder.workorder find files -path '*/data/log/*' -name '
 
 | Симптом | Что проверить |
 |---------|---------------|
-| `ModuleNotFoundError: No module named 'PIL'` | В APK нет Pillow. Пересборка: `P4A_CLEAN=1 ./scripts/android/build_apk.sh` |
+| `ModuleNotFoundError: No module named 'PIL'` | В APK нет Pillow. Пересборка: `P4A_CLEAN=1 ./prod_build/android/build_apk.sh` |
 | `Failed to load QML` | Путь к `resources/qml/mobile/main.qml`, import `WorkOrder.Common` |
 | `Backend initialization failed` | SQLite / `AppPaths::dbDir()` — права на запись |
 | `Qt Quick: ...` | Стиль Controls — на Android используется `Basic`, не `Fusion` |
@@ -45,6 +45,6 @@ adb shell run-as com.workorder.workorder find files -path '*/data/log/*' -name '
 ## Пересборка после правок
 
 ```bash
-./scripts/android/build_apk.sh
+./prod_build/android/build_apk.sh
 adb install -r WorkOrder*.apk
 ```

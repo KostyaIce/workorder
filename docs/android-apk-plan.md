@@ -222,7 +222,7 @@ Buildozer запускается из `android/` с `source.dir = .` (относ
 ### 4.3. Первая сборка (debug APK)
 
 ```bash
-P4A_CLEAN=1 ./scripts/android/build_apk.sh
+P4A_CLEAN=1 ./prod_build/android/build_apk.sh
 ```
 
 Результат: `WorkOrder.apk` в каталоге проекта.
@@ -251,14 +251,14 @@ adb logcat | grep -i python   # отладка
 | Пакет | Назначение | Сборка p4a |
 |-------|------------|------------|
 | **Pillow** | зависимость reportlab 4.2.5 | нативная (jpeg, png, freetype) |
-| **reportlab 4.2.5** | PDF отчёты и презентации услуг | pure-Python wheel, рецепт `scripts/android/p4a_recipes/reportlab/` |
+| **reportlab 4.2.5** | PDF отчёты и презентации услуг | pure-Python wheel, рецепт `prod_build/android/p4a_recipes/reportlab/` |
 | **openpyxl + et_xmlfile** | импорт/экспорт Excel | pip |
 | **DejaVuSans.ttf** | кириллица в PDF | `source.include_exts` → `ttf` |
 
 Важно: не смешивать старый p4a-рецепт reportlab 3.5 (compiled) с wheel 4.2.5 — перед пересборкой:
 
 ```bash
-P4A_CLEAN=1 ./scripts/android/build_apk.sh
+P4A_CLEAN=1 ./prod_build/android/build_apk.sh
 ```
 
 Права на файлы: `READ/WRITE_EXTERNAL_STORAGE` (импорт/экспорт через Qt FileDialog).
