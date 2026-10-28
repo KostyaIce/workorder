@@ -19,6 +19,7 @@ Item
         && (Math.floor(Date.now() / 1000) - objectLastOrder) > 12 * 3600
     readonly property bool clientSelected: reportBackend.selectedClientId !== ""
     readonly property bool objectSelected: reportBackend.selectedObjectName !== ""
+    readonly property bool canAddLines: objectSelected && !noActiveReport
     readonly property int lineCount: reportBackend.workCount + reportBackend.expenseCount
 
     function formatMoney(cents)
@@ -188,6 +189,7 @@ Item
                             title: qsTr("Добавить\nработу")
                             iconName: "wrench"
                             filled: true
+                            enabled: root.canAddLines
                             onClicked: root.addWorkRequested()
                         }
 
@@ -196,9 +198,28 @@ Item
                             title: qsTr("Добавить\nзатраты")
                             iconName: "coins"
                             filled: false
-                            enabled: reportBackend.selectedObjectLastOrder > 0
+                            enabled: root.canAddLines
                             onClicked: root.addExpenseRequested()
                         }
+                    }
+
+                    ActionBarButton
+                    {
+                        title: qsTr("Начать новый счет")
+                        iconName: "plus"
+                        filled: false
+                        enabled: root.objectSelected
+                        onClicked: reportBackend.updateLastTimeObject()
+                    }
+
+                    Label
+                    {
+                        visible: root.noActiveReport && root.objectSelected
+                        Layout.fillWidth: true
+                        text: qsTr("Начните счет, чтобы добавить работы и затраты")
+                        font.pixelSize: 12
+                        color: primaryColor
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
@@ -207,6 +228,7 @@ Item
             {
                 Layout.fillWidth: true
                 implicitHeight: totalColumn.implicitHeight + 28
+                visible: root.canAddLines
                 radius: 18
                 color: cardColor
 
@@ -330,25 +352,6 @@ Item
                         filled: true
                         enabled: root.lineCount > 0 && root.clientSelected
                         onClicked: root.reportOptionsRequested()
-                    }
-
-                    ActionBarButton
-                    {
-                        title: qsTr("Начать новый отчет")
-                        iconName: "plus"
-                        filled: false
-                        enabled: root.objectSelected
-                        onClicked: reportBackend.updateLastTimeObject()
-                    }
-
-                    Label
-                    {
-                        visible: root.noActiveReport && root.objectSelected
-                        Layout.fillWidth: true
-                        text: qsTr("Для создания отчета нажмите эту кнопку")
-                        font.pixelSize: 12
-                        color: primaryColor
-                        wrapMode: Text.WordWrap
                     }
 
                     Rectangle

@@ -11,7 +11,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from utils.pdf_report_builder import register_report_font
 from utils.service_units import is_percent_unit
@@ -43,10 +43,53 @@ def _format_price_for_pdf(cents, unit):
     return f"{value / 100:.2f} \u20bd"
 
 
+class _SectionTable(Flowable):
+    """Keep a section label and the column header with the first service row."""
+
+    def __init__(self, heading, table):
+        super().__init__()
+        self.heading = heading
+        self.table = table
+        self._gap = 6 if heading is not None else 0
+
+    def wrap(self, availWidth, availHeight):
+        height = 0
+        if self.heading is not None:
+            _, heading_height = self.heading.wrap(availWidth, availHeight)
+            height += heading_height + self._gap
+        _, table_height = self.table.wrap(availWidth, max(availHeight - height, 0))
+        height += table_height
+        self.width = availWidth
+        self.height = height
+        return availWidth, height
+
+    def split(self, availWidth, availHeight):
+        self.wrap(availWidth, availHeight)
+        rows = getattr(self.table, "_rowHeights", None) or []
+        heading_height = 0 if self.heading is None else self.heading.height + self._gap
+        if len(rows) >= 2:
+            needed = heading_height + rows[0] + rows[1]
+            # A short remainder moves the heading and header onto the next page.
+            # A fresh page that still cannot hold them has to split normally.
+            if needed > availHeight and availHeight <= 180 * mm:
+                return []
+
+        parts = []
+        if self.heading is not None:
+            parts.append(self.heading)
+        parts.append(self.table)
+        return parts
+
+    def draw(self):
+        if self.heading is not None:
+            self.heading.drawOn(self.canv, 0, self.table._height + self._gap)
+        self.table.drawOn(self.canv, 0, 0)
+
+
 class ServicesPdfBuilder:
     """Build grouped services catalog PDF presentation."""
 
-    _TABLE_COL_WIDTHS = [105 * mm, 35 * mm, 34 * mm]
+    _TABLE_COL_WIDTHS = [126 * mm, 29 * mm, 19 * mm]
 
     def __init__(self, font_path=""):
         self._font_name = register_report_font(font_path)
@@ -61,18 +104,26 @@ class ServicesPdfBuilder:
                 "ServicesPdfTitle",
                 parent=styles["Heading1"],
                 alignment=TA_CENTER,
-                fontSize=14,
-                leading=18,
-                spaceAfter=8,
+                fontSize=16,
+                leading=20,
+                spaceAfter=16,
                 **base_kwargs,
             ),
             "section": ParagraphStyle(
                 "ServicesPdfSection",
                 parent=styles["Heading2"],
-                fontSize=11,
-                leading=15,
-                spaceBefore=6,
-                spaceAfter=4,
+                fontSize=10,
+                leading=13,
+                spaceBefore=2,
+                spaceAfter=6,
+                **base_kwargs,
+            ),
+            "table_header": ParagraphStyle(
+                "ServicesPdfTableHeader",
+                parent=styles["Normal"],
+                alignment=TA_CENTER,
+                fontSize=10,
+                leading=13,
                 **base_kwargs,
             ),
             "table_cell": ParagraphStyle(
@@ -116,6 +167,14 @@ class ServicesPdfBuilder:
             return f"{name_text}<br/>{note_text}"
         return name_text
 
+    def _service_table_header(self):
+        header = self._styles["table_header"]
+        return [
+            Paragraph("Услуга", header),
+            Paragraph("Стоимость", header),
+            Paragraph("Ед.", header),
+        ]
+
     def _service_table_row(self, service):
         name = str(service.get("name") or "").strip()
         note = str(service.get("note") or "").strip()
@@ -130,7 +189,7 @@ class ServicesPdfBuilder:
 
     def _table_style(self):
         return TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.72, 0.75, 0.80)),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -151,19 +210,32 @@ class ServicesPdfBuilder:
         )
 
         story = [Paragraph(self._escape(title), self._styles["title"])]
+        groups = list(_group_services_by_paragraph(services))
+        untitled = []
+        wrote_table = False
 
-        for paragraph, items in _group_services_by_paragraph(services):
-            if paragraph:
-                story.append(Paragraph(self._escape(paragraph), self._styles["section"]))
+        def append_table(heading, items):
+            nonlocal wrote_table
+            if wrote_table:
+                story.append(Spacer(1, 10 * mm))
+            rows = [self._service_table_header()]
+            rows.extend(self._service_table_row(service) for service in items)
+            table = Table(rows, colWidths=self._TABLE_COL_WIDTHS)
+            table.setStyle(self._table_style())
+            story.append(_SectionTable(heading, table))
+            wrote_table = True
 
+        for paragraph, items in groups:
             if not items:
                 continue
+            if not paragraph:
+                untitled.extend(items)
+                continue
+            heading = Paragraph(self._escape(paragraph), self._styles["section"])
+            append_table(heading, items)
 
-            data = [self._service_table_row(service) for service in items]
-            table = Table(data, colWidths=self._TABLE_COL_WIDTHS)
-            table.setStyle(self._table_style())
-            story.append(table)
-            story.append(Spacer(1, 4 * mm))
+        if untitled:
+            append_table(None, untitled)
 
         doc.build(story)
         return buffer.getvalue()

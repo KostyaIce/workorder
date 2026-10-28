@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "PhoneFormat.js" as PhoneFormat
 
 Dialog
 {
@@ -11,7 +12,9 @@ Dialog
     {
         emailRow.warning = ""
         nameField.text = settingsBackend.personalName
-        phoneRow.editor.text = settingsBackend.personalPhone
+        var phone = PhoneFormat.format(settingsBackend.personalPhone)
+        phoneRow.lastPhoneText = phone
+        phoneRow.editor.text = phone
         emailRow.editor.text = settingsBackend.personalEmail
         organizationRow.editor.text = settingsBackend.personalOrganization
         innRow.editor.text = settingsBackend.personalInn
@@ -39,7 +42,7 @@ Dialog
         }
         emailRow.warning = ""
         settingsBackend.personalName = nameField.text.trim()
-        settingsBackend.personalPhone = phoneRow.editor.text.trim()
+        settingsBackend.personalPhone = PhoneFormat.format(phoneRow.editor.text).trim()
         settingsBackend.personalEmail = email
         settingsBackend.personalOrganization = organizationRow.editor.text.trim()
         settingsBackend.personalInn = innRow.editor.text.trim()
@@ -315,7 +318,7 @@ Dialog
                 width: parent.width
                 glyph: "phone"
                 phoneFormat: true
-                placeholder: qsTr("Телефон +7 (900) 000-00-00")
+                placeholder: qsTr("Телефон с кодом страны")
             }
 
             PersonalInfoRow
@@ -364,44 +367,6 @@ Dialog
         property bool emailCheck: false
         property string warning: ""
         property alias editor: field
-
-        function digitsOnly(text)
-        {
-            return text.replace(/[^0-9]/g, "")
-        }
-
-        function formatPhone(text)
-        {
-            var digits = digitsOnly(text)
-            if(digits.length === 0)
-                return ""
-            var body = digits
-            if(body.charAt(0) === "8")
-                body = "7" + body.substring(1)
-            else if(body.charAt(0) !== "7")
-                body = "7" + body
-            if(body.length > 11)
-                return "+" + digits
-
-            var national = body.substring(1)
-            var out = "+7"
-            if(national.length === 0)
-                return out
-            out += " (" + national.substring(0, Math.min(3, national.length))
-            if(national.length < 3)
-                return out
-            out += ")"
-            if(national.length === 3)
-                return out
-            out += " " + national.substring(3, Math.min(6, national.length))
-            if(national.length <= 6)
-                return out
-            out += "-" + national.substring(6, Math.min(8, national.length))
-            if(national.length <= 8)
-                return out
-            out += "-" + national.substring(8, 10)
-            return out
-        }
 
         function acceptsEmail(value)
         {
@@ -452,76 +417,42 @@ Dialog
                 color: textColor
                 font.pixelSize: 15
                 background: Item {}
-                inputMethodHints: row.phoneFormat ? Qt.ImhPreferNumbers
+                inputMethodHints: row.phoneFormat ? Qt.ImhFormattedNumbersOnly
                                                    : (row.emailCheck ? Qt.ImhEmailCharactersOnly
                                                                      : Qt.ImhNone)
+                EnterKey.type: row.phoneFormat ? Qt.EnterKeyDone : Qt.EnterKeyDefault
+                onAccepted: {
+                    if(row.phoneFormat)
+                        Qt.inputMethod.hide()
+                }
                 onTextChanged: applyTextChange()
+                onEditingFinished: {
+                    if(row.phoneFormat)
+                        text = PhoneFormat.format(text)
+                }
 
                 function applyTextChange()
                 {
-                    if(row.phoneFormat)
-                        formatPhoneText()
                     if(row.emailCheck && row.warning !== "" && row.acceptsEmail(text))
                         row.warning = ""
-                    if(!activeFocus)
-                        cursorPosition = 0
-                }
-
-                function formatPhoneText()
-                {
-                    var current = text
-                    var cursor = cursorPosition
-                    var previous = row.lastPhoneText
-                    if(previous.length > current.length
-                            && row.digitsOnly(previous) === row.digitsOnly(current))
+                    if(!row.phoneFormat)
                     {
-                        var digits = row.digitsOnly(current)
-                        var digitsBefore = row.digitsOnly(current.substring(0, cursor)).length
-                        if(digitsBefore > 0)
-                            digits = digits.substring(0, digitsBefore - 1) + digits.substring(digitsBefore)
-                        else if(digits.length > 0)
-                            digits = digits.substring(1)
-                        current = digits
-                        cursor = Math.max(0, digitsBefore - 1)
-                    }
-
-                    var formatted = row.formatPhone(current)
-                    var sourceDigits = row.digitsOnly(current)
-                    var cursorDigits = current === text
-                            ? row.digitsOnly(text.substring(0, cursor)).length
-                            : cursor
-                    var prepended = sourceDigits.length > 0
-                                    && sourceDigits.charAt(0) !== "7"
-                                    && sourceDigits.charAt(0) !== "8"
-                                    && ("7" + sourceDigits).length <= 11
-                    if(prepended)
-                        cursorDigits += 1
-                    var atEnd = cursor >= current.length
-                    row.lastPhoneText = formatted
-                    if(formatted === text)
+                        if(!activeFocus)
+                            cursorPosition = 0
                         return
-                    text = formatted
-                    if(atEnd)
-                        cursorPosition = text.length
-                    else
-                    {
-                        var seen = 0
-                        var next = text.length
-                        for(var i = 0; i < text.length; ++i)
-                        {
-                            var ch = text.charAt(i)
-                            if(ch >= "0" && ch <= "9")
-                            {
-                                seen += 1
-                                if(seen >= cursorDigits)
-                                {
-                                    next = i + 1
-                                    break
-                                }
-                            }
-                        }
-                        cursorPosition = next
                     }
+                    if(!activeFocus)
+                    {
+                        cursorPosition = 0
+                        row.lastPhoneText = text
+                        return
+                    }
+                    var result = PhoneFormat.edit(row.lastPhoneText, text, cursorPosition)
+                    row.lastPhoneText = result.text
+                    if(result.text === text)
+                        return
+                    text = result.text
+                    cursorPosition = result.cursor
                 }
             }
         }

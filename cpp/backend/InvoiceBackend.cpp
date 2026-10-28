@@ -7,12 +7,53 @@
 #include "ServicesDatabase.h"
 #include "ServicesExcelBuilder.h"
 #include "ServicesPdfBuilder.h"
+#include "DatabaseStorage.h"
+#include "NotificationManager.h"
+#include "QSettingsStore.h"
+#include "ReportShare.h"
 
+#include <QDateTime>
+#include <QDir>
+#include <QDebug>
 #include <QQmlContext>
 #include <stdexcept>
 
 namespace workorder
 {
+
+namespace
+{
+
+void announceSavedFile(const QString &savedPath, const QString &title)
+{
+    if(savedPath.isEmpty())
+        return;
+
+    const QString place = ReportShare::publish(savedPath);
+    const QString message = place.isEmpty()
+        ? QStringLiteral("%1 сохранён: %2").arg(title, savedPath)
+        : QStringLiteral("%1 сохранён в %2. Его можно отправить через почту или мессенджер.").arg(title, place);
+    if(NotificationManager *notifications = NotificationManager::instance())
+        notifications->pushInfo(message, QString(), 12000);
+    else
+        NotificationManager::notifyInfo(message);
+}
+
+QString defaultExportPath(const QString &fileName)
+{
+    const QString directory = DatabaseStorage::defaultReportsDir();
+    QDir().mkpath(directory);
+    return QDir(directory).filePath(fileName);
+}
+
+const char *kPresentationTitleKey = "services/presentation_title";
+
+QString defaultPresentationTitle()
+{
+    return QStringLiteral("Презентация услуг");
+}
+
+} // namespace
 
 InvoiceBackend::InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent)
     : QObject(parent)
@@ -24,6 +65,7 @@ InvoiceBackend::InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent)
     m_servicesFilter->setSourceModel(m_services);
     m_coefficientsFilter->setSourceModel(m_services);
     loadServices();
+    loadPresentationTitle();
     registerModels(engine);
 }
 
@@ -43,6 +85,30 @@ void InvoiceBackend::registerModels(QQmlApplicationEngine *engine)
 void InvoiceBackend::bindReportBackend(ReportBackend *reportBackend)
 {
     m_reportBackend = reportBackend;
+}
+
+void InvoiceBackend::loadPresentationTitle()
+{
+    QSettingsStore store;
+    const QString stored = store.read(QLatin1String(kPresentationTitleKey), defaultPresentationTitle()).toString().trimmed();
+    m_presentationTitle = stored.isEmpty() ? defaultPresentationTitle() : stored;
+}
+
+QString InvoiceBackend::presentationTitle() const
+{
+    return m_presentationTitle;
+}
+
+void InvoiceBackend::rememberPresentationTitle(const QString &title)
+{
+    const QString stored = title.trimmed().isEmpty() ? defaultPresentationTitle() : title.trimmed();
+    if(stored == m_presentationTitle)
+        return;
+
+    m_presentationTitle = stored;
+    QSettingsStore store;
+    store.write(QLatin1String(kPresentationTitleKey), m_presentationTitle);
+    emit presentationTitleChanged();
 }
 
 void InvoiceBackend::loadServices()
@@ -120,26 +186,54 @@ bool InvoiceBackend::importServicesFromFile(const QString &fileUrl)
 
 bool InvoiceBackend::exportServicesToFile(const QString &fileUrl)
 {
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString target = fileUrl.trimmed().isEmpty()
+        ? defaultExportPath(QStringLiteral("services_%1.xlsx").arg(stamp))
+        : fileUrl;
+
     try
     {
-        exportServicesExcel(fileUrl, ServicesDatabase::loadServices());
-        return true;
+        const QString saved = exportServicesExcel(target, ServicesDatabase::loadServices());
+        announceSavedFile(saved, QStringLiteral("Шаблон"));
+        return !saved.isEmpty();
+    }
+    catch(const std::exception &ex)
+    {
+        qWarning("InvoiceBackend: export failed: %s", ex.what());
+        NotificationManager::notifyError(QStringLiteral("Не удалось экспортировать услуги"));
+        return false;
     }
     catch(...)
     {
+        NotificationManager::notifyError(QStringLiteral("Не удалось экспортировать услуги"));
         return false;
     }
 }
 
-bool InvoiceBackend::exportServicesPresentationToFile(const QString &fileUrl)
+bool InvoiceBackend::exportServicesPresentationToFile(const QString &fileUrl, const QString &title)
 {
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString target = fileUrl.trimmed().isEmpty()
+        ? defaultExportPath(QStringLiteral("presentation_%1.pdf").arg(stamp))
+        : fileUrl;
+
+    rememberPresentationTitle(title);
+
     try
     {
-        exportServicesPdf(fileUrl, ServicesDatabase::loadServices());
-        return true;
+        const QString saved = exportServicesPdf(target, ServicesDatabase::loadServices(), title.trimmed());
+        announceSavedFile(saved, QStringLiteral("PDF"));
+        return !saved.isEmpty();
+    }
+    catch(const std::exception &ex)
+    {
+        qWarning("InvoiceBackend: presentation failed: %s", ex.what());
+        NotificationManager::notifyError(QStringLiteral("Не удалось сохранить презентацию"));
+        return false;
     }
     catch(...)
     {
+        NotificationManager::notifyError(QStringLiteral("Не удалось сохранить презентацию"));
         return false;
     }
 }
@@ -208,7 +302,14 @@ void InvoiceBackend::clearForm()
 
 QVariantList InvoiceBackend::getAllServices() const
 {
-    return {};
+    QVariantList result;
+    for(int row = 0; row < m_services->rowCount(); ++row)
+    {
+        const QModelIndex index = m_services->index(row, 0);
+        const QString id = m_services->data(index, ServicesModel::IdRole).toString();
+        result.append(m_services->itemData(id));
+    }
+    return result;
 }
 
 QVariantMap InvoiceBackend::getServiceById(int serviceId) const

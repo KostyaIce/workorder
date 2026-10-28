@@ -10,6 +10,29 @@ Item {
     property real bottomScrollPadding: 0
     property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
+    property string presentationTitle: ""
+
+    function saveServicesExport()
+    {
+        if(Qt.platform.os === "ios" || Qt.platform.os === "android")
+        {
+            invoiceBackend.exportServicesToFile("")
+            return
+        }
+        exportServicesDialog.open()
+    }
+
+    function saveServicesPresentation()
+    {
+        presentationTitle = presentationInfoDialog.enteredTitle()
+        invoiceBackend.rememberPresentationTitle(presentationTitle)
+        if(Qt.platform.os === "ios" || Qt.platform.os === "android")
+        {
+            invoiceBackend.exportServicesPresentationToFile("", presentationTitle)
+            return
+        }
+        presentationServicesDialog.open()
+    }
 
     function isPercentUnit(unitValue)
     {
@@ -35,41 +58,182 @@ Item {
 
         property string description: ""
         property string actionText: qsTr("Продолжить")
+        property bool editTitle: false
+        property string documentTitle: ""
 
         signal proceedRequested()
 
+        function enteredTitle()
+        {
+            return titleField.text.trim()
+        }
+
+        onOpened:
+        {
+            if(editTitle)
+                titleField.text = documentTitle
+        }
+
+        parent: Overlay.overlay
         standardButtons: Dialog.NoButton
         modal: true
-        anchors.centerIn: parent
-        width: root.compact ? parent.width - 32 : 440
+        dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 16
+        width: Math.min(root.compact ? parent.width - 24 : 440, parent.width - 16)
+        height: Math.min(infoColumn.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
+                         parent.height - 32)
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.max(8, Math.round((parent.height - height) / 2)) : 0
 
-        background: DialogSurface { }
-
-        header: DialogTitleBar
+        Overlay.modal: Rectangle
         {
-            text: infoDialog.title
-            compact: root.compact
+            color: "#66000000"
         }
 
-        Label
+        background: Rectangle
         {
-            width: parent.width
-            text: infoDialog.description
-            color: textColor
-            font.pixelSize: root.compact ? 14 : 15
-            wrapMode: Text.WordWrap
+            color: backgroundColor
+            radius: 22
         }
 
-        footer: DialogEdgeButtons
+        header: Item
         {
-            width: infoDialog.width
-            cancelText: qsTr("Отмена")
-            acceptText: infoDialog.actionText
-            onCancelled: infoDialog.reject()
-            onAccepted:
+            implicitHeight: Math.max(52, infoTitle.implicitHeight + 16)
+            implicitWidth: infoDialog.width
+
+            Label
             {
-                infoDialog.accept()
-                infoDialog.proceedRequested()
+                id: infoTitle
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 52
+                anchors.rightMargin: 52
+                text: infoDialog.title
+                wrapMode: Text.WordWrap
+                font.pixelSize: 18
+                font.bold: true
+                color: textColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Rectangle
+            {
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                width: 40
+                height: 40
+                radius: 20
+                color: cardColor
+                border.width: 1
+                border.color: "#E4EAF2"
+
+                Label
+                {
+                    anchors.centerIn: parent
+                    text: "\u2715"
+                    font.pixelSize: 16
+                    color: textColor
+                }
+
+                MouseArea
+                {
+                    anchors.fill: parent
+                    onClicked: infoDialog.close()
+                }
+            }
+        }
+
+        contentItem: ColumnLayout
+        {
+            id: infoColumn
+            spacing: 12
+
+            Label
+            {
+                Layout.fillWidth: true
+                text: infoDialog.description
+                color: textColor
+                font.pixelSize: 15
+                wrapMode: Text.WordWrap
+            }
+
+            FormField
+            {
+                id: titleField
+                visible: infoDialog.editTitle
+                Layout.fillWidth: true
+                label: qsTr("Заголовок")
+                placeholder: qsTr("Презентация услуг")
+                compact: root.compact
+            }
+        }
+
+        footer: Item
+        {
+            implicitHeight: 72
+            implicitWidth: infoDialog.width
+
+            RowLayout
+            {
+                anchors.fill: parent
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                anchors.bottomMargin: 12
+                spacing: 10
+
+                Rectangle
+                {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 48
+                    radius: 14
+                    color: cardColor
+                    border.width: 1
+                    border.color: "#E4EAF2"
+
+                    Label
+                    {
+                        anchors.centerIn: parent
+                        text: qsTr("Отмена")
+                        font.pixelSize: 16
+                        color: textSecondaryColor
+                    }
+
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked: infoDialog.reject()
+                    }
+                }
+
+                Rectangle
+                {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 48
+                    radius: 14
+                    color: primaryColor
+
+                    Label
+                    {
+                        anchors.centerIn: parent
+                        text: infoDialog.actionText
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "white"
+                    }
+
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked:
+                        {
+                            infoDialog.accept()
+                            infoDialog.proceedRequested()
+                        }
+                    }
+                }
             }
         }
     }
@@ -89,7 +253,7 @@ Item {
         title: qsTr("Экспорт услуг")
         description: qsTr("Будет создан файл-шаблон Excel со всеми вашими услугами. Его можно сохранить как резервную копию или импортировать позже.")
         actionText: qsTr("Сохранить шаблон")
-        onProceedRequested: exportServicesDialog.open()
+        onProceedRequested: root.saveServicesExport()
     }
 
     FileActionInfoDialog
@@ -98,7 +262,9 @@ Item {
         title: qsTr("Презентация услуг")
         description: qsTr("Будет подготовлен PDF-файл с описанием и стоимостью услуг. Его можно отправить заказчику как презентацию.")
         actionText: qsTr("Создать PDF")
-        onProceedRequested: presentationServicesDialog.open()
+        editTitle: true
+        documentTitle: invoiceBackend.presentationTitle
+        onProceedRequested: root.saveServicesPresentation()
     }
 
     ServiceFormDialog {
@@ -162,7 +328,7 @@ Item {
 
         onAccepted:
         {
-            if(!invoiceBackend.exportServicesPresentationToFile(selectedFile))
+            if(!invoiceBackend.exportServicesPresentationToFile(selectedFile, root.presentationTitle))
                 console.log("Не удалось сохранить презентацию услуг")
         }
     }

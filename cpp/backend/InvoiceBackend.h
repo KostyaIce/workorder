@@ -15,6 +15,7 @@ class ServicesModel;
 class InvoiceBackend : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(QString presentationTitle READ presentationTitle NOTIFY presentationTitleChanged)
 
 public:
     explicit InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent = nullptr);
@@ -27,7 +28,9 @@ public:
     Q_INVOKABLE bool deleteService(const QString &serviceId);
     Q_INVOKABLE bool importServicesFromFile(const QString &fileUrl);
     Q_INVOKABLE bool exportServicesToFile(const QString &fileUrl);
-    Q_INVOKABLE bool exportServicesPresentationToFile(const QString &fileUrl);
+    Q_INVOKABLE bool exportServicesPresentationToFile(const QString &fileUrl, const QString &title);
+    Q_INVOKABLE void rememberPresentationTitle(const QString &title);
+    QString presentationTitle() const;
     Q_INVOKABLE void searchServices(const QString &query);
     Q_INVOKABLE void clearSuggestions();
     Q_INVOKABLE void searchCoefficients(const QString &query);
@@ -49,13 +52,16 @@ signals:
     void suggestionsUpdated(const QVariantList &suggestions);
     void suggestionsCleared();
     void invoiceCreated(int invoiceId, const QString &invoiceNumber);
+    void presentationTitleChanged();
 
 private:
     void loadServices();
+    void loadPresentationTitle();
     void registerModels(QQmlApplicationEngine *engine);
 
     ReportBackend *m_reportBackend = nullptr;
     int m_invoiceCounter = 0;
+    QString m_presentationTitle;
     ServicesModel *m_services = nullptr;
     ServicesFilterModel *m_servicesFilter = nullptr;
     CoefficientsFilterModel *m_coefficientsFilter = nullptr;

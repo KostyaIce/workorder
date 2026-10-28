@@ -53,10 +53,11 @@ void ClientsDatabase::createClientTable(const QString &dbPath)
         "kind TEXT NOT NULL,"
         "name TEXT NOT NULL,"
         "address TEXT,"
-        "contact TEXT,"
+        "phone TEXT NOT NULL CHECK(length(trim(phone)) > 0),"
+        "email TEXT,"
         "notes TEXT,"
         "created_at TEXT,"
-        "UNIQUE (name, address, contact)"
+        "UNIQUE (name, address, phone)"
         ")"));
     if(db.record(QStringLiteral("clients")).indexOf(QStringLiteral("updated_at")) < 0)
         query.exec(QStringLiteral("ALTER TABLE clients ADD COLUMN updated_at TEXT"));
@@ -65,7 +66,7 @@ void ClientsDatabase::createClientTable(const QString &dbPath)
 
 QString ClientsDatabase::addClientEntry(const StringMap &data, const QString &dbPath)
 {
-    if(data.isEmpty())
+    if(data.isEmpty() || data.value("phone").toString().trimmed().isEmpty())
         return {};
 
     createClientTable(dbPath);
@@ -73,14 +74,15 @@ QString ClientsDatabase::addClientEntry(const StringMap &data, const QString &db
     QSqlDatabase db = openDatabase(path);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO clients(id, kind, name, address, contact, notes, created_at, updated_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO clients(id, kind, name, address, phone, email, notes, created_at, updated_at)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     const QString clientId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     query.addBindValue(clientId);
     query.addBindValue(data.value("kind"));
     query.addBindValue(data.value("name"));
     query.addBindValue(data.value("address", QString()));
-    query.addBindValue(data.value("contact", QString()));
+    query.addBindValue(data.value("phone").toString().trimmed());
+    query.addBindValue(data.value("email").toString().trimmed());
     query.addBindValue(data.value("notes", QString()));
     const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
     query.addBindValue(now);
@@ -97,7 +99,7 @@ QString ClientsDatabase::addClientEntry(const StringMap &data, const QString &db
 
 bool ClientsDatabase::updateClientEntry(const StringMap &data, const QString &dbPath)
 {
-    if(data.isEmpty())
+    if(data.isEmpty() || data.value("phone").toString().trimmed().isEmpty())
         return false;
 
     const QString clientId = data.value("id").toString();
@@ -109,10 +111,11 @@ bool ClientsDatabase::updateClientEntry(const StringMap &data, const QString &db
     QSqlDatabase db = openDatabase(path);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE clients SET name = ?, address = ?, contact = ?, notes = ?, updated_at = ? WHERE id = ?"));
+        "UPDATE clients SET name = ?, address = ?, phone = ?, email = ?, notes = ?, updated_at = ? WHERE id = ?"));
     query.addBindValue(data.value("name"));
     query.addBindValue(data.value("address", QString()));
-    query.addBindValue(data.value("contact", QString()));
+    query.addBindValue(data.value("phone").toString().trimmed());
+    query.addBindValue(data.value("email").toString().trimmed());
     query.addBindValue(data.value("notes", QString()));
     query.addBindValue(QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
     query.addBindValue(clientId);
@@ -135,7 +138,7 @@ StringMapList ClientsDatabase::loadClients(const QString &dbPath)
     QSqlDatabase db = openDatabase(path);
     QSqlQuery query(db);
     query.exec(QStringLiteral(
-        "SELECT id, kind, name, contact, address, notes, created_at"
+        "SELECT id, kind, name, phone, address, notes, created_at, email"
         " FROM clients ORDER BY id"));
 
     StringMapList result;
@@ -145,7 +148,8 @@ StringMapList ClientsDatabase::loadClients(const QString &dbPath)
         row.insert("id", query.value(0));
         row.insert("kind", query.value(1));
         row.insert("name", query.value(2));
-        row.insert("contact_info", query.value(3));
+        row.insert("phone", query.value(3));
+        row.insert("email", query.value(7));
         row.insert("address", query.value(4));
         row.insert("notes", query.value(5));
         row.insert("created_at", query.value(6));
@@ -196,7 +200,7 @@ int ClientsDatabase::mergeFromDatabase(const QString &sourceDbPath, const QStrin
             QSqlDatabase dst = openDatabase(targetPath);
             QSqlQuery select(src);
             if(!select.exec(QStringLiteral(
-                    "SELECT id, kind, name, address, contact, notes, created_at FROM clients")))
+                    "SELECT id, kind, name, address, phone, notes, created_at, email FROM clients")))
             {
                 qWarning("ClientsDatabase::mergeFromDatabase select failed: %s",
                          qPrintable(select.lastError().text()));
@@ -208,8 +212,8 @@ int ClientsDatabase::mergeFromDatabase(const QString &sourceDbPath, const QStrin
                     QSqlQuery insert(dst);
                     insert.prepare(QStringLiteral(
                         "INSERT OR IGNORE INTO clients"
-                        "(id, kind, name, address, contact, notes, created_at)"
-                        " VALUES (?, ?, ?, ?, ?, ?, ?)"));
+                        "(id, kind, name, address, phone, notes, created_at, email)"
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
                     insert.addBindValue(select.value(0));
                     insert.addBindValue(select.value(1));
                     insert.addBindValue(select.value(2));
@@ -217,6 +221,7 @@ int ClientsDatabase::mergeFromDatabase(const QString &sourceDbPath, const QStrin
                     insert.addBindValue(select.value(4));
                     insert.addBindValue(select.value(5));
                     insert.addBindValue(select.value(6));
+                    insert.addBindValue(select.value(7));
                     if(insert.exec() && insert.numRowsAffected() > 0)
                         ++inserted;
                 }

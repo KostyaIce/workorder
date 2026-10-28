@@ -16,6 +16,7 @@
 #include "ExpensesDatabase.h"
 #include "FileIo.h"
 #include "NotificationManager.h"
+#include "ReportShare.h"
 #include "ObjectsDatabase.h"
 #include "PdfReportBuilder.h"
 #include "QSettingsStore.h"
@@ -159,6 +160,12 @@ bool ReportBackend::addClient(const QVariantMap &data)
         return false;
     }
 
+    if(data.value(QStringLiteral("phone")).toString().trimmed().isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите телефон заказчика"));
+        return false;
+    }
+
     const QString clientId = ClientsDatabase::addClientEntry(data);
     if(clientId.isEmpty())
     {
@@ -180,6 +187,12 @@ bool ReportBackend::updateClient(const QVariantMap &data)
     if(name.isEmpty())
     {
         NotificationManager::notifyError(QStringLiteral("Укажите имя заказчика"));
+        return false;
+    }
+
+    if(data.value(QStringLiteral("phone")).toString().trimmed().isEmpty())
+    {
+        NotificationManager::notifyError(QStringLiteral("Укажите телефон заказчика"));
         return false;
     }
 
@@ -1239,6 +1252,17 @@ bool ReportBackend::generateReportInternal(bool saveToFile, const QString &fileP
     else
         m_lastReportUrl = QUrl::fromLocalFile(result.first).toString();
     emit reportGenerated(m_lastReportPath, m_lastReportUrl);
+    if(saveToFile)
+    {
+        const QString place = ReportShare::publish(result.first);
+        const QString savedMessage = place.isEmpty()
+            ? QStringLiteral("Отчёт сохранён: %1").arg(result.first)
+            : QStringLiteral("Отчёт сохранён в %1. Его можно отправить через почту или мессенджер.").arg(place);
+        if(NotificationManager *notifications = NotificationManager::instance())
+            notifications->pushInfo(savedMessage, QString(), 12000);
+        else
+            NotificationManager::notifyInfo(savedMessage);
+    }
     return true;
 }
 

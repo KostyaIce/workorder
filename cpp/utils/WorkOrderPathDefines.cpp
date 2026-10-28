@@ -108,16 +108,32 @@ QString WorkOrderPathDefines::configPath()
 
 QString WorkOrderPathDefines::reportsPath()
 {
-    // Default reports folder: user Documents (not under app data).
+    // Desktop: Documents. iOS: app Documents shown in Files. Android: private
+    // files, copied to public Downloads after a successful save.
     const QString overridePath = qEnvironmentVariable("WORKORDER_REPORTS_DIR");
     if(!overridePath.isEmpty())
         return QDir(overridePath).absolutePath();
 
     ensureOrgAppNames();
+
+#if defined(Q_OS_IOS)
+    // Sandbox Documents. UIFileSharingEnabled shows this folder in the Files app.
+    QString base = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if(base.isEmpty())
+        base = QDir::homePath() + QStringLiteral("/Documents");
+    return QDir(base).filePath(QStringLiteral("WorkOrder"));
+#elif defined(Q_OS_ANDROID)
+    // Always writable. A copy is published to the public Downloads folder after save.
+    QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if(base.isEmpty())
+        base = QDir::homePath();
+    return QDir(base).filePath(QStringLiteral("reports"));
+#else
     QString base = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     if(base.isEmpty())
         base = QDir::homePath();
     return QDir(base).absolutePath();
+#endif
 }
 
 QString WorkOrderPathDefines::configFilePath()

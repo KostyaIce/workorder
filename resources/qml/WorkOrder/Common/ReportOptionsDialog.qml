@@ -83,6 +83,17 @@ Dialog
 
     function openSaveReportDialog()
     {
+        // Qt's file dialog is a fixed 600 px wide and cannot be resized. On iPhone
+        // that window is wider than the screen, so the report is saved directly.
+        if(Qt.platform.os === "ios")
+        {
+            reportOptionsBackend.saveSettings()
+            var target = reportBackend.defaultReportSaveUrl(reportBackend.selectedClientId)
+            if(reportBackend.saveReportToFile(target))
+                root.close()
+            return
+        }
+
         saveReportDialog.currentFolder = reportBackend.defaultReportSaveFolderUrl()
         saveReportDialog.currentFile = reportBackend.defaultReportSaveUrl(reportBackend.selectedClientId)
         saveReportDialog.open()

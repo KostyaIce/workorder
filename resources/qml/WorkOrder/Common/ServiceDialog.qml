@@ -14,6 +14,7 @@ Dialog
     property string keywords: ""
     property string note: ""
     property string paragraph: ""
+    property var existingTypes: []
 
     readonly property bool canSave: nameField.text.trim() !== ""
 
@@ -48,6 +49,15 @@ Dialog
         priceField.text = (price / 100).toFixed(2)
         keywordsField.text = keywords
         unitField.text = unit
+        var types = []
+        var services = invoiceBackend.getAllServices()
+        for(var i = 0; i < services.length; ++i)
+        {
+            var type = String(services[i].paragraph || "").trim()
+            if(type !== "" && types.indexOf(type) === -1)
+                types.push(type)
+        }
+        existingTypes = types.sort()
         flick.contentY = 0
         Qt.callLater(function()
         {
@@ -194,6 +204,64 @@ Dialog
                 label: qsTr("Тип услуги")
                 placeholder: qsTr("Например: Монтажные работы")
                 compact: root.compact
+            }
+
+            Flickable
+            {
+                Layout.fillWidth: true
+                Layout.preferredHeight: typeGrid.implicitHeight + 8
+                visible: root.existingTypes.length > 0
+                contentWidth: typeGrid.implicitWidth
+                contentHeight: height
+                clip: true
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                Grid
+                {
+                    id: typeGrid
+                    rows: Math.min(3, root.existingTypes.length)
+                    flow: Grid.TopToBottom
+                    spacing: 6
+
+                    Repeater
+                    {
+                        model: root.existingTypes
+                        delegate: Item
+                        {
+                            required property string modelData
+                            readonly property bool selected: paragraphField.text.trim() === modelData
+
+                            implicitWidth: typeLabel.implicitWidth + 28
+                            implicitHeight: 36
+
+                            Rectangle
+                            {
+                                anchors.fill: parent
+                                radius: 12
+                                color: selected ? primaryColor : cardColor
+                                border.width: 1
+                                border.color: selected ? primaryColor : "#E4EAF2"
+
+                                Label
+                                {
+                                    id: typeLabel
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    font.pixelSize: 14
+                                    color: selected ? "white" : textColor
+                                }
+
+                                MouseArea
+                                {
+                                    anchors.fill: parent
+                                    onClicked: paragraphField.text = modelData
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             FormField

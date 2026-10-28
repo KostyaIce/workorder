@@ -23,7 +23,9 @@ struct WorkOrderPathDefines
     static QString logPath();
     static QString dbPath();
     static QString configPath();
-    // Default folder for reports when the user did not pick a path (Documents).
+    // Default folder for reports when the user did not pick a path.
+    // Desktop: Documents. iOS: app Documents (visible in Files). Android: app files,
+    // then copied into the public Downloads folder.
     static QString reportsPath();
     static QString configFilePath();
 

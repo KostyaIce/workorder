@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "PhoneFormat.js" as PhoneFormat
 
 Dialog
 {
@@ -8,18 +9,64 @@ Dialog
 
     property bool compact: true
     property bool editMode: false
+    property string lastPhoneText: ""
     readonly property bool nameValid: nameField.text.trim().length > 0
+    readonly property bool canSave: nameValid && phoneField.text.trim().length > 0
+    readonly property bool fieldFocused: nameField.field.activeFocus
+            || phoneField.field.activeFocus
+            || emailField.field.activeFocus
+            || addressField.field.activeFocus
+            || notesField.field.activeFocus
+    readonly property real keyboardInset: {
+        if(!parent || !compact || !fieldFocused)
+            return 0
+        var rect = Qt.inputMethod.keyboardRectangle
+        var overlap = parent.height - rect.y
+        if(!Qt.inputMethod.visible || rect.height <= 0 || overlap <= 0)
+            return Math.round(parent.height * 0.42)
+        return overlap
+    }
+
+    function hideKeyboard()
+    {
+        focusSink.forceActiveFocus()
+        Qt.inputMethod.hide()
+    }
 
     title: editMode ? qsTr("Редактирование заказчика") : qsTr("Новый заказчик")
     standardButtons: Dialog.NoButton
     modal: true
     parent: Overlay.overlay
-    anchors.centerIn: parent
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    closePolicy: Popup.CloseOnEscape
     padding: 16
     width: Math.min(compact ? parent.width - 24 : 480, parent.width - 16)
     height: Math.min(formLayout.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
-                     parent.height - 32)
+                     Math.max(220, parent.height - 32 - keyboardInset))
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        if(keyboardInset > 0)
+            return Math.max(8, parent.height - keyboardInset - height - 8)
+        return Math.max(8, Math.round((parent.height - height) / 2))
+    }
+
+    Overlay.modal: Rectangle
+    {
+        color: "#66000000"
+
+        MouseArea
+        {
+            anchors.fill: parent
+            onClicked:
+            {
+                if(root.fieldFocused)
+                    root.hideKeyboard()
+                else
+                    root.reject()
+            }
+        }
+    }
 
     background: Rectangle
     {
@@ -32,13 +79,44 @@ Dialog
         implicitHeight: Math.max(52, titleLabel.implicitHeight + 16)
         implicitWidth: root.width
 
+        Item
+        {
+            id: focusSink
+            width: 0
+            height: 0
+        }
+
+        Item
+        {
+            visible: root.compact
+            anchors.left: parent.left
+            anchors.leftMargin: 4
+            anchors.verticalCenter: parent.verticalCenter
+            width: 76
+            height: 40
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: qsTr("Готово")
+                font.pixelSize: 16
+                color: primaryColor
+            }
+
+            MouseArea
+            {
+                anchors.fill: parent
+                onClicked: root.hideKeyboard()
+            }
+        }
+
         Label
         {
             id: titleLabel
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 52
+            anchors.leftMargin: root.compact ? 84 : 52
             anchors.rightMargin: 52
             text: root.title
             font.pixelSize: 18
@@ -94,14 +172,18 @@ Dialog
         {
             var client = reportBackend.currentClientData()
             nameField.text = client.name === undefined ? "" : client.name
-            contactField.text = client.contact_info === undefined ? "" : client.contact_info
+            root.lastPhoneText = PhoneFormat.format(client.phone === undefined ? "" : client.phone)
+            phoneField.text = root.lastPhoneText
+            emailField.text = client.email === undefined ? "" : client.email
             addressField.text = client.address === undefined ? "" : client.address
             notesField.text = client.notes === undefined ? "" : client.notes
         }
         else
         {
             nameField.text = ""
-            contactField.text = ""
+            root.lastPhoneText = ""
+            phoneField.text = ""
+            emailField.text = ""
             addressField.text = ""
             notesField.text = ""
         }
@@ -110,7 +192,8 @@ Dialog
         Qt.callLater(function()
         {
             showFieldStart(nameField.field)
-            showFieldStart(contactField.field)
+            showFieldStart(phoneField.field)
+            showFieldStart(emailField.field)
             showFieldStart(addressField.field)
             showFieldStart(notesField.field)
         })
@@ -120,9 +203,26 @@ Dialog
 
     function tryAccept()
     {
-        if(!nameValid)
+        hideKeyboard()
+        if(!canSave)
             return
         accept()
+    }
+
+    function applyPhoneEdit()
+    {
+        var input = phoneField.field
+        if(!input.activeFocus)
+        {
+            lastPhoneText = input.text
+            return
+        }
+        var result = PhoneFormat.edit(lastPhoneText, input.text, input.cursorPosition)
+        lastPhoneText = result.text
+        if(result.text === input.text)
+            return
+        input.text = result.text
+        input.cursorPosition = result.cursor
     }
 
     contentItem: Flickable
@@ -150,10 +250,30 @@ Dialog
 
             FormField
             {
-                id: contactField
+                id: phoneField
                 Layout.fillWidth: true
-                label: qsTr("Контакт")
-                placeholder: qsTr("Телефон, email")
+                label: qsTr("Телефон *")
+                placeholder: qsTr("+7 (900) 000-00-00")
+                field.inputMethodHints: Qt.ImhFormattedNumbersOnly
+                field.EnterKey.type: Qt.EnterKeyDone
+                field.onAccepted: root.hideKeyboard()
+                compact: root.compact
+                Connections
+                {
+                    target: phoneField.field
+                    function onTextChanged() {
+                        root.applyPhoneEdit()
+                    }
+                }
+            }
+
+            FormField
+            {
+                id: emailField
+                Layout.fillWidth: true
+                label: qsTr("Email")
+                placeholder: qsTr("name@example.com")
+                field.inputMethodHints: Qt.ImhEmailCharactersOnly
                 compact: root.compact
             }
 
@@ -219,7 +339,7 @@ Dialog
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 radius: 14
-                color: root.nameValid ? primaryColor : "#CCCCCC"
+                color: root.canSave ? primaryColor : "#CCCCCC"
 
                 Label
                 {
@@ -233,7 +353,7 @@ Dialog
                 MouseArea
                 {
                     anchors.fill: parent
-                    enabled: root.nameValid
+                    enabled: root.canSave
                     onClicked: root.tryAccept()
                 }
             }
@@ -244,7 +364,8 @@ Dialog
     {
         var data = {
             "name": nameField.text.trim(),
-            "contact": contactField.text,
+            "phone": PhoneFormat.format(phoneField.text).trim(),
+            "email": emailField.text.trim(),
             "address": addressField.text,
             "notes": notesField.text
         }

@@ -21,6 +21,7 @@ set(WORKORDER_UTILS_SOURCES
     ServicesPdfBuilder.cpp
     WorksDatabase.cpp
     WorkOrderPathDefines.cpp
+    ReportShare.cpp
 )
 
 set(WORKORDER_UTILS_HEADERS
@@ -45,6 +46,7 @@ set(WORKORDER_UTILS_HEADERS
     Types.h
     WorksDatabase.h
     WorkOrderPathDefines.h
+    ReportShare.h
 )
 
 add_library(workorder_utils STATIC
@@ -69,6 +71,11 @@ target_include_directories(workorder_utils
     PRIVATE
         ${WORKORDER_LOGGING_GENERATED_INCLUDE_DIR}
 )
+
+if(IOS)
+    target_sources(workorder_utils PRIVATE ReportShare_ios.mm)
+    target_link_libraries(workorder_utils PUBLIC "-framework UIKit")
+endif()
 
 set_target_properties(workorder_utils PROPERTIES
     AUTOMOC OFF

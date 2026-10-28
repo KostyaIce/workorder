@@ -17,6 +17,8 @@ struct ClientItem : public GenericItem
     QString kind;
     QString id;
     QString contactInfo;
+    QString phone;
+    QString email;
     QString address;
     QString notes;
     QString createdAt;
@@ -27,7 +29,11 @@ struct ClientItem : public GenericItem
         item.name = map.value("name").toString();
         item.kind = map.value("kind").toString();
         item.id = map.value("id").toString();
-        item.contactInfo = map.value("contact_info").toString();
+        item.phone = map.value("phone").toString();
+        item.email = map.value("email").toString();
+        item.contactInfo = item.phone;
+        if(!item.email.isEmpty())
+            item.contactInfo += QStringLiteral(", ") + item.email;
         item.address = map.value("address").toString();
         item.notes = map.value("notes").toString();
         item.createdAt = map.value("created_at").toString();
@@ -41,6 +47,8 @@ struct ClientItem : public GenericItem
         map.insert("kind", kind);
         map.insert("id", id);
         map.insert("contact_info", contactInfo);
+        map.insert("phone", phone);
+        map.insert("email", email);
         map.insert("address", address);
         map.insert("notes", notes);
         map.insert("created_at", createdAt);
@@ -69,7 +77,9 @@ struct ClientItem : public GenericItem
             std::make_pair("contact_info", &ClientItem::contactInfo),
             std::make_pair("address", &ClientItem::address),
             std::make_pair("notes", &ClientItem::notes),
-            std::make_pair("created_at", &ClientItem::createdAt)
+            std::make_pair("created_at", &ClientItem::createdAt),
+            std::make_pair("phone", &ClientItem::phone),
+            std::make_pair("email", &ClientItem::email)
         );
     }
 

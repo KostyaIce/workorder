@@ -15,6 +15,7 @@ function(workorder_setup_qrc_resources target)
     )
     file(GLOB_RECURSE _qml_common CONFIGURE_DEPENDS
         "${WORKORDER_ROOT}/resources/qml/WorkOrder/Common/*.qml"
+        "${WORKORDER_ROOT}/resources/qml/WorkOrder/Common/*.js"
         "${WORKORDER_ROOT}/resources/qml/WorkOrder/Common/qmldir"
     )
     file(GLOB _fonts CONFIGURE_DEPENDS

@@ -6,7 +6,9 @@ InvoicePage Backend
 
 import logging
 
-from qt_compat import QObject, pyqtSignal, pyqtSlot
+from qt_compat import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+
+from utils.qsettings_store import QSettingsStore
 
 from models.services_model import ServiceModel
 from models.services_filter_model import ServicesFilterModel
@@ -16,6 +18,9 @@ from utils.services_excel_builder import export_services_excel, import_services_
 from utils.services_pdf_builder import export_services_pdf
 
 logger = logging.getLogger("workorder")
+
+_SETTINGS_KEY_PRESENTATION_TITLE = "services/presentation_title"
+_DEFAULT_PRESENTATION_TITLE = "Презентация услуг"
 
 def _keywords_from_name(name):
     words = [word.lower() for word in name.split() if len(word) > 2]
@@ -31,6 +36,7 @@ class InvoiceBackend(QObject):
     suggestionsUpdated = pyqtSignal(list)  # Список подсказок
     suggestionsCleared = pyqtSignal()
     invoiceCreated = pyqtSignal(int, str)  # invoice_id, invoice_number
+    presentationTitleChanged = pyqtSignal()
     
     def __init__(self, engine, parent=None):
         super().__init__(parent)
@@ -38,6 +44,8 @@ class InvoiceBackend(QObject):
         # Текущие значения для добавления позиции
         self._report_backend = None
         self._invoice_counter = 0
+        self._presentation_title = _DEFAULT_PRESENTATION_TITLE
+        self._load_presentation_title()
 
         # Models for services
         self._services = ServiceModel()
@@ -62,6 +70,30 @@ class InvoiceBackend(QObject):
             self._coefficients_filter
         )
     
+    def _load_presentation_title(self):
+        with QSettingsStore() as store:
+            stored = store.read(
+                _SETTINGS_KEY_PRESENTATION_TITLE,
+                _DEFAULT_PRESENTATION_TITLE,
+                value_type=str,
+            )
+        stored = (stored or "").strip()
+        self._presentation_title = stored or _DEFAULT_PRESENTATION_TITLE
+
+    @pyqtProperty(str, notify=presentationTitleChanged)
+    def presentationTitle(self):
+        return self._presentation_title
+
+    @pyqtSlot(str)
+    def rememberPresentationTitle(self, title):
+        stored = (title or "").strip() or _DEFAULT_PRESENTATION_TITLE
+        if stored == self._presentation_title:
+            return
+        self._presentation_title = stored
+        with QSettingsStore() as store:
+            store.write(_SETTINGS_KEY_PRESENTATION_TITLE, stored)
+        self.presentationTitleChanged.emit()
+
     def _load_services(self):
 
         model = load_services()
@@ -150,11 +182,12 @@ class InvoiceBackend(QObject):
             logger.exception("Failed to export services to %s", file_url)
             return False
 
-    @pyqtSlot(str, result=bool)
-    def exportServicesPresentationToFile(self, file_url):
+    @pyqtSlot(str, str, result=bool)
+    def exportServicesPresentationToFile(self, file_url, title):
         """Export services catalog presentation to PDF."""
         try:
-            path = export_services_pdf(file_url, load_services())
+            self.rememberPresentationTitle(title)
+            path = export_services_pdf(file_url, load_services(), title=title or "Презентация услуг")
             logger.info("Services presentation exported to %s", path)
             return True
         except Exception:

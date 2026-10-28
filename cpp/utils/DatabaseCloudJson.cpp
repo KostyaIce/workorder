@@ -89,7 +89,7 @@ QJsonArray readClientsArray(const QString &dbPath)
     QSqlDatabase db = openClientsDb(dbPath);
     QSqlQuery query(db);
     if(!query.exec(QStringLiteral(
-            "SELECT id, kind, name, address, contact, notes, created_at, updated_at FROM clients")))
+            "SELECT id, kind, name, address, phone, notes, created_at, updated_at, email FROM clients")))
     {
         throw std::runtime_error("Failed to read clients table");
     }
@@ -101,7 +101,8 @@ QJsonArray readClientsArray(const QString &dbPath)
         record.insert(QStringLiteral("kind"), query.value(1).toString());
         record.insert(QStringLiteral("name"), query.value(2).toString());
         record.insert(QStringLiteral("address"), query.value(3).toString());
-        record.insert(QStringLiteral("contact"), query.value(4).toString());
+        record.insert(QStringLiteral("phone"), query.value(4).toString());
+        record.insert(QStringLiteral("email"), query.value(8).toString());
         record.insert(QStringLiteral("notes"), query.value(5).toString());
         record.insert(QStringLiteral("created_at"), query.value(6).toString());
         record.insert(QStringLiteral("updated_at"), query.value(7).toString());
@@ -122,20 +123,21 @@ bool writeClientsArray(const QString &dbPath, const QJsonArray &records)
         QSqlQuery query(db);
         query.prepare(QStringLiteral(
             "INSERT INTO clients"
-            "(id, kind, name, address, contact, notes, created_at, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET"
+            "(id, kind, name, address, phone, notes, created_at, updated_at, email)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET"
             " kind=excluded.kind, name=excluded.name, address=excluded.address,"
-            " contact=excluded.contact, notes=excluded.notes, created_at=excluded.created_at,"
+            " phone=excluded.phone, email=excluded.email, notes=excluded.notes, created_at=excluded.created_at,"
             " updated_at=excluded.updated_at"));
         query.addBindValue(record.value(QStringLiteral("id")).toString());
         query.addBindValue(record.value(QStringLiteral("kind")).toString());
         query.addBindValue(record.value(QStringLiteral("name")).toString());
         query.addBindValue(record.value(QStringLiteral("address")).toString());
-        query.addBindValue(record.value(QStringLiteral("contact")).toString());
+        query.addBindValue(record.value(QStringLiteral("phone")).toString());
         query.addBindValue(record.value(QStringLiteral("notes")).toString());
         query.addBindValue(record.value(QStringLiteral("created_at")).toString());
         query.addBindValue(record.value(QStringLiteral("updated_at")).toString(
             record.value(QStringLiteral("created_at")).toString()));
+        query.addBindValue(record.value(QStringLiteral("email")).toString());
         if(!query.exec())
             return false;
     }
