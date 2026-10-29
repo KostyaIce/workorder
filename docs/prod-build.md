@@ -14,9 +14,11 @@ prod_build/
 
 ## Мобильные сборки и production-подпись
 
-Команды запускаются из корня проекта. iOS требует macOS, Xcode и Qt iOS;
+Команды запускаются из корня проекта. iOS требует macOS, Xcode, CocoaPods и Qt iOS;
 Android — Qt Android, host Qt, CMake/Ninja, JDK и Android SDK/NDK.
 Обе мобильные платформы собираются из `cpp/` с `-DType=mobile`.
+iOS-скрипты автоматически выполняют `pod install` для нативного YandexLoginSDK
+и собирают `WorkOrder.xcworkspace`.
 
 ```bash
 # iOS: тесты на зарегистрированном iPhone (automatic signing)

@@ -41,6 +41,8 @@ public:
     Q_INVOKABLE bool repairDatabase(const QString &filePath = QString());
     Q_INVOKABLE bool loadServicesFromDatabase(const QString &filePath = QString());
     Q_INVOKABLE bool loadWorksFromDatabase(const QString &filePath = QString());
+    // Reloads the in-memory service list after an external database sync.
+    void reloadAfterSync();
     Q_INVOKABLE QVariantList getAllCompletedWorks() const;
     Q_INVOKABLE bool exportToJson(const QString &filePath);
     Q_INVOKABLE bool importFromJson(const QString &filePath);

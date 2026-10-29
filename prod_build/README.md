@@ -9,7 +9,10 @@
 
 ## iOS
 
-Нужны macOS, Xcode, Qt 6.8.3 для iOS и macOS (по умолчанию `~/Qt/6.8.3`).
+Нужны macOS, Xcode, CocoaPods и Qt 6.8.3 для iOS и macOS
+(по умолчанию `~/Qt/6.8.3`). Скрипты сами выполняют `pod install` и собирают
+`WorkOrder.xcworkspace`: Яндекс.Диск на iOS подключается через нативный
+**YandexLoginSDK** (`yx<Client ID>`), без desktop loopback-сервера.
 Оба режима собираются для **iPhone** (`TARGETED_DEVICE_FAMILY=1`), без нативной
 поддержки iPad. Иконка `AppIcon` компилируется Xcode из `cpp/ios/Assets.xcassets`.
 Apple может разрешать запуск iPhone-приложения на iPad в режиме совместимости;

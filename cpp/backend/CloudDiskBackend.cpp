@@ -218,6 +218,13 @@ bool CloudDiskBackend::openAuthInBrowser()
         return false;
     }
 
+    if(m_oauthFlow->usesNativeSdk())
+    {
+        // iOS: YandexLoginSDK already presents its own authorization UI.
+        onOAuthProgressMessage(tr("Подтвердите вход в Яндекс..."));
+        return true;
+    }
+
     const QString url = m_oauthFlow->buildAuthorizeUrl();
     qInfo("CloudDiskBackend: openAuthInBrowser url=%s", qPrintable(url));
     if(!QDesktopServices::openUrl(QUrl(url)))
@@ -910,6 +917,8 @@ void CloudDiskBackend::finishTransferSuccess(const QString &message, const QStri
     rememberLastSync();
     setStatusMessage(message, logMessage);
     qInfo("CloudDiskBackend: transfer success: %s", qPrintable(logMessage));
+    // Local SQLite changed, so in-memory models must reload before the next view.
+    emit databasesSynchronized();
     // Keep busy until list refresh finishes.
     startListRequest();
 }

@@ -150,6 +150,58 @@ bool ReportBackend::initializeData()
     }
 }
 
+void ReportBackend::reloadAfterSync()
+{
+    const QString clientId = m_currentClient.id;
+    const QString objectId = m_currentObject.id;
+
+    clearCurrentService();
+    loadClients();
+
+    if(clientId.isEmpty() || !setCurrentClient(clientId))
+    {
+        m_currentClient = {};
+        m_currentObject = {};
+        m_works->clearModel();
+        m_expenses->clearModel();
+        m_orders->updateModelFromMaps({});
+        m_subobjects->updateModelFromNames({});
+        m_subobjectsFilter->clearFilter();
+        clearSelectedOrder();
+        clearPersistedSelection();
+        emit clientSelected();
+        emit objectSelected();
+        emit objectUpdated();
+        emit worksChanged();
+        emit expensesChanged();
+        return;
+    }
+
+    emit clientSelected();
+
+    if(objectId.isEmpty() || !setCurrentObject(objectId))
+    {
+        m_currentObject = {};
+        m_works->clearModel();
+        m_expenses->clearModel();
+        saveSelectedObjectId(QString());
+        emit objectSelected();
+        emit objectUpdated();
+        emit worksChanged();
+        emit expensesChanged();
+        return;
+    }
+
+    saveSelectedObjectId(objectId);
+    updateCurrentObjectData();
+    refreshSubobject(objectId);
+    loadOrders();
+    emit objectSelected();
+    emit objectUpdated();
+    emit worksChanged();
+    emit expensesChanged();
+}
+
 bool ReportBackend::addClient(const QVariantMap &data)
 {
     if(data.isEmpty())

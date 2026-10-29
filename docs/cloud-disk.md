@@ -4,17 +4,38 @@ Settings → **Облачный диск**: connect OAuth token, list `app:/work
 
 Справочник REST API Яндекс.Диска (эндпоинты, коды, upload/download): [yandex-disk-api.md](yandex-disk-api.md).
 
-## Auth flow (desktop + mobile)
+## Auth flow
 
 WorkOrder uses the Yandex OAuth Client ID from `cpp/CMakeLists.txt` (`e015e5639e814d569f163477e7eb9415`).
 Users do not enter Client ID.
+
+### iOS
+
+iOS uses the native **YandexLoginSDK** (`~> 3.2`, CocoaPods) through
+`cpp/ios/YandexAuth.swift` and `cpp/ios/YandexAuth.mm`. No loopback server or
+desktop browser flow is used.
+
+1. Press **Открыть авторизацию**.
+2. The SDK opens `ASWebAuthenticationSession` and returns through the app scheme
+   `yx<Client ID>` (`yxe015e5639e814d569f163477e7eb9415`).
+3. The SDK returns the OAuth token to C++; it is stored in `QSettings`
+   (`cloud_disk/*`) exactly like on desktop.
+
+Build scripts run `pod install` automatically and build
+`WorkOrder.xcworkspace`. CocoaPods is required on the build Mac.
+`cpp/ios/Info.plist.in` must keep `CFBundleURLSchemes` with `yx<Client ID>`.
+The SDK uses the web strategy, so Associated Domains are not required.
+
+### Desktop
 
 1. Press **Открыть авторизацию** (system browser via `QDesktopServices`).
 2. Sign in and allow access.
 3. Copy the token from the redirect URL (`access_token=...`) or paste the whole URL.
 4. Press **Подключить** — token is stored in `QSettings` (`cloud_disk/*`).
 
-Redirect URI for the registered app must be `https://oauth.yandex.ru/verification_code`.
+Desktop redirect URI for the registered app must be
+`https://oauth.yandex.ru/verification_code` (or the loopback URI configured for
+the OAuth client).
 
 ## Storage keys
 

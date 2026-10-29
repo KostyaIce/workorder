@@ -83,6 +83,8 @@ public:
     QString lastReportUrl() const { return m_lastReportUrl; }
 
     Q_INVOKABLE bool initializeData();
+    // Reloads clients/objects/works after an external database sync.
+    Q_INVOKABLE void reloadAfterSync();
     Q_INVOKABLE bool addClient(const QVariantMap &data);
     Q_INVOKABLE bool updateClient(const QVariantMap &data);
     Q_INVOKABLE QVariantMap currentClientData() const;

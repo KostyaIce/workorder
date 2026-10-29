@@ -22,6 +22,8 @@ public:
     ~InvoiceBackend() override;
 
     void bindReportBackend(ReportBackend *reportBackend);
+    // Reloads services after an external database sync.
+    void reloadAfterSync();
 
     Q_INVOKABLE bool addService(const QVariantMap &data);
     Q_INVOKABLE bool updateService(const QVariantMap &data);

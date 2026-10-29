@@ -87,6 +87,11 @@ void InvoiceBackend::bindReportBackend(ReportBackend *reportBackend)
     m_reportBackend = reportBackend;
 }
 
+void InvoiceBackend::reloadAfterSync()
+{
+    loadServices();
+}
+
 void InvoiceBackend::loadPresentationTitle()
 {
     QSettingsStore store;

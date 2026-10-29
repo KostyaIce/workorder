@@ -214,6 +214,13 @@ bool DatabaseBackend::repairDatabase(const QString &filePath)
     return true;
 }
 
+void DatabaseBackend::reloadAfterSync()
+{
+    ServicesDatabase::createServicesTable();
+    m_servicesDbPath = ServicesDatabase::defaultServicesDbPath();
+    applyServices(ServicesDatabase::loadServices());
+}
+
 bool DatabaseBackend::loadServicesFromDatabase(const QString &filePath)
 {
     Q_UNUSED(filePath);

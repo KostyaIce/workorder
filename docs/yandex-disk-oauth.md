@@ -8,7 +8,7 @@
 | Android application id | `com.workorder` | `cpp/android/AndroidManifest.xml`, `-DWORKORDER_MOBILE_APPLICATION_ID=...` |
 | iOS Bundle ID | `com.workorder` | `-DWORKORDER_IOS_BUNDLE_ID=...` |
 | Redirect scheme | `workorder` | `-DWORKORDER_OAUTH_CALLBACK_SCHEME=...` |
-| Mobile redirect URI | `workorder://oauth-callback` | scheme + host в коде |
+| Mobile redirect URI (Android) | `workorder://oauth-callback` | scheme + host в коде |
 | Login SDK iOS scheme | `yx` + Client ID | `cpp/ios/Info.plist.in` (генерируется CMake) |
 | Desktop redirect | `http://127.0.0.1:53683/callback` | порт в `YandexDiskConfig::desktopOAuthPort` |
 
@@ -27,8 +27,12 @@
    - Имя пакета: **`com.workorder`** (как в `AndroidManifest.xml`).
    - Отпечаток **SHA-256** release-ключа. Как создать ключ и снять отпечаток: [android-signing-key.md](android-signing-key.md).
 
-3. **Redirect URI (мобильный браузер / PKCE, как в Skedula)**
+3. **Redirect URI (Android, браузер / PKCE)**
    - Добавьте в раздел **«Веб-сервисы»**: **`workorder://oauth-callback`**
+
+   Для iOS отдельный redirect URI вручную добавлять не нужно: Login SDK
+   использует собственную схему **`yx<Client ID>`** и
+   `ASWebAuthenticationSession`.
 
 ### Desktop (macOS / Windows / Linux)
 
@@ -40,9 +44,13 @@
 |-----------|------|
 | iOS URL schemes | `cpp/ios/Info.plist.in` → `build/.../ios_package/Info.plist` |
 | iOS CMake | `cmake/CppIos.cmake` |
+| iOS Login SDK | `cpp/ios/YandexAuth.swift`, `cpp/ios/YandexAuth.mm`, `cpp/ios/YandexAuth.h` |
+| iOS CocoaPods | `prod_build/ios_pods.sh` (YandexLoginSDK, `WorkOrder.xcworkspace`) |
 | Android deep link | `cpp/android/AndroidManifest.xml` (intent-filter `workorder` / `oauth-callback`) |
 
-На iOS/Android вход через Login SDK и обработка redirect в C++ пока **не подключены** (как в planer — следующий шаг). Сейчас зафиксированы идентификаторы, чтобы заранее создать приложение в Яндексе.
+На iOS вход идёт через **YandexLoginSDK** (`cpp/ios/YandexAuth.swift`), который
+подключается CocoaPods в `prod_build/ios_pods.sh`. Сборка использует
+`WorkOrder.xcworkspace`. Android пока использует браузерный redirect.
 
 ## После смены Client ID
 

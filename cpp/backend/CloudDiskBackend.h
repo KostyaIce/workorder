@@ -63,6 +63,8 @@ signals:
     void statusMessageChanged();
     void lastSyncChanged();
     void entriesChanged();
+    // Emitted after cloud data has been merged into local SQLite.
+    void databasesSynchronized();
 
 private:
     enum class PendingOp

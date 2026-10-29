@@ -29,6 +29,8 @@ public:
 
     bool inProgress() const;
     QString redirectUri() const;
+    // True when the platform opens its native Yandex Login SDK UI.
+    bool usesNativeSdk() const;
 
     bool begin();
     void cancel();

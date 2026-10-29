@@ -61,7 +61,7 @@ if ! [[ "$TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
     exit 1
 fi
 
-for tool in cmake xcodebuild python3; do
+for tool in cmake xcodebuild python3 pod; do
     command -v "$tool" >/dev/null 2>&1 || {
         echo "ERROR: $tool is required" >&2
         exit 1
@@ -133,6 +133,9 @@ cmake \
     -DWORKORDER_IOS_BUNDLE_ID="$BUNDLE_ID" \
     -DCMAKE_BUILD_TYPE=Release
 
+bash "$SCRIPT_DIR/ios_pods.sh" "$BUILD_DIR"
+WORKSPACE="$BUILD_DIR/WorkOrder.xcworkspace"
+
 # A previous archive leaves WorkOrder.app as a symlink into DerivedData.
 # mkdir then fails because that symlink target no longer exists.
 rm -rf "$ARCHIVE_PATH" "$EXPORT_DIR" "$OUTPUT_IPA" "$BUILD_DIR/Release-iphoneos"
@@ -143,14 +146,13 @@ if [ -n "$DEVICE_UDID" ]; then
     echo "Connected iPhone UDID: $DEVICE_UDID"
     echo "Registering the connected device in the provisioning profile"
     xcodebuild \
-        -project "$BUILD_DIR/WorkOrder.xcodeproj" \
+        -workspace "$WORKSPACE" \
         -scheme WorkOrder \
         -configuration Release \
         -destination "id=$DEVICE_UDID" \
         DEVELOPMENT_TEAM="$TEAM_ID" \
         CODE_SIGN_STYLE=Automatic \
         TARGETED_DEVICE_FAMILY=1 \
-        PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         -allowProvisioningUpdates \
         -allowProvisioningDeviceRegistration \
         build
@@ -160,7 +162,7 @@ fi
 
 echo "Creating signed archive"
 xcodebuild \
-    -project "$BUILD_DIR/WorkOrder.xcodeproj" \
+    -workspace "$WORKSPACE" \
     -scheme WorkOrder \
     -configuration Release \
     -destination "generic/platform=iOS" \
@@ -168,7 +170,6 @@ xcodebuild \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     CODE_SIGN_STYLE=Automatic \
     TARGETED_DEVICE_FAMILY=1 \
-    PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
     archive

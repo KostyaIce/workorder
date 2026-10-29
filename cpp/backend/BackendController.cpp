@@ -26,6 +26,12 @@ BackendController::BackendController(QQmlApplicationEngine *engine, QObject *par
     , m_invoiceBackend(std::make_unique<InvoiceBackend>(engine))
 {
     m_invoiceBackend->bindReportBackend(m_reportBackend.get());
+    connect(m_cloudDiskBackend.get(), &CloudDiskBackend::databasesSynchronized,
+            m_reportBackend.get(), &ReportBackend::reloadAfterSync);
+    connect(m_cloudDiskBackend.get(), &CloudDiskBackend::databasesSynchronized,
+            m_invoiceBackend.get(), &InvoiceBackend::reloadAfterSync);
+    connect(m_cloudDiskBackend.get(), &CloudDiskBackend::databasesSynchronized,
+            m_databaseBackend.get(), &DatabaseBackend::reloadAfterSync);
 }
 
 BackendController::~BackendController() = default;

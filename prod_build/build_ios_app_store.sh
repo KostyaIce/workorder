@@ -20,7 +20,7 @@ case "${1:-}" in
     *) echo "ERROR: Unknown argument: $1" >&2; exit 1 ;;
 esac
 [ $# -le 1 ] || { echo 'ERROR: Too many arguments' >&2; exit 1; }
-for tool in cmake xcodebuild xcrun security python3; do
+for tool in cmake xcodebuild xcrun security python3 pod; do
     command -v "$tool" >/dev/null || { echo "ERROR: Missing $tool" >&2; exit 1; }
 done
 xcrun --sdk iphoneos --show-sdk-version >/dev/null
@@ -35,12 +35,14 @@ echo "Signing prerequisites OK: team $TEAM, bundle $BUNDLE_ID"
 cmake -S "$PROJECT_ROOT/cpp" -B "$BUILD_DIR" -G Xcode \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" -DQT_HOST_PATH="$QT_HOST_PATH" \
     -DType=mobile -DWORKORDER_IOS_TEAM_ID="$TEAM" -DWORKORDER_IOS_BUNDLE_ID="$BUNDLE_ID"
+bash "$SCRIPT_DIR/ios_pods.sh" "$BUILD_DIR"
+WORKSPACE="$BUILD_DIR/WorkOrder.xcworkspace"
 ARCHIVE="$BUILD_DIR/WorkOrder.xcarchive"
 EXPORT="$BUILD_DIR/export"
 rm -rf "$ARCHIVE" "$EXPORT" "$BUILD_DIR/Release-iphoneos" "$BUILD_DIR/WorkOrder.ipa"
-xcodebuild -project "$BUILD_DIR/WorkOrder.xcodeproj" -scheme WorkOrder \
+xcodebuild -workspace "$WORKSPACE" -scheme WorkOrder \
     -configuration Release -destination 'generic/platform=iOS' -archivePath "$ARCHIVE" \
-    DEVELOPMENT_TEAM="$TEAM" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+    DEVELOPMENT_TEAM="$TEAM" \
     TARGETED_DEVICE_FAMILY=1 \
     CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" PROVISIONING_PROFILE_SPECIFIER="$UUID" archive
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT" -exportOptionsPlist "$OPTIONS"

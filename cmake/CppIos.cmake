@@ -38,6 +38,18 @@ function(workorder_setup_ios_target target)
 
     configure_file("${_ios_src}" "${_ios_pkg}/Info.plist" @ONLY)
 
+    # Native Yandex Login SDK bridge. The SDK itself is linked through
+    # CocoaPods by prod_build/build_ios*.sh (YandexLoginSDK ~> 3.2).
+    enable_language(Swift)
+    set(CMAKE_Swift_LANGUAGE_VERSION 5.0)
+    set(_ios_swift_headers "${CMAKE_CURRENT_BINARY_DIR}/ios_swift")
+    file(MAKE_DIRECTORY "${_ios_swift_headers}")
+    target_sources(${target} PRIVATE
+        "${WORKORDER_ROOT}/cpp/ios/YandexAuth.swift"
+        "${WORKORDER_ROOT}/cpp/ios/YandexAuth.mm"
+    )
+    target_include_directories(${target} PRIVATE "${_ios_swift_headers}")
+
     set(_ios_icons "${WORKORDER_ROOT}/cpp/ios/Assets.xcassets")
     if(EXISTS "${_ios_icons}")
         # Xcode must compile the asset catalog with actool. Copying it into
@@ -50,7 +62,12 @@ function(workorder_setup_ios_target target)
         message(FATAL_ERROR "iOS app icon catalog missing: ${_ios_icons}")
     endif()
 
+    # Qt 6.8 adds a bare -no_warn_duplicate_libraries flag, which Xcode 26
+    # clang rejects. The warning suppression is not needed for the app target.
+    set_property(TARGET ${target} PROPERTY QT_NO_DISABLE_WARN_DUPLICATE_LIBRARIES ON)
+
     set_target_properties(${target} PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST "${_ios_src}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${_ios_build_number}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${WORKORDER_VERSION}"
         XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION "${_ios_build_number}"
@@ -61,13 +78,19 @@ function(workorder_setup_ios_target target)
         XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
         XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${WORKORDER_IOS_TEAM_ID}"
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${WORKORDER_IOS_BUNDLE_ID}"
+        # CocoaPods builds Pods_WorkOrder.framework in its own products dir,
+        # not in the CMake CONFIGURATION_BUILD_DIR.
+        XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "$(inherited) $(PODS_CONFIGURATION_BUILD_DIR)"
+        Swift_VERSION "5.0"
+        XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
+        XCODE_ATTRIBUTE_SWIFT_OBJC_INTERFACE_HEADER_NAME "WorkOrder-Swift.h"
+        XCODE_ATTRIBUTE_SWIFT_OBJC_INTERFACE_HEADER_DIR "${_ios_swift_headers}"
         QT_IOS_PACKAGE_SOURCE_DIR "${_ios_pkg}"
         MACOSX_BUNDLE_GUI_IDENTIFIER "${WORKORDER_IOS_BUNDLE_ID}"
         QT_IOS_LAUNCH_SCREEN "${WORKORDER_ROOT}/cpp/ios/LaunchScreen.storyboard"
     )
 
-    message(STATUS "iOS Yandex OAuth: bundle=${WORKORDER_IOS_BUNDLE_ID}, "
-        "redirect=${WORKORDER_OAUTH_CALLBACK_SCHEME}://oauth-callback, "
-        "loginSdkScheme=yx${WORKORDER_YANDEX_OAUTH_CLIENT_ID}")
+    message(STATUS "iOS Yandex Login SDK: bundle=${WORKORDER_IOS_BUNDLE_ID}, "
+        "scheme=yx${WORKORDER_YANDEX_OAUTH_CLIENT_ID}")
     message(STATUS "iOS version: ${WORKORDER_VERSION} (${_ios_build_number})")
 endfunction()

@@ -2,6 +2,10 @@
 
 #include "YandexDiskConfig.h"
 
+#if defined(Q_OS_IOS)
+#include "../ios/YandexAuth.h"
+#endif
+
 #include <QAbstractSocket>
 #include <QCryptographicHash>
 #include <QHostAddress>
@@ -86,13 +90,53 @@ bool YandexDiskOAuthFlow::inProgress() const
 
 QString YandexDiskOAuthFlow::redirectUri() const
 {
+#if defined(Q_OS_IOS)
+    return QStringLiteral("yx%1://auth/finish")
+        .arg(QString::fromUtf8(YandexDiskConfig::oauthClientId));
+#else
     return redirectUriForPort();
+#endif
+}
+
+bool YandexDiskOAuthFlow::usesNativeSdk() const
+{
+#if defined(Q_OS_IOS)
+    return true;
+#else
+    return false;
+#endif
 }
 
 bool YandexDiskOAuthFlow::begin()
 {
     cancel();
 
+#if defined(Q_OS_IOS)
+    setInProgress(true);
+    m_timeout->start(kOAuthTimeoutMs);
+    setProgressMessage(QStringLiteral("Подтвердите вход в Яндекс..."));
+
+    QPointer<YandexDiskOAuthFlow> self(this);
+    yandexLogin(QString::fromUtf8(YandexDiskConfig::oauthClientId),
+                [self](const QString &token, const QString &error)
+    {
+        if(!self)
+            return;
+        QMetaObject::invokeMethod(self, [self, token, error]()
+        {
+            if(!self->m_inProgress)
+                return;
+            if(!error.isEmpty())
+                self->fail(error, QStringLiteral("Yandex Login SDK failed: %1").arg(error));
+            else if(token.isEmpty())
+                self->fail(QStringLiteral("Токен не получен"),
+                           QStringLiteral("Yandex Login SDK returned an empty token"));
+            else
+                self->completeWithToken(token);
+        }, Qt::QueuedConnection);
+    });
+    return true;
+#else
     m_state = newOAuthState();
     m_codeVerifier = newCodeVerifier();
     if(m_state.isEmpty() || m_codeVerifier.isEmpty())
@@ -119,10 +163,14 @@ bool YandexDiskOAuthFlow::begin()
     setProgressMessage(QStringLiteral("Ожидаем подтверждение в браузере..."));
     qInfo("YandexDiskOAuthFlow: listening on %s", qPrintable(redirectUri()));
     return true;
+#endif
 }
 
 void YandexDiskOAuthFlow::cancel()
 {
+#if defined(Q_OS_IOS)
+    yandexCancel();
+#endif
     if(m_tokenReply)
     {
         disconnect(m_tokenReply, nullptr, this, nullptr);
