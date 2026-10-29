@@ -9,6 +9,8 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
+    readonly property int edgeBottom: compact ? screenInsets.bottom : 0
     // 0 uses the object's latest invoice. A positive value attaches the work to that invoice.
     property int startOrderAt: 0
     property int currentStep: 1
@@ -48,12 +50,13 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 52
+        implicitHeight: 52 + root.edgeTop
         implicitWidth: root.width
 
         RowLayout
         {
             anchors.fill: parent
+            anchors.topMargin: root.edgeTop
             anchors.leftMargin: 4
             anchors.rightMargin: 4
             spacing: 4
@@ -790,7 +793,7 @@ Dialog
 
     footer: Item
     {
-        implicitHeight: 72
+        implicitHeight: 72 + root.edgeBottom
         implicitWidth: root.width
 
         PrimaryButton
@@ -798,6 +801,7 @@ Dialog
             anchors.right: parent.right
             anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -root.edgeBottom / 2
             Layout.fillWidth: false
             width: 148
             text: root.currentStep === 4 ? qsTr("Добавить") : qsTr("Далее")

@@ -20,10 +20,8 @@ include("${WORKORDER_ROOT}/cmake/CppAndroid.cmake")
 include("${WORKORDER_ROOT}/cmake/CppIos.cmake")
 include("${WORKORDER_ROOT}/cmake/WorkOrderLogging.cmake")
 
-if(NOT WORKORDER_YANDEX_OAUTH_CLIENT_ID)
-    set(WORKORDER_YANDEX_OAUTH_CLIENT_ID "d3e1a705454a448b841e617117fec451"
-        CACHE STRING "Yandex OAuth client id (oauth.yandex.ru)")
-endif()
+set(WORKORDER_YANDEX_OAUTH_CLIENT_ID "e015e5639e814d569f163477e7eb9415"
+    CACHE STRING "Yandex OAuth client id (oauth.yandex.ru)" FORCE)
 set(WORKORDER_IOS_BUNDLE_ID "com.workorder"
     CACHE STRING "iOS bundle identifier (Yandex OAuth iOS platform)")
 set(WORKORDER_OAUTH_CALLBACK_SCHEME "workorder"

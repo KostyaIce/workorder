@@ -17,14 +17,21 @@ Dialog
     readonly property bool valid: descriptionField.text.trim() !== "" && amountKopecks > 0
 
     parent: Overlay.overlay
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     modal: true
     title: qsTr("Добавить затраты")
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     width: Math.min(compact ? parent.width - 32 : 520, parent.width - 16)
     height: Math.min(contentColumn.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
-                     parent.height - 32)
+                     parent.height - 32 - (compact ? screenInsets.top + screenInsets.bottom : 0))
     padding: compact ? 16 : 12
 
     background: Rectangle

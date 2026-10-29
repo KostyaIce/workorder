@@ -6,6 +6,8 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
+    readonly property int edgeBottom: compact ? screenInsets.bottom : 0
     property int workCount: 0
     property int expenseCount: 0
     property real worksTotal: 0
@@ -73,7 +75,7 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 56
+        implicitHeight: 56 + root.edgeTop
         implicitWidth: root.width
 
         Rectangle
@@ -81,6 +83,7 @@ Dialog
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: 36
             height: 36
             radius: 18
@@ -107,6 +110,7 @@ Dialog
         Label
         {
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: parent.width - 104
             horizontalAlignment: Text.AlignHCenter
             text: root.orderTitle
@@ -122,6 +126,7 @@ Dialog
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: 36
             height: 36
             radius: 18
@@ -288,6 +293,11 @@ Dialog
                 }
             }
         }
+    }
+
+    footer: Item
+    {
+        implicitHeight: root.edgeBottom
     }
 
     contentItem: Item

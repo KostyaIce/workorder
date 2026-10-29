@@ -165,6 +165,15 @@ ColumnLayout
         compact: root.compact
         parent: Overlay.overlay
         anchors.centerIn: parent
+
+        onServiceCreated: function(id, name, unit, price)
+        {
+            if(id === "")
+                return
+
+            reportBackend.selectService(id, name, unit, price)
+            applyInputValue("", false)
+        }
     }
 
     Label

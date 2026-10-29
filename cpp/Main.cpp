@@ -1,6 +1,7 @@
 #include "ApplicationBootstrap.h"
 #include "AppPaths.h"
 #include "BackendController.h"
+#include "ScreenInsets.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -10,6 +11,7 @@
 #include <QQmlContext>
 #include <QQmlError>
 #include <QUrl>
+#include <QWindow>
 
 int main(int argc, char *argv[])
 {
@@ -55,6 +57,9 @@ int main(int argc, char *argv[])
 
     workorder::ApplicationBootstrap::setQmlThemeContext(engine.rootContext());
 
+    workorder::ScreenInsets screenInsets;
+    engine.rootContext()->setContextProperty(QStringLiteral("screenInsets"), &screenInsets);
+
     workorder::BackendController backendController(&engine);
     if(!backendController.initialize())
     {
@@ -79,6 +84,21 @@ int main(int argc, char *argv[])
     }
 
     workorder::ApplicationBootstrap::applyWindowIcons(app, engine);
+    if(!engine.rootObjects().isEmpty())
+    {
+        screenInsets.attachWindow(engine.rootObjects().constFirst());
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+        if(auto *window = qobject_cast<QWindow *>(engine.rootObjects().constFirst()))
+        {
+            window->setFlag(Qt::MaximizeUsingFullscreenGeometryHint, true);
+            Qt::WindowStates states = window->windowStates();
+            states.setFlag(Qt::WindowMinimized, false);
+            states.setFlag(Qt::WindowMaximized, true);
+            window->setWindowStates(Qt::WindowNoState);
+            window->setWindowStates(states);
+        }
+#endif
+    }
     const int exitCode = app.exec();
 
     // Tear down QML while backends are still alive. Otherwise context properties

@@ -6,7 +6,7 @@ Settings → **Облачный диск**: connect OAuth token, list `app:/work
 
 ## Auth flow (desktop + mobile)
 
-WorkOrder uses a fixed Yandex OAuth Client ID (`d3e1a705454a448b841e617117fec451`).
+WorkOrder uses the Yandex OAuth Client ID from `cpp/CMakeLists.txt` (`e015e5639e814d569f163477e7eb9415`).
 Users do not enter Client ID.
 
 1. Press **Открыть авторизацию** (system browser via `QDesktopServices`).
@@ -41,27 +41,42 @@ Results are shown in the dialog list.
 
 ## Database transfer
 
-Local DB files live in `AppPaths::dbDir()` (`{STORAGE}/data/db`):
+Local DB files stay SQLite in `AppPaths::dbDir()` (`{STORAGE}/data/db`):
 
 - `clients.db`
 - `services.db`
 - `{clientName}_{clientId}.db`
 
+Cloud copies in `app:/workOrder` are JSON with the same base name and a `.json` suffix. Sync exports SQLite to JSON before upload and merges downloaded JSON back into SQLite.
+
 | QML / method | Behavior |
 |--------------|----------|
-| `syncDatabases()` | Download cloud `*.db` to temp → merge missing rows into local (by `id`) → force-upload |
+| `syncDatabases()` | Download cloud `*.json` (and leftover `*.db` JSON) to temp → merge into local SQLite by latest revision → upload `*.json` |
 | `forceUploadDatabases()` | Delete all items in `app:/workOrder`, then upload every local `*.db` |
 | `downloadDatabases()` | Delete local `*.db` / `*.db-wal` / `*.db-shm`, then download every remote `*.db` from `app:/workOrder` |
 
 ### Sync merge rules
 
-- Missing local file → copy cloud file as-is.
-- Existing file → `INSERT OR IGNORE` by primary key `id` via:
-  - `ClientsDatabase::mergeFromDatabase`
-  - `ServicesDatabase::mergeFromDatabase`
-  - `ObjectsDatabase::mergeFromDatabase` + `WorksDatabase::mergeFromDatabase` (same client db file)
-- Existing rows keep local data; only absent ids are added.
-- Then cloud folder is cleared and all local `*.db` are uploaded.
+`syncDatabases()` compares every record from downloaded JSON with the local SQLite row
+that has the same `id`. The comparison is applied to all synced tables:
+
+- `clients` and `services` use their ISO `updated_at`;
+- `objects`, `completed_works` and `expenses` use their integer `updated_at` timestamp.
+
+For each record:
+
+- Missing locally → insert it;
+- Exists locally and remote `updated_at` is newer → replace the local row;
+- Exists locally and remote `updated_at` is older or equal → keep the local row.
+
+After merging, the backend re-exports every local database to JSON, so the uploaded
+files contain the merged result. The file names stay the same (`clients.json`,
+`services.json`, `{clientName}_{clientId}.json`). Files whose merged JSON did not
+change are not uploaded again; local-only changes are uploaded as well, which lets
+the same merge rules resolve conflicts on the next device.
+
+A write failure returns `-1` and stops the sync instead of being reported as
+"0 changed records".
 
 Before upload/download/merge the C++ backend closes all `QSqlDatabase` connections so files can be replaced safely.
 

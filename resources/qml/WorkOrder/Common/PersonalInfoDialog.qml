@@ -7,6 +7,8 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
+    readonly property int edgeBottom: compact ? screenInsets.bottom : 0
 
     function loadFromSettings()
     {
@@ -74,7 +76,7 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 56
+        implicitHeight: 56 + root.edgeTop
         implicitWidth: root.width
 
         Rectangle
@@ -82,6 +84,7 @@ Dialog
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: 36
             height: 36
             radius: 18
@@ -108,6 +111,7 @@ Dialog
         Label
         {
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: parent.width - 104
             horizontalAlignment: Text.AlignHCenter
             text: root.title
@@ -120,7 +124,7 @@ Dialog
 
     footer: Item
     {
-        implicitHeight: 76
+        implicitHeight: 76 + root.edgeBottom
         implicitWidth: root.width
 
         Rectangle
@@ -130,7 +134,7 @@ Dialog
             anchors.bottom: parent.bottom
             anchors.leftMargin: 16
             anchors.rightMargin: 16
-            anchors.bottomMargin: 16
+            anchors.bottomMargin: 16 + root.edgeBottom
             height: 52
             radius: 14
             color: saveArea.pressed ? secondaryColor : primaryColor

@@ -50,14 +50,21 @@ Dialog
     }
 
     parent: Overlay.overlay
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     modal: true
     title: qsTr("Параметры отчёта")
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 16
     width: Math.min(compact ? parent.width - 24 : 560, parent.width - 16)
-    height: Math.min(compact ? parent.height - 32 : 760, parent.height - 24)
+    height: Math.min(compact ? parent.height - 32 - screenInsets.top - screenInsets.bottom : 760, parent.height - 24)
 
     background: Rectangle
     {

@@ -6,6 +6,8 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
+    readonly property int edgeBottom: compact ? screenInsets.bottom : 0
 
     readonly property bool showStatus: {
         const message = cloudDiskBackend.statusMessage
@@ -40,7 +42,7 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 56
+        implicitHeight: 56 + root.edgeTop
         implicitWidth: root.width
 
         Rectangle
@@ -48,6 +50,7 @@ Dialog
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: 36
             height: 36
             radius: 18
@@ -74,6 +77,7 @@ Dialog
         Label
         {
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.edgeTop / 2
             width: parent.width - 104
             horizontalAlignment: Text.AlignHCenter
             text: root.title
@@ -82,6 +86,11 @@ Dialog
             color: textColor
             elide: Text.ElideRight
         }
+    }
+
+    footer: Item
+    {
+        implicitHeight: root.edgeBottom
     }
 
     component DiskCloud: Item

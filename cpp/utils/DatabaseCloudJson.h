@@ -6,7 +6,7 @@
 namespace workorder
 {
 
-// Cloud Yandex.Disk stores JSON payloads in *.db files; local app keeps SQLite.
+// Cloud Yandex.Disk stores JSON files. The local app keeps SQLite.
 class DatabaseCloudJson
 {
 public:

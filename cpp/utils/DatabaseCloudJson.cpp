@@ -392,7 +392,7 @@ int mergeArrayIntoSqlite(const QJsonArray &localRecords,
 {
     const JsonMergeResult mergeResult = JsonRecordStore::mergeByLatestRevision(localRecords, remoteRecords);
     if(!writer(mergeResult.merged))
-        return 0;
+        return -1;
     return mergeResult.added;
 }
 
@@ -475,25 +475,34 @@ int DatabaseCloudJson::mergeClientDbFromJsonFile(const QString &jsonPath,
     const QJsonObject remoteDocument = ClientDbDocument::loadFile(jsonPath);
     const QString dbPath = DatabaseStorage::objectDbPath(clientName, clientId);
 
-    int added = 0;
-    added += mergeArrayIntoSqlite(readObjectsArray(dbPath),
-                                  ClientDbDocument::objectsArray(remoteDocument),
-                                  [&](const QJsonArray &merged)
-                                  {
-                                      return writeObjectsArray(dbPath, merged);
-                                  });
-    added += mergeArrayIntoSqlite(readWorksArray(dbPath),
-                                  ClientDbDocument::worksArray(remoteDocument),
-                                  [&](const QJsonArray &merged)
-                                  {
-                                      return writeWorksArray(dbPath, merged);
-                                  });
-    added += mergeArrayIntoSqlite(readExpensesArray(dbPath),
-                                  ClientDbDocument::expensesArray(remoteDocument),
-                                  [&](const QJsonArray &merged)
-                                  {
-                                      return writeExpensesArray(dbPath, merged);
-                                  });
+    int added = mergeArrayIntoSqlite(readObjectsArray(dbPath),
+                                     ClientDbDocument::objectsArray(remoteDocument),
+                                     [&](const QJsonArray &merged)
+                                     {
+                                         return writeObjectsArray(dbPath, merged);
+                                     });
+    if(added < 0)
+        return -1;
+
+    const int worksAdded = mergeArrayIntoSqlite(readWorksArray(dbPath),
+                                                ClientDbDocument::worksArray(remoteDocument),
+                                                [&](const QJsonArray &merged)
+                                                {
+                                                    return writeWorksArray(dbPath, merged);
+                                                });
+    if(worksAdded < 0)
+        return -1;
+    added += worksAdded;
+
+    const int expensesAdded = mergeArrayIntoSqlite(readExpensesArray(dbPath),
+                                                   ClientDbDocument::expensesArray(remoteDocument),
+                                                   [&](const QJsonArray &merged)
+                                                   {
+                                                       return writeExpensesArray(dbPath, merged);
+                                                   });
+    if(expensesAdded < 0)
+        return -1;
+    added += expensesAdded;
 
     qInfo("DatabaseCloudJson::mergeClientDbFromJsonFile added=%d from %s",
           added,

@@ -41,14 +41,17 @@ Dialog
     padding: 16
     width: Math.min(compact ? parent.width - 24 : 480, parent.width - 16)
     height: Math.min(formLayout.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
-                     Math.max(220, parent.height - 32 - keyboardInset))
+                     Math.max(220, parent.height - 32 - keyboardInset
+                              - (compact ? screenInsets.top + screenInsets.bottom : 0)))
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: {
         if(!parent)
             return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
         if(keyboardInset > 0)
-            return Math.max(8, parent.height - keyboardInset - height - 8)
-        return Math.max(8, Math.round((parent.height - height) / 2))
+            return Math.max(top + 8, parent.height - keyboardInset - bottom - height - 8)
+        return Math.max(top + 8, Math.round(top + (parent.height - top - bottom - height) / 2))
     }
 
     Overlay.modal: Rectangle

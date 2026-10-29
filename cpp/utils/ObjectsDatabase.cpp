@@ -157,8 +157,11 @@ bool ObjectsDatabase::updateObjectLastOrderAt(const QString &clientName, const Q
 
     QSqlDatabase db = openDatabase(clientName, clientId);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("UPDATE objects SET last_order_at = ? WHERE id = ?"));
-    query.addBindValue(QDateTime::currentSecsSinceEpoch());
+    // last_order_at is synced by updated_at, so bump the revision as well.
+    query.prepare(QStringLiteral("UPDATE objects SET last_order_at = ?, updated_at = ? WHERE id = ?"));
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    query.addBindValue(now);
+    query.addBindValue(now);
     query.addBindValue(objectId);
 
     if(!query.exec())

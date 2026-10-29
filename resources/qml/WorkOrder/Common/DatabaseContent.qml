@@ -82,9 +82,15 @@ Item {
         padding: 16
         width: Math.min(root.compact ? parent.width - 24 : 440, parent.width - 16)
         height: Math.min(infoColumn.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
-                         parent.height - 32)
+                         parent.height - 32 - (root.compact ? screenInsets.top + screenInsets.bottom : 0))
         x: parent ? Math.round((parent.width - width) / 2) : 0
-        y: parent ? Math.max(8, Math.round((parent.height - height) / 2)) : 0
+        y: {
+            if(!parent)
+                return 0
+            var top = root.compact ? screenInsets.top : 0
+            var bottom = root.compact ? screenInsets.bottom : 0
+            return Math.max(top + 8, Math.round(top + (parent.height - top - bottom - height) / 2))
+        }
 
         Overlay.modal: Rectangle
         {

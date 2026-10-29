@@ -11,7 +11,14 @@ Dialog {
 
     standardButtons: Dialog.NoButton
     modal: true
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     width: compact ? parent.width - 32 : 350
 
     background: DialogSurface { }

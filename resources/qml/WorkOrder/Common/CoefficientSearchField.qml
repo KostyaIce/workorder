@@ -154,10 +154,8 @@ ColumnLayout
 
     function openAddServiceDialog(serviceName)
     {
-        serviceDialog.clearInfo()
-        serviceDialog.name = serviceName
-        serviceDialog.unit = "%"
-        serviceDialog.open()
+        coefficientDialog.name = serviceName
+        coefficientDialog.open()
     }
 
     function updateSuggestions()
@@ -174,12 +172,18 @@ ColumnLayout
             suggestionsPopup.close()
     }
 
-    ServiceDialog
+    CoefficientDialog
     {
-        id: serviceDialog
+        id: coefficientDialog
         compact: root.compact
         parent: Overlay.overlay
         anchors.centerIn: parent
+
+        onServiceCreated: function(id, name, unit, price)
+        {
+            reportBackend.addCoefficient(id, name, unit, price)
+            applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
+        }
     }
 
     Label
@@ -479,7 +483,7 @@ ColumnLayout
             if(count === 0
                     && isValueGrowing
                     && currentQuery() !== ""
-                    && !serviceDialog.visible)
+                    && !coefficientDialog.visible)
                 openAddServiceDialog(currentQuery())
         }
     }

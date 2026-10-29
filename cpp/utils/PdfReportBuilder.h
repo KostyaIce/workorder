@@ -54,8 +54,14 @@ private:
     QString formatMultiplier(int percentSum) const;
     QString formatWorkName(const StringMap &work, bool includeCoefficients) const;
     QString formatQuantity(double quantity, const QString &unit) const;
+    QString fontFaceCss() const;
+    QString titleHtml(const QString &text) const;
+    QString subtitleHtml(const QString &text) const;
+    QString noteStyle() const;
+    QString noteHtml(const QString &htmlBody) const;
     QString worksTableStyle() const;
     QString worksTableHeaderStyle() const;
+    QString tableOpenHtml() const;
     QString wrapWorksTableText(const QString &text) const;
 
     QString m_fontPath;

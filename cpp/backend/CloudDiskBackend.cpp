@@ -31,6 +31,7 @@
 #include <QTimer>
 #include <QUrl>
 #include <QUrlQuery>
+#include <algorithm>
 #include <exception>
 
 namespace workorder
@@ -55,9 +56,31 @@ int httpStatusOf(QNetworkReply *reply)
     return reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 }
 
-bool isDatabaseFileName(const QString &name)
+QString cloudJsonFileName(const QString &dbFileName)
 {
-    return name.endsWith(QLatin1String(".db"), Qt::CaseInsensitive);
+    QString name = dbFileName;
+    if(name.endsWith(QLatin1String(".db"), Qt::CaseInsensitive))
+        name.chop(3);
+    if(!name.endsWith(QLatin1String(".json"), Qt::CaseInsensitive))
+        name += QStringLiteral(".json");
+    return name;
+}
+
+QString logicalDbFileName(const QString &cloudFileName)
+{
+    QString name = cloudFileName;
+    if(name.endsWith(QLatin1String(".json"), Qt::CaseInsensitive))
+    {
+        name.chop(5);
+        name += QStringLiteral(".db");
+    }
+    return name;
+}
+
+bool isCloudDataFileName(const QString &name)
+{
+    return name.endsWith(QLatin1String(".json"), Qt::CaseInsensitive)
+        || name.endsWith(QLatin1String(".db"), Qt::CaseInsensitive);
 }
 
 } // namespace
@@ -564,13 +587,18 @@ void CloudDiskBackend::beginUploadQueue()
     m_transferIndex = 0;
     for(const QString &name : names)
     {
+        const QString jsonName = cloudJsonFileName(name);
         TransferItem item;
-        item.name = name;
-        item.localPath = QDir(syncOutgoingDir()).filePath(name);
-        item.remotePath = remoteDbPath(name);
+        item.name = jsonName;
+        item.localPath = QDir(syncOutgoingDir()).filePath(jsonName);
+        item.remotePath = remoteDbPath(jsonName);
         if(!QFileInfo::exists(item.localPath))
             continue;
-        const QString incomingPath = QDir(syncIncomingDir()).filePath(name);
+        // Compare against the file that was downloaded, including legacy *.db
+        // names. Only files changed by the merge or by local edits are uploaded.
+        QString incomingPath = QDir(syncIncomingDir()).filePath(jsonName);
+        if(!QFileInfo::exists(incomingPath))
+            incomingPath = QDir(syncIncomingDir()).filePath(name);
         if(QFileInfo::exists(incomingPath)
            && JsonRecordStore::documentsEqual(JsonRecordStore::loadDocument(item.localPath),
                                                JsonRecordStore::loadDocument(incomingPath)))
@@ -734,7 +762,7 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
             continue;
 
         const QString name = itemObj.value(QStringLiteral("name")).toString();
-        if(!isDatabaseFileName(name))
+        if(!isCloudDataFileName(name))
             continue;
 
         TransferItem item;
@@ -748,7 +776,7 @@ void CloudDiskBackend::handleDownloadListReply(QNetworkReply *reply)
 
     if(m_transferQueue.isEmpty())
     {
-        qInfo("CloudDiskBackend: sync cloud has no db files, upload local JSON only");
+        qInfo("CloudDiskBackend: sync cloud has no json files, upload local JSON only");
         setStatusMessage(tr("На диске нет данных, выгружаем локальные..."),
                          QStringLiteral("No cloud data files, uploading local JSON..."));
         beginUploadQueue();
@@ -944,9 +972,24 @@ try
         return true;
 
     const QString dataDir = AppPaths::dbDir();
-    const QStringList names = incoming.entryList({QStringLiteral("*.db")}, QDir::Files, QDir::Name);
+    QStringList names = incoming.entryList(
+        {QStringLiteral("*.json"), QStringLiteral("*.db")}, QDir::Files, QDir::Name);
+    std::sort(names.begin(), names.end(), [](const QString &left, const QString &right)
+    {
+        const bool leftJson = left.endsWith(QLatin1String(".json"), Qt::CaseInsensitive);
+        const bool rightJson = right.endsWith(QLatin1String(".json"), Qt::CaseInsensitive);
+        if(leftJson != rightJson)
+            return leftJson;
+        return left.compare(right, Qt::CaseInsensitive) < 0;
+    });
+    QStringList mergedLogicalNames;
     for(const QString &name : names)
     {
+        const QString logicalName = logicalDbFileName(name);
+        if(mergedLogicalNames.contains(logicalName, Qt::CaseInsensitive))
+            continue;
+        mergedLogicalNames.append(logicalName);
+
         const QString sourcePath = incoming.filePath(name);
         QFile sourceFile(sourcePath);
         if(!sourceFile.open(QIODevice::ReadOnly))
@@ -965,8 +1008,8 @@ try
         if(!document.isObject() || document.object().isEmpty())
             return false;
 
-        const QString targetPath = QDir(dataDir).filePath(name);
-        if(name.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
+        const QString targetPath = QDir(dataDir).filePath(logicalName);
+        if(logicalName.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
         {
             if(!QFileInfo::exists(targetPath))
                 ClientsDatabase::createClientTable(targetPath);
@@ -976,7 +1019,7 @@ try
             m_syncRecordsAdded += added;
             continue;
         }
-        if(name.compare(QLatin1String("services.db"), Qt::CaseInsensitive) == 0)
+        if(logicalName.compare(QLatin1String("services.db"), Qt::CaseInsensitive) == 0)
         {
             const int added = DatabaseCloudJson::mergeServicesFromJsonFile(sourcePath);
             if(added < 0)
@@ -987,7 +1030,7 @@ try
 
         QString clientName;
         QString clientId;
-        if(!DatabaseStorage::parseObjectDbFileName(name, &clientName, &clientId))
+        if(!DatabaseStorage::parseObjectDbFileName(logicalName, &clientName, &clientId))
         {
             qWarning("CloudDiskBackend: skip unknown db file %s", qPrintable(name));
             continue;
@@ -1066,7 +1109,7 @@ try
     for(const QString &name : names)
     {
         const QString sqlitePath = QDir(dataDir).filePath(name);
-        const QString jsonPath = QDir(outDir).filePath(name);
+        const QString jsonPath = QDir(outDir).filePath(cloudJsonFileName(name));
         if(name.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
         {
             if(!DatabaseCloudJson::exportClientsToJsonFile(sqlitePath, jsonPath))

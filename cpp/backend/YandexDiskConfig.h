@@ -1,10 +1,9 @@
 #ifndef WORKORDER_BACKEND_YANDEX_DISK_CONFIG_H
 #define WORKORDER_BACKEND_YANDEX_DISK_CONFIG_H
 
-// OAuth app settings (Yandex OAuth console). Override at build time:
-// -DWORKORDER_YANDEX_OAUTH_CLIENT_ID=your_client_id
+// Client id is defined in cpp/CMakeLists.txt and passed as a compile definition.
 #ifndef WORKORDER_YANDEX_OAUTH_CLIENT_ID
-#define WORKORDER_YANDEX_OAUTH_CLIENT_ID "d3e1a705454a448b841e617117fec451"
+#error WORKORDER_YANDEX_OAUTH_CLIENT_ID must be set from cpp/CMakeLists.txt
 #endif
 
 // Must match Android package / iOS bundle id (see cmake/CppIos.cmake, cpp/android/AndroidManifest.xml).

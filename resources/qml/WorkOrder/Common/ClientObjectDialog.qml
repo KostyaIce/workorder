@@ -9,14 +9,21 @@ Dialog
     property bool compact: true
 
     parent: Overlay.overlay
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     modal: true
     title: qsTr("Клиент и объект")
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     width: Math.min(compact ? parent.width - 24 : 560, parent.width - 16)
     height: Math.min(dialogColumn.implicitHeight + header.height + footer.height + 32,
-                     parent.height - 24)
+                     parent.height - 24 - (compact ? screenInsets.top + screenInsets.bottom : 0))
     padding: compact ? 8 : 12
 
     background: DialogSurface { }

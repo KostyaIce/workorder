@@ -151,21 +151,53 @@ QString PdfReportBuilder::formatQuantity(double quantity, const QString &unit) c
     return escapeHtml(text);
 }
 
+QString PdfReportBuilder::fontFaceCss() const
+{
+    if(m_fontPath.isEmpty())
+        return QString();
+    return QStringLiteral("font-family:'%1',sans-serif;").arg(escapeHtml(m_fontFamily));
+}
+
+QString PdfReportBuilder::titleHtml(const QString &text) const
+{
+    return QStringLiteral(
+        "<p style=\"%1text-align:center;font-size:16pt;font-weight:bold;margin-top:0;margin-bottom:16pt;\">%2</p>")
+        .arg(fontFaceCss(), escapeHtml(text));
+}
+
+QString PdfReportBuilder::subtitleHtml(const QString &text) const
+{
+    return QStringLiteral(
+        "<p style=\"%1font-size:10pt;font-weight:bold;margin-top:8pt;margin-bottom:2pt;\">%2</p>")
+        .arg(fontFaceCss(), escapeHtml(text));
+}
+
+QString PdfReportBuilder::noteStyle() const
+{
+    return fontFaceCss() + QStringLiteral("font-size:8pt;");
+}
+
+QString PdfReportBuilder::noteHtml(const QString &htmlBody) const
+{
+    return QStringLiteral("<p style=\"%1margin:0;\">%2</p>").arg(noteStyle(), htmlBody);
+}
+
 QString PdfReportBuilder::worksTableStyle() const
 {
-    QString style = QStringLiteral("font-size:8pt");
-    if(!m_fontPath.isEmpty())
-        style += QStringLiteral(";font-family:'%1',sans-serif").arg(escapeHtml(m_fontFamily));
-    return style;
+    return fontFaceCss() + QStringLiteral("font-size:8pt");
 }
 
 QString PdfReportBuilder::worksTableHeaderStyle() const
 {
-    QString style = QStringLiteral("font-size:8pt");
-    if(!m_fontPath.isEmpty())
-        style += QStringLiteral(";font-family:'%1',sans-serif;font-weight:bold").arg(escapeHtml(m_fontFamily));
-    return style;
-    // return worksTableStyle() + QStringLiteral(";font-weight:bold");
+    return fontFaceCss() + QStringLiteral("font-size:8pt;font-weight:bold");
+}
+
+QString PdfReportBuilder::tableOpenHtml() const
+{
+    // Same hairline as the services presentation. HTML border="1" draws an outset frame plus a second grid.
+    return QStringLiteral(
+        "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"2\" "
+        "style=\"border-collapse:collapse;border:1px solid #B7C0CC;\">");
 }
 
 QString PdfReportBuilder::wrapWorksTableText(const QString &text) const
@@ -197,7 +229,7 @@ QString PdfReportBuilder::buildReportHeaderHtml(const StringMap &options) const
 
     QString html;
     for(const QString &line : headerText.split('\n'))
-        html += QStringLiteral("<h2 style=\"text-align:center;\">%1</h2>").arg(escapeHtml(line));
+        html += titleHtml(line);
 
     return html;
 }
@@ -207,8 +239,8 @@ QString PdfReportBuilder::buildReportDateHtml(const StringMap &options) const
     if(!optionEnabled(options, "include_report_date"))
         return QString();
 
-    return QStringLiteral("<p>Дата: %1</p>")
-        .arg(escapeHtml(QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm")));
+    return noteHtml(QStringLiteral("Дата: %1")
+        .arg(escapeHtml(QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm"))));
 }
 
 QString PdfReportBuilder::buildPersonalInfoHtml(const QString &personalInfo, const StringMap &options) const
@@ -218,14 +250,14 @@ QString PdfReportBuilder::buildPersonalInfoHtml(const QString &personalInfo, con
 
     const QString info = personalInfo.trimmed();
     if(info.isEmpty())
-        return QStringLiteral("<h3>Исполнитель:</h3><p>—</p>");
+        return subtitleHtml(QStringLiteral("Исполнитель:")) + noteHtml(QStringLiteral("—"));
 
     QString htmlBody = escapeHtml(info);
     htmlBody.replace(QLatin1String("\r\n"), QLatin1String("\n"));
     htmlBody.replace(QLatin1Char('\r'), QLatin1Char('\n'));
     htmlBody.replace(QLatin1Char('\n'), QLatin1String("<br/>"));
 
-    return QStringLiteral("<h3>Исполнитель:</h3><p>%1</p>").arg(htmlBody);
+    return subtitleHtml(QStringLiteral("Исполнитель:")) + noteHtml(htmlBody);
 }
 
 QString PdfReportBuilder::buildClientNameHtml(const StringMap &client, const StringMap &options) const
@@ -233,7 +265,7 @@ QString PdfReportBuilder::buildClientNameHtml(const StringMap &client, const Str
     if(!optionEnabled(options, "include_client_name"))
         return QString();
 
-    return QStringLiteral("<p>%1</p>").arg(escapeHtml(client.value("name").toString()));
+    return noteHtml(escapeHtml(client.value("name").toString()));
 }
 
 QString PdfReportBuilder::buildClientAddressHtml(const StringMap &client, const StringMap &objectData,
@@ -247,11 +279,11 @@ QString PdfReportBuilder::buildClientAddressHtml(const StringMap &client, const 
     if(address.isEmpty())
         address = client.value("address").toString();
     if(!address.isEmpty())
-        html += QStringLiteral("<p>Адрес: %1</p>").arg(escapeHtml(address));
+        html += noteHtml(QStringLiteral("Адрес: %1").arg(escapeHtml(address)));
 
     const QString objectName = objectData.value("name").toString();
     if(!objectName.isEmpty())
-        html += QStringLiteral("<p>Объект: %1</p>").arg(escapeHtml(objectName));
+        html += noteHtml(QStringLiteral("Объект: %1").arg(escapeHtml(objectName)));
 
     return html;
 }
@@ -272,7 +304,7 @@ QString PdfReportBuilder::buildPartiesHtml(const QString &personalInfo, const St
 
     if(!clientNameHtml.isEmpty() || !clientAddressHtml.isEmpty())
     {
-        html += QStringLiteral("<h3>Заказчик:</h3>");
+        html += subtitleHtml(QStringLiteral("Заказчик:"));
         html += clientNameHtml;
         html += clientAddressHtml;
     }
@@ -289,15 +321,16 @@ QPair<QString, qint64> PdfReportBuilder::buildWorksTableHtml(const StringMapList
     for(const QVariant &value : rows)
         totalKopecks += workAmountKopecks(value.toMap());
     const bool includeCoefficients = optionEnabled(options, "include_coefficients");
-    const QString cellStyle = worksTableStyle();
-    const QString headerStyle = worksTableHeaderStyle();
+    const QString cellBorder = QStringLiteral(";border:1px solid #B7C0CC;");
+    const QString cellStyle = worksTableStyle() + cellBorder;
+    const QString headerStyle = worksTableHeaderStyle() + cellBorder;
     const QString workColWidth = includeCoefficients ? QStringLiteral("50%") : QStringLiteral("55%");
     const QString qtyColWidth = QStringLiteral("14%");
     const QString priceColWidth = includeCoefficients ? QStringLiteral("14%") : QStringLiteral("16%");
     const QString coeffColWidth = QStringLiteral("7%");
     const QString sumColWidth = includeCoefficients ? QStringLiteral("15%") : QStringLiteral("15%");
 
-    html += QStringLiteral("<table border=\"1\" cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">");
+    html += tableOpenHtml();
     if(includeCoefficients)
     {
         html += QStringLiteral("<tr>"
@@ -451,7 +484,7 @@ QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works, cons
     for(const QString &subobjectName : keys)
     {
         if(!subobjectName.isEmpty())
-            html += QStringLiteral("<h4>%1:</h4>").arg(escapeHtml(subobjectName));
+            html += subtitleHtml(subobjectName + QLatin1Char(':'));
 
         const QPair<QString, qint64> table = buildWorksTableHtml(
             groups.value(subobjectName), false, options);
@@ -459,8 +492,8 @@ QString PdfReportBuilder::buildGroupedWorksHtml(const StringMapList &works, cons
         grandTotalKopecks += table.second;
     }
 
-    html += QStringLiteral("<p align=\"right\"><b>Итого: %1</b></p>")
-                .arg(formatMoney(grandTotalKopecks / 100.0));
+    html += QStringLiteral("<p align=\"right\" style=\"%1margin-top:6pt;\"><b>Итого: %2</b></p>")
+        .arg(noteStyle(), formatMoney(grandTotalKopecks / 100.0));
     return html;
 }
 
@@ -471,7 +504,7 @@ QString PdfReportBuilder::buildFlatWorksHtml(const StringMapList &works, const S
 
 QString PdfReportBuilder::buildWorksHtml(const StringMapList &works, const StringMap &options) const
 {
-    QString html = QStringLiteral("<h3>Перечень работ</h3>");
+    QString html = subtitleHtml(QStringLiteral("Перечень работ"));
 
     if(works.isEmpty())
     {
@@ -492,11 +525,12 @@ QString PdfReportBuilder::buildExpensesHtml(const StringMapList &expenses) const
     if(expenses.isEmpty())
         return QString();
 
-    const QString cellStyle = worksTableStyle();
-    const QString headerStyle = worksTableHeaderStyle();
-    QString html = QStringLiteral(
-        "<h3>Затраты</h3>"
-        "<table border=\"1\" cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
+    const QString cellBorder = QStringLiteral(";border:1px solid #B7C0CC;");
+    const QString cellStyle = worksTableStyle() + cellBorder;
+    const QString headerStyle = worksTableHeaderStyle() + cellBorder;
+    QString html = subtitleHtml(QStringLiteral("Затраты"));
+    html += tableOpenHtml();
+    html += QStringLiteral(
         "<tr><td style=\"%1\" width=\"75%\"><b>Описание</b></td>"
         "<td style=\"%1\" width=\"25%\" align=\"right\"><b>Сумма</b></td></tr>")
                        .arg(headerStyle);
@@ -537,13 +571,13 @@ QString PdfReportBuilder::buildTotalsHtml(const StringMapList &works,
         expensesTotalKopecks += value.toMap().value("amount").toLongLong();
 
     return QStringLiteral(
-        "<p align=\"right\"><b>Итого по работам: %1</b><br/>"
-        "<b>Итого по затратам: %2</b><br/>"
-        "<b>Общая сумма: %3</b></p>")
-        .arg(escapeHtml(formatMoney(worksTotalKopecks / 100.0)),
+        "<p align=\"right\" style=\"%1margin-top:6pt;\"><b>Итого по работам: %2</b><br/>"
+        "<b>Итого по затратам: %3</b><br/>"
+        "<b>Общая сумма: %4</b></p>")
+        .arg(noteStyle(),
+             escapeHtml(formatMoney(worksTotalKopecks / 100.0)),
              escapeHtml(formatMoney(expensesTotalKopecks / 100.0)),
-             escapeHtml(formatMoney(
-                 (worksTotalKopecks + expensesTotalKopecks) / 100.0)));
+             escapeHtml(formatMoney((worksTotalKopecks + expensesTotalKopecks) / 100.0)));
 }
 
 QString PdfReportBuilder::buildHtml(const QString &personalInfo, const StringMap &client,

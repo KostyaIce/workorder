@@ -14,12 +14,19 @@ Dialog
     standardButtons: Dialog.NoButton
     modal: true
     parent: Overlay.overlay
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 16
     width: Math.min(compact ? parent.width - 24 : 480, parent.width - 16)
     height: Math.min(formLayout.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
-                     parent.height - 32)
+                     parent.height - 32 - (compact ? screenInsets.top + screenInsets.bottom : 0))
 
     background: Rectangle
     {

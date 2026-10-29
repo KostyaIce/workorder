@@ -1,10 +1,10 @@
 # Яндекс.Диск: OAuth (desktop + mobile идентификаторы)
 
-Единые константы: `cpp/backend/YandexDiskConfig.h` и CMake cache в `cpp/CMakeLists.txt`.
+Клиентский идентификатор задаётся только в `cpp/CMakeLists.txt`. CMake передаёт его в C++ и подставляет в iOS `Info.plist`.
 
 | Параметр | Значение по умолчанию | Где менять |
 |----------|----------------------|------------|
-| OAuth Client ID | `d3e1a705454a448b841e617117fec451` | `-DWORKORDER_YANDEX_OAUTH_CLIENT_ID=...` или `YandexDiskConfig.h` |
+| OAuth Client ID | `e015e5639e814d569f163477e7eb9415` | `cpp/CMakeLists.txt` |
 | Android application id | `com.workorder` | `cpp/android/AndroidManifest.xml`, `-DWORKORDER_MOBILE_APPLICATION_ID=...` |
 | iOS Bundle ID | `com.workorder` | `-DWORKORDER_IOS_BUNDLE_ID=...` |
 | Redirect scheme | `workorder` | `-DWORKORDER_OAUTH_CALLBACK_SCHEME=...` |
@@ -21,11 +21,11 @@
 1. **iOS**
    - Bundle ID: `com.workorder` (или ваш `-DWORKORDER_IOS_BUNDLE_ID`).
    - В кабинете Яндекса App ID имеет вид **`{TeamID}.com.workorder`** (Team ID из Apple Developer → Membership).
-   - URL scheme для Login SDK: **`yxd3e1a705454a448b841e617117fec451`** (после смены Client ID пересоберите iOS — CMake подставит `yx` + id в `Info.plist`).
+   - URL scheme для Login SDK: **`yxe015e5639e814d569f163477e7eb9415`** (после смены Client ID пересоберите iOS — CMake подставит `yx` + id в `Info.plist`).
 
 2. **Android**
    - Имя пакета: **`com.workorder`** (как в `AndroidManifest.xml`).
-   - Отпечаток **SHA-256** release-ключа (как для Google Play / подписи APK).
+   - Отпечаток **SHA-256** release-ключа. Как создать ключ и снять отпечаток: [android-signing-key.md](android-signing-key.md).
 
 3. **Redirect URI (мобильный браузер / PKCE, как в Skedula)**
    - Добавьте в раздел **«Веб-сервисы»**: **`workorder://oauth-callback`**

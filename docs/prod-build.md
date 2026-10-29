@@ -61,6 +61,7 @@ keyPassword=<пароль ключа>
 ```
 
 `storeFile` может быть абсолютным или относительным к каталогу подписи.
+Как создать ключ и снять SHA-256: [android-signing-key.md](android-signing-key.md).
 Переопределение общего каталога: `SIGNING_DIR=/absolute/path`.
 Для iOS доступны `IOS_CERT_DIR`, `IOS_PROFILE`, `SIGN_IDENTITY` (SHA-1).
 Импортируйте `distribution.p12` с приватным ключом в Keychain вручную.

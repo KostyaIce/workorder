@@ -21,7 +21,8 @@ _KEY_DISK_URL = "cloud_disk/disk_url"
 _KEY_CLIENT_ID_LEGACY = "cloud_disk/client_id"
 _DEFAULT_DISK_URL = "https://cloud-api.yandex.net/v1/disk"
 _AUTH_BASE_URL = "https://oauth.yandex.ru/authorize"
-_YANDEX_CLIENT_ID = "d3e1a705454a448b841e617117fec451"
+# Python prototype is not configured by cpp/CMakeLists.txt, so the id is repeated here.
+_YANDEX_CLIENT_ID = "e015e5639e814d569f163477e7eb9415"
 _WORKORDER_FOLDER_PATH = "app:/workOrder"
 _TOKEN_IN_URL_RE = re.compile(r"access_token=([^&\s#]+)")
 _LIST_LIMIT = 1000

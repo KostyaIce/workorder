@@ -11,10 +11,19 @@ Dialog
 
     title: qsTr("Добавить работу")
     modal: true
-    anchors.centerIn: Overlay.overlay
+    parent: Overlay.overlay
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: {
+        if(!parent)
+            return 0
+        var top = compact ? screenInsets.top : 0
+        var bottom = compact ? screenInsets.bottom : 0
+        return Math.round(top + Math.max(0, parent.height - top - bottom - height) / 2)
+    }
     width: Math.min(compact ? parent.width - 24 : 520, parent.width - 16)
     height: Math.min(contentColumn.implicitHeight + footer.height + header.height + 48,
-                     Overlay.overlay ? Overlay.overlay.height * 0.92 : 640)
+                     (Overlay.overlay ? Overlay.overlay.height * 0.92 : 640)
+                     - (compact ? screenInsets.top + screenInsets.bottom : 0))
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 

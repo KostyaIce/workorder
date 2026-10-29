@@ -16,8 +16,8 @@ function(workorder_setup_ios_target target)
     math(EXPR _ios_build_number
         "${VERSION_MAJOR} * 1000000 + ${VERSION_MINOR} * 1000 + ${VERSION_PATCH}")
 
-    if(NOT DEFINED WORKORDER_YANDEX_OAUTH_CLIENT_ID)
-        set(WORKORDER_YANDEX_OAUTH_CLIENT_ID "d3e1a705454a448b841e617117fec451")
+    if(NOT WORKORDER_YANDEX_OAUTH_CLIENT_ID)
+        message(FATAL_ERROR "WORKORDER_YANDEX_OAUTH_CLIENT_ID is not set. Define it in cpp/CMakeLists.txt")
     endif()
 
     if(NOT DEFINED WORKORDER_IOS_BUNDLE_ID)

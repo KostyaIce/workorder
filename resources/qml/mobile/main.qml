@@ -7,6 +7,9 @@ import WorkOrder.Common 1.0
 ApplicationWindow
 {
     id: root
+    // Draw under the status bar and home indicator only on a phone or tablet.
+    readonly property bool phonePlatform: Qt.platform.os === "ios" || Qt.platform.os === "android"
+    flags: phonePlatform ? (Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint) : Qt.Window
     visible: true
     width: 375
     height: 812
@@ -42,6 +45,21 @@ ApplicationWindow
     palette.highlightedText: "white"
     palette.mid: "#E0E0E0"
     palette.dark: textSecondaryColor
+
+    background: Rectangle
+    {
+        color: root.backgroundColor
+    }
+
+    header: Item
+    {
+        height: screenInsets.top
+    }
+
+    footer: Item
+    {
+        height: screenInsets.bottom
+    }
 
     // Absorbs initial focus so Android does not open the IME on a TextField at startup.
     Item
