@@ -12,6 +12,8 @@ set(WORKORDER_MODELS_SOURCES
     filters/ServicesFilterModel.cpp
     filters/CoefficientsFilterModel.cpp
     filters/SubobjectsFilterModel.cpp
+    filters/ClientsFilterModel.cpp
+    filters/ObjectsFilterModel.cpp
 )
 
 set(WORKORDER_MODELS_HEADERS
@@ -34,6 +36,8 @@ set(WORKORDER_MODELS_HEADERS
     filters/ServicesFilterModel.h
     filters/CoefficientsFilterModel.h
     filters/SubobjectsFilterModel.h
+    filters/ClientsFilterModel.h
+    filters/ObjectsFilterModel.h
 )
 
 add_library(workorder_models STATIC

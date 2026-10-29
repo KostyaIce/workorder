@@ -24,6 +24,7 @@ SettingsAboutSection 1.0 SettingsAboutSection.qml
 SettingsContent 1.0 SettingsContent.qml
 ServiceSearchField 1.0 ServiceSearchField.qml
 CoefficientSearchField 1.0 CoefficientSearchField.qml
+CoefficientPickerDialog 1.0 CoefficientPickerDialog.qml
 OverlaySearchSuggestions 1.0 OverlaySearchSuggestions.qml
 OutlinedIconToolButton 1.0 OutlinedIconToolButton.qml
 ServiceNameText 1.0 ServiceNameText.qml

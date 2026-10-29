@@ -7,8 +7,16 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
     property string workId: ""
     property string unitName: ""
+
+    property string initialName: ""
+    property string initialSubobject: ""
+    property string initialCoefficients: ""
+    property real initialQuantity: 0
+    property int initialPriceKopecks: 0
+    property int initialPercent: 100
 
     readonly property real quantity: Math.max(0.1, parseFloat(quantityField.text.replace(",", ".")) || 0.1)
     readonly property int priceKopecks:
@@ -16,15 +24,19 @@ Dialog
         var rubles = parseFloat(priceField.text.replace(",", "."))
         return isNaN(rubles) ? 0 : Math.round(rubles * 100)
     }
-    readonly property int percentSum:
-    {
-        var value = parseInt(percentField.text, 10)
-        return isNaN(value) ? 100 : Math.max(100, value)
-    }
+    property int percentTotal: 100
     readonly property int quantityThousandths: Math.round(quantity * 1000)
     readonly property int lineTotalKopecks:
-        Math.round(priceKopecks * quantityThousandths * percentSum / 100000)
-    readonly property bool canSave: workId !== "" && nameField.text.trim() !== ""
+        Math.round(priceKopecks * quantityThousandths * percentTotal / 100000)
+    readonly property bool hasChanges:
+        nameField.text.trim() !== initialName
+        || subobjectField.text.trim() !== initialSubobject
+        || coefficientsField.text.trim() !== initialCoefficients
+        || Math.abs(quantity - initialQuantity) > 0.0005
+        || priceKopecks !== initialPriceKopecks
+        || percentTotal !== initialPercent
+    readonly property bool canSave:
+        workId !== "" && nameField.text.trim() !== "" && hasChanges
 
     function bumpQuantity(delta)
     {
@@ -43,14 +55,53 @@ Dialog
             return
 
         workId = id
+        coefficientPicker.close()
         nameField.text = item.name || ""
         subobjectField.text = item.subobject_name || ""
         coefficientsField.text = item.coefficients || ""
         unitName = item.unit || qsTr("ед.")
         quantityField.text = Number(item.quantity > 0 ? item.quantity : 1).toFixed(2)
         priceField.text = (Number(item.price) / 100).toFixed(2)
-        percentField.text = String(item.percent_sum > 0 ? item.percent_sum : 100)
+        percentTotal = Math.max(100, item.percent_sum > 0 ? item.percent_sum : 100)
+        percentField.text = String(percentTotal)
+
+        initialName = nameField.text.trim()
+        initialSubobject = subobjectField.text.trim()
+        initialCoefficients = coefficientsField.text.trim()
+        initialQuantity = quantity
+        initialPriceKopecks = priceKopecks
+        initialPercent = percentTotal
+
         open()
+    }
+
+    function addCoefficient(id, name, unit, price)
+    {
+        var trimmedName = String(name || "").trim()
+        if(trimmedName === "")
+            return
+
+        var names = []
+        var parts = coefficientsField.text.split(",")
+        for(var i = 0; i < parts.length; ++i)
+        {
+            var part = parts[i].trim()
+            if(part !== "")
+                names.push(part)
+        }
+
+        for(var j = 0; j < names.length; ++j)
+        {
+            if(names[j].toLowerCase() === trimmedName.toLowerCase())
+                return
+        }
+
+        names.push(trimmedName)
+        coefficientsField.text = names.join(", ")
+
+        var bonus = Math.round(price / 100) - 100
+        percentTotal = Math.max(100, root.percentTotal + bonus)
+        percentField.text = String(percentTotal)
     }
 
     function saveWork()
@@ -65,7 +116,7 @@ Dialog
             coefficients: coefficientsField.text.trim(),
             quantity: quantity,
             price: priceKopecks,
-            percent_sum: percentSum
+            percent_sum: percentTotal
         }
 
         if(reportBackend.updateWork(data))
@@ -87,7 +138,7 @@ Dialog
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 16
     width: Math.min(compact ? parent.width - 24 : 560, parent.width - 16)
-    height: Math.min(contentColumn.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
+    height: Math.min(contentColumn.implicitHeight + header.implicitHeight + padding * 2,
                      parent.height - 32 - (compact ? screenInsets.top + screenInsets.bottom : 0))
 
     background: Rectangle
@@ -96,60 +147,91 @@ Dialog
         radius: 22
     }
 
-    onClosed: workId = ""
+    onClosed:
+    {
+        workId = ""
+        coefficientPicker.close()
+    }
 
     header: Item
     {
-        implicitHeight: 52
+        implicitHeight: 52 + root.edgeTop
         implicitWidth: root.width
 
-        RowLayout
+        Rectangle
         {
-            anchors.fill: parent
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
-            spacing: 4
+            anchors.left: parent.left
+            anchors.leftMargin: 8
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 6
+            width: 40
+            height: 40
+            radius: 20
+            color: cardColor
+            border.width: 1
+            border.color: "#E4EAF2"
 
-            Item
+            WorkOrderIcon
             {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
+                anchors.centerIn: parent
+                width: 18
+                height: 18
+                name: "chevron-right"
+                tone: "muted"
+                rotation: 180
             }
 
-            Label
+            MouseArea
             {
-                Layout.fillWidth: true
-                text: root.title
-                font.pixelSize: 20
-                font.bold: true
-                color: textColor
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
+                anchors.fill: parent
+                onClicked: root.close()
+            }
+        }
+
+        Label
+        {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 56
+            anchors.rightMargin: 56
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 16
+            text: root.title
+            font.pixelSize: 20
+            font.bold: true
+            color: textColor
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+        }
+
+        Rectangle
+        {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 6
+            width: 40
+            height: 40
+            radius: 20
+            color: root.canSave ? primaryColor : cardColor
+            border.width: 1
+            border.color: root.canSave ? primaryColor : "#E4EAF2"
+            opacity: root.canSave ? 1 : 0.45
+
+            WorkOrderIcon
+            {
+                anchors.centerIn: parent
+                width: 18
+                height: 18
+                name: "check"
+                tone: root.canSave ? "white" : "accent"
             }
 
-            Rectangle
+            MouseArea
             {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-                Layout.alignment: Qt.AlignVCenter
-                radius: 20
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: "\u2715"
-                    font.pixelSize: 16
-                    color: textColor
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    onClicked: root.close()
-                }
+                anchors.fill: parent
+                enabled: root.canSave
+                onClicked: root.saveWork()
             }
         }
     }
@@ -188,13 +270,50 @@ Dialog
                 placeholder: qsTr("Комната 1, Кухня")
             }
 
+            RowLayout
+            {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Label
+                {
+                    Layout.fillWidth: true
+                    text: qsTr("Коэффициенты")
+                    font.pixelSize: 14
+                    color: textSecondaryColor
+                }
+
+                Rectangle
+                {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    radius: 20
+                    color: cardColor
+                    border.width: 1
+                    border.color: "#E4EAF2"
+
+                    Label
+                    {
+                        anchors.centerIn: parent
+                        text: "+"
+                        font.pixelSize: 24
+                        color: primaryColor
+                    }
+
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked: coefficientPicker.openPicker()
+                    }
+                }
+            }
+
             FormTextArea
             {
                 id: coefficientsField
                 Layout.fillWidth: true
                 compact: root.compact
                 preferredHeight: root.compact ? 72 : 66
-                label: qsTr("Коэффициенты")
                 placeholder: qsTr("Введите или измените коэффициенты")
             }
 
@@ -341,6 +460,12 @@ Dialog
                     leftPadding: 12
                     rightPadding: 12
                     validator: IntValidator { bottom: 100; top: 9999 }
+                    onTextChanged:
+                    {
+                        var value = parseInt(text, 10)
+                        if(!isNaN(value))
+                            root.percentTotal = Math.max(100, value)
+                    }
                     background: Rectangle
                     {
                         radius: 14
@@ -398,66 +523,15 @@ Dialog
         }
     }
 
-    footer: Item
+    CoefficientPickerDialog
     {
-        implicitHeight: 72
-        implicitWidth: root.width
-
-        RowLayout
+        id: coefficientPicker
+        compact: root.compact
+        onCoefficientPicked: function(name, price)
         {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            anchors.bottomMargin: 12
-            spacing: 10
-
-            Rectangle
-            {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                radius: 14
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: qsTr("Закрыть")
-                    font.pixelSize: 16
-                    color: textSecondaryColor
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    onClicked: root.close()
-                }
-            }
-
-            Rectangle
-            {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                radius: 14
-                color: root.canSave ? primaryColor : "#CCCCCC"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: qsTr("Сохранить")
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: "white"
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    enabled: root.canSave
-                    onClicked: root.saveWork()
-                }
-            }
+            root.addCoefficient("", name, "", price)
         }
     }
+
+
 }

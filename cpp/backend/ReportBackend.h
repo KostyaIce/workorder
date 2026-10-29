@@ -11,8 +11,10 @@
 namespace workorder
 {
 
+class ClientsFilterModel;
 class ClientsModel;
 class ExpensesModel;
+class ObjectsFilterModel;
 class ObjectsModel;
 class OrdersModel;
 class WorksModel;
@@ -210,7 +212,9 @@ private:
     QStringList m_subobjectSuggestionNames;
 
     ClientsModel *m_clients = nullptr;
+    ClientsFilterModel *m_clientsFilter = nullptr;
     ObjectsModel *m_objects = nullptr;
+    ObjectsFilterModel *m_objectsFilter = nullptr;
     OrdersModel *m_orders = nullptr;
     WorksModel *m_works = nullptr;
     WorksModel *m_workReport = nullptr;

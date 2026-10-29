@@ -74,34 +74,6 @@ Item
                     color: textColor
                     Layout.fillWidth: true
                 }
-
-                Rectangle
-                {
-                    Layout.preferredWidth: 32
-                    Layout.preferredHeight: 32
-                    radius: 16
-                    color: cardColor
-                    border.width: 1
-                    border.color: "#E6EBF2"
-
-                    Row
-                    {
-                        anchors.centerIn: parent
-                        spacing: 3
-
-                        Repeater
-                        {
-                            model: 3
-                            Rectangle
-                            {
-                                width: 4
-                                height: 4
-                                radius: 2
-                                color: textSecondaryColor
-                            }
-                        }
-                    }
-                }
             }
 
             Rectangle
@@ -128,29 +100,65 @@ Item
                         color: textColor
                     }
 
-                    ClientRow
+                    Rectangle
                     {
-                        iconName: "user"
-                        caption: qsTr("Заказчик")
-                        title: root.clientSelected
-                               ? reportBackend.selectedClientName
-                               : qsTr("Заказчик не выбран")
-                        subtitle: root.clientSelected ? reportBackend.selectedClientAddress : ""
-                        titleMuted: !root.clientSelected
-                        onClicked: root.openClientRequested()
-                    }
+                        Layout.fillWidth: true
+                        implicitHeight: combinedRows.implicitHeight + 16
+                        radius: 12
+                        color: "#F4F7FB"
 
-                    ClientRow
-                    {
-                        iconName: "house"
-                        caption: qsTr("Объект")
-                        title: root.objectSelected
-                               ? reportBackend.selectedObjectName
-                               : root.clientSelected
-                                 ? qsTr("Объект не выбран")
-                                 : qsTr("Сначала выберите заказчика")
-                        titleMuted: !root.objectSelected
-                        onClicked: root.openClientRequested()
+                        ColumnLayout
+                        {
+                            id: combinedRows
+                            x: 8
+                            y: 8
+                            width: parent.width - 40
+                            spacing: 4
+
+                            ClientRow
+                            {
+                                clickable: false
+                                showChevron: false
+                                iconName: "user"
+                                caption: qsTr("Заказчик")
+                                title: root.clientSelected
+                                       ? reportBackend.selectedClientName
+                                       : qsTr("Заказчик не выбран")
+                                subtitle: root.clientSelected ? reportBackend.selectedClientAddress : ""
+                                titleMuted: !root.clientSelected
+                            }
+
+                            ClientRow
+                            {
+                                clickable: false
+                                showChevron: false
+                                iconName: "house"
+                                caption: qsTr("Объект")
+                                title: root.objectSelected
+                                       ? reportBackend.selectedObjectName
+                                       : root.clientSelected
+                                         ? qsTr("Объект не выбран")
+                                         : qsTr("Сначала выберите заказчика")
+                                titleMuted: !root.objectSelected
+                            }
+                        }
+
+                        WorkOrderIcon
+                        {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 16
+                            height: 16
+                            name: "chevron-right"
+                            tone: "muted"
+                        }
+
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            onClicked: root.openClientRequested()
+                        }
                     }
                 }
             }
@@ -415,13 +423,15 @@ Item
         property string title: ""
         property string subtitle: ""
         property bool titleMuted: false
+        property bool clickable: true
+        property bool showChevron: true
 
         signal clicked()
 
         Layout.fillWidth: true
         implicitHeight: Math.max(54, rowText.implicitHeight + 12)
-        radius: 12
-        color: "#F4F7FB"
+        radius: clickable ? 12 : 0
+        color: clickable ? "#F4F7FB" : "transparent"
 
         RowLayout
         {
@@ -484,6 +494,7 @@ Item
 
             WorkOrderIcon
             {
+                visible: row.showChevron
                 name: "chevron-right"
                 tone: "muted"
                 Layout.preferredWidth: 16
@@ -494,6 +505,7 @@ Item
         MouseArea
         {
             anchors.fill: parent
+            enabled: row.clickable
             onClicked: row.clicked()
         }
     }

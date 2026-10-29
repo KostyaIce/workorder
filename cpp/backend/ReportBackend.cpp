@@ -3,8 +3,10 @@
 #include "ReportOptionsBackend.h"
 #include "SettingsBackend.h"
 
+#include "ClientsFilterModel.h"
 #include "ClientsModel.h"
 #include "ExpensesModel.h"
+#include "ObjectsFilterModel.h"
 #include "ObjectsModel.h"
 #include "OrdersModel.h"
 #include "SubobjectsFilterModel.h"
@@ -67,7 +69,9 @@ ReportBackend::ReportBackend(SettingsBackend *settingsBackend,
     , m_settingsBackend(settingsBackend)
     , m_reportOptionsBackend(reportOptionsBackend)
     , m_clients(new ClientsModel(this))
+    , m_clientsFilter(new ClientsFilterModel(this))
     , m_objects(new ObjectsModel(this))
+    , m_objectsFilter(new ObjectsFilterModel(this))
     , m_orders(new OrdersModel(this))
     , m_works(new WorksModel(this))
     , m_workReport(new WorksModel(this))
@@ -76,6 +80,8 @@ ReportBackend::ReportBackend(SettingsBackend *settingsBackend,
     , m_subobjectsFilter(new SubobjectsFilterModel(this))
 {
     ClientsDatabase::createClientTable();
+    m_clientsFilter->setSourceModel(m_clients);
+    m_objectsFilter->setSourceModel(m_objects);
     m_subobjectsFilter->setSourceModel(m_subobjects);
     connect(this, &ReportBackend::worksChanged, this, &ReportBackend::totalsChanged);
     connect(this, &ReportBackend::expensesChanged, this, &ReportBackend::totalsChanged);
@@ -95,7 +101,9 @@ void ReportBackend::registerModels(QQmlApplicationEngine *engine)
 
     QQmlContext *context = engine->rootContext();
     context->setContextProperty("clientsModel", m_clients);
+    context->setContextProperty("clientsFilterModel", m_clientsFilter);
     context->setContextProperty("objectsModel", m_objects);
+    context->setContextProperty("objectsFilterModel", m_objectsFilter);
     context->setContextProperty("ordersModel", m_orders);
     context->setContextProperty("worksModel", m_works);
     context->setContextProperty("workReportModel", m_workReport);

@@ -12,6 +12,11 @@ ColumnLayout
     property bool inlineSuggestions: false
     // When true: clear search field after picking a coefficient from suggestions.
     property bool clearAfterSelect: false
+    // When false, selection is only reported through coefficientSelected and
+    // the current invoice service is not modified.
+    property bool useReportService: true
+
+    signal coefficientSelected(string id, string name, string unit, int price)
 
     property int countField: 0
     property bool isValueGrowing: false
@@ -152,6 +157,17 @@ ColumnLayout
         applyInputValue("", false)
     }
 
+    function chooseCoefficient(id, name, unit, price)
+    {
+        if(root.useReportService)
+            reportBackend.addCoefficient(id, name, unit, price)
+
+        root.coefficientSelected(id, name, unit, price)
+        applyInputValue(root.clearAfterSelect ? ""
+                                              : (root.useReportService
+                                                 ? reportBackend.currentCoefficients : ""), false)
+    }
+
     function openAddServiceDialog(serviceName)
     {
         coefficientDialog.name = serviceName
@@ -181,8 +197,7 @@ ColumnLayout
 
         onServiceCreated: function(id, name, unit, price)
         {
-            reportBackend.addCoefficient(id, name, unit, price)
-            applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
+            root.chooseCoefficient(id, name, unit, price)
         }
     }
 
@@ -364,11 +379,7 @@ ColumnLayout
             {
                 id: coefficientCardMouse
                 anchors.fill: parent
-                onClicked:
-                {
-                    reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
-                    applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
-                }
+                onClicked: root.chooseCoefficient(model.id, model.name, model.unit, model.price)
             }
         }
     }
@@ -455,11 +466,7 @@ ColumnLayout
                 id: suggestionMouse
                 anchors.fill: parent
                 hoverEnabled: !compact
-                onClicked:
-                {
-                    reportBackend.addCoefficient(model.id, model.name, model.unit, model.price)
-                    applyInputValue(root.clearAfterSelect ? "" : reportBackend.currentCoefficients, false)
-                }
+                onClicked: root.chooseCoefficient(model.id, model.name, model.unit, model.price)
             }
         }
     }

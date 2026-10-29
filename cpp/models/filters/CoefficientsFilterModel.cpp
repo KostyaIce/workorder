@@ -11,6 +11,15 @@ CoefficientsFilterModel::CoefficientsFilterModel(QObject *parent)
 {
 }
 
+bool CoefficientsFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+{
+    // The picker shows all coefficients until the user starts typing, but the
+    // list must still contain only percent-based services.
+    if(filterText().isEmpty())
+        return acceptSourceRow(sourceRow, sourceParent);
+    return TextFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
+}
+
 bool CoefficientsFilterModel::acceptSourceRow(int sourceRow, const QModelIndex &sourceParent) const
 {
     const auto *sourceModel = qobject_cast<const ServicesModel *>(this->sourceModel());

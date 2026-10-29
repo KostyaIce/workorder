@@ -7,7 +7,10 @@ Dialog
     id: root
 
     property bool compact: true
+    readonly property int edgeTop: compact ? screenInsets.top : 0
     property string expenseId: ""
+    property string initialDescription: ""
+    property int initialAmountKopecks: 0
 
     readonly property int amountKopecks:
     {
@@ -16,6 +19,10 @@ Dialog
     }
     readonly property bool valid:
         expenseId !== "" && descriptionField.text.trim() !== "" && amountKopecks > 0
+    readonly property bool hasChanges:
+        descriptionField.text.trim() !== initialDescription
+        || amountKopecks !== initialAmountKopecks
+    readonly property bool canSave: valid && hasChanges
 
     parent: Overlay.overlay
     x: parent ? Math.round((parent.width - width) / 2) : 0
@@ -31,16 +38,111 @@ Dialog
     standardButtons: Dialog.NoButton
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     width: Math.min(compact ? parent.width - 24 : 520, parent.width - 16)
-    height: Math.min(contentColumn.implicitHeight + header.height + footer.height + 32,
+    height: Math.min(contentColumn.implicitHeight + header.implicitHeight + 32,
                      parent.height - 24 - (compact ? screenInsets.top + screenInsets.bottom : 0))
     padding: compact ? 8 : 12
 
-    background: DialogSurface { }
-
-    header: DialogTitleBar
+    background: Rectangle
     {
-        text: root.title
-        compact: root.compact
+        color: backgroundColor
+        radius: 22
+    }
+
+    header: Item
+    {
+        implicitHeight: 52 + root.edgeTop
+        implicitWidth: root.width
+
+        Rectangle
+        {
+            anchors.left: parent.left
+            anchors.leftMargin: 8
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 6
+            width: 40
+            height: 40
+            radius: 20
+            color: cardColor
+            border.width: 1
+            border.color: "#E4EAF2"
+
+            WorkOrderIcon
+            {
+                anchors.centerIn: parent
+                width: 18
+                height: 18
+                name: "chevron-right"
+                tone: "muted"
+                rotation: 180
+            }
+
+            MouseArea
+            {
+                anchors.fill: parent
+                onClicked: root.close()
+            }
+        }
+
+        Label
+        {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 56
+            anchors.rightMargin: 56
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 16
+            text: root.title
+            font.pixelSize: 20
+            font.bold: true
+            color: textColor
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+        }
+
+        Rectangle
+        {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.top: parent.top
+            anchors.topMargin: root.edgeTop + 6
+            width: 40
+            height: 40
+            radius: 20
+            color: root.canSave ? primaryColor : cardColor
+            border.width: 1
+            border.color: root.canSave ? primaryColor : "#E4EAF2"
+            opacity: root.canSave ? 1 : 0.45
+
+            WorkOrderIcon
+            {
+                anchors.centerIn: parent
+                width: 18
+                height: 18
+                name: "check"
+                tone: root.canSave ? "white" : "accent"
+            }
+
+            MouseArea
+            {
+                anchors.fill: parent
+                enabled: root.canSave
+                onClicked: root.saveExpense()
+            }
+        }
+    }
+
+    function saveExpense()
+    {
+        if(!canSave)
+            return
+
+        var data = {
+            id: expenseId,
+            description: descriptionField.text.trim(),
+            amount: amountKopecks
+        }
+        if(reportBackend.updateExpense(data))
+            close()
     }
 
     function openForEdit(id)
@@ -60,6 +162,8 @@ Dialog
         expenseId = expense.id
         descriptionField.text = expense.description || ""
         amountField.text = (Number(expense.amount) / 100).toFixed(2)
+        initialDescription = descriptionField.text.trim()
+        initialAmountKopecks = amountKopecks
         open()
     }
 
@@ -110,22 +214,5 @@ Dialog
         }
     }
 
-    footer: DialogEdgeButtons
-    {
-        width: root.width
-        cancelText: qsTr("Отмена")
-        acceptText: qsTr("Сохранить")
-        acceptEnabled: root.valid
-        onCancelled: root.reject()
-        onAccepted:
-        {
-            var data = {
-                id: root.expenseId,
-                description: descriptionField.text.trim(),
-                amount: root.amountKopecks
-            }
-            if(reportBackend.updateExpense(data))
-                root.close()
-        }
-    }
+
 }
