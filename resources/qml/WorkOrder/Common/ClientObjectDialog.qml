@@ -38,6 +38,19 @@ Dialog
         objectsFilterModel.filterText = ""
     }
 
+    Connections
+    {
+        target: contactPicker
+        function onContactPicked(name, phone)
+        {
+            clientDialog.openWithContact(name, phone)
+        }
+        function onPickFailed(message)
+        {
+            notificationManager.pushError(message)
+        }
+    }
+
     ClientFormDialog
     {
         id: clientDialog
@@ -201,6 +214,32 @@ Dialog
                                 anchors.fill: parent
                                 enabled: root.clientSelected
                                 onClicked: clientDialog.openForEdit()
+                            }
+                        }
+
+                        Rectangle
+                        {
+                            visible: contactPicker.available
+                            width: 36
+                            height: 36
+                            radius: 18
+                            color: backgroundColor
+                            border.width: 1
+                            border.color: "#E4EAF2"
+
+                            WorkOrderIcon
+                            {
+                                anchors.centerIn: parent
+                                width: 16
+                                height: 16
+                                name: "phone"
+                                tone: "accent"
+                            }
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                onClicked: contactPicker.pickContact()
                             }
                         }
 

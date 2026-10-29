@@ -1,6 +1,7 @@
 #include "BackendController.h"
 
 #include "CloudDiskBackend.h"
+#include "ContactPicker.h"
 #include "DatabaseBackend.h"
 #include "InvoiceBackend.h"
 #include "NotificationManager.h"
@@ -18,6 +19,7 @@ BackendController::BackendController(QQmlApplicationEngine *engine, QObject *par
     , m_settingsBackend(std::make_unique<SettingsBackend>())
     , m_reportOptionsBackend(std::make_unique<ReportOptionsBackend>())
     , m_cloudDiskBackend(std::make_unique<CloudDiskBackend>())
+    , m_contactPicker(std::make_unique<ContactPicker>())
     , m_databaseBackend(std::make_unique<DatabaseBackend>())
     , m_reportBackend(std::make_unique<ReportBackend>(
           m_settingsBackend.get(),
@@ -52,6 +54,7 @@ void BackendController::exposeToQml(QQmlContext *context) const
     context->setContextProperty("settingsBackend", m_settingsBackend.get());
     context->setContextProperty("reportOptionsBackend", m_reportOptionsBackend.get());
     context->setContextProperty("cloudDiskBackend", m_cloudDiskBackend.get());
+    context->setContextProperty("contactPicker", m_contactPicker.get());
     context->setContextProperty("reportBackend", m_reportBackend.get());
 }
 

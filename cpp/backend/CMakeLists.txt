@@ -5,6 +5,7 @@ set(WORKORDER_BACKEND_SOURCES
     ../app/ScreenInsets.cpp
     BackendController.cpp
     CloudDiskBackend.cpp
+    ContactPicker.cpp
     YandexDiskOAuthFlow.cpp
     DatabaseBackend.cpp
     InvoiceBackend.cpp
@@ -19,6 +20,7 @@ set(WORKORDER_BACKEND_HEADERS
     ../app/ScreenInsets.h
     BackendController.h
     CloudDiskBackend.h
+    ContactPicker.h
     YandexDiskConfig.h
     YandexDiskOAuthFlow.h
     DatabaseBackend.h
@@ -62,6 +64,10 @@ target_link_libraries(workorder_backend
         Qt6::Qml
         Qt6::Quick
 )
+
+if(TARGET Qt6::CorePrivate)
+    target_link_libraries(workorder_backend PRIVATE Qt6::CorePrivate)
+endif()
 
 target_include_directories(workorder_backend
     PUBLIC

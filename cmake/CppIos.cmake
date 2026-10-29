@@ -47,6 +47,11 @@ function(workorder_setup_ios_target target)
     target_sources(${target} PRIVATE
         "${WORKORDER_ROOT}/cpp/ios/YandexAuth.swift"
         "${WORKORDER_ROOT}/cpp/ios/YandexAuth.mm"
+        "${WORKORDER_ROOT}/cpp/ios/ContactPicker.mm"
+    )
+    target_link_libraries(${target} PRIVATE
+        "-framework Contacts"
+        "-framework ContactsUI"
     )
     target_include_directories(${target} PRIVATE "${_ios_swift_headers}")
 

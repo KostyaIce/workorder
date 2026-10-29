@@ -9,6 +9,8 @@ Dialog
 
     property bool compact: true
     property bool editMode: false
+    property string prefillName: ""
+    property string prefillPhone: ""
     property string lastPhoneText: ""
     readonly property bool nameValid: nameField.text.trim().length > 0
     readonly property bool canSave: nameValid && phoneField.text.trim().length > 0
@@ -163,6 +165,14 @@ Dialog
         open()
     }
 
+    function openWithContact(contactName, contactPhone)
+    {
+        editMode = false
+        prefillName = String(contactName || "").trim()
+        prefillPhone = String(contactPhone || "").trim()
+        open()
+    }
+
     function showFieldStart(input)
     {
         input.deselect()
@@ -183,12 +193,14 @@ Dialog
         }
         else
         {
-            nameField.text = ""
-            root.lastPhoneText = ""
-            phoneField.text = ""
+            nameField.text = root.prefillName
+            root.lastPhoneText = PhoneFormat.format(root.prefillPhone)
+            phoneField.text = root.lastPhoneText
             emailField.text = ""
             addressField.text = ""
             notesField.text = ""
+            root.prefillName = ""
+            root.prefillPhone = ""
         }
 
         flick.contentY = 0

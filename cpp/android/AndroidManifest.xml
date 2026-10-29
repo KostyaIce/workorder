@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.workorder"
     android:installLocation="auto"
-    android:versionCode="100032"
-    android:versionName="1.0-32">
+    android:versionCode="100033"
+    android:versionName="1.0-33">
     <!-- %%INSERT_PERMISSIONS -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- %%INSERT_FEATURES -->
 
     <supports-screens

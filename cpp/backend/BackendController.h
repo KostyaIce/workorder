@@ -10,6 +10,7 @@ namespace workorder
 {
 
 class CloudDiskBackend;
+class ContactPicker;
 class DatabaseBackend;
 class InvoiceBackend;
 class NotificationManager;
@@ -34,6 +35,7 @@ private:
     std::unique_ptr<SettingsBackend> m_settingsBackend;
     std::unique_ptr<ReportOptionsBackend> m_reportOptionsBackend;
     std::unique_ptr<CloudDiskBackend> m_cloudDiskBackend;
+    std::unique_ptr<ContactPicker> m_contactPicker;
     std::unique_ptr<DatabaseBackend> m_databaseBackend;
     std::unique_ptr<ReportBackend> m_reportBackend;
     std::unique_ptr<InvoiceBackend> m_invoiceBackend;

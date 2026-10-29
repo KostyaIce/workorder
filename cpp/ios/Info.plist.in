@@ -75,6 +75,9 @@
         </dict>
     </array>
 
+    <key>NSContactsUsageDescription</key>
+    <string>WorkOrder использует контакты только для заполнения данных заказчика.</string>
+
     <key>LSApplicationQueriesSchemes</key>
     <array>
         <string>primaryyandexloginsdk</string>
