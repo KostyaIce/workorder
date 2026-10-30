@@ -11,6 +11,25 @@ Item {
     property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
     property string presentationTitle: ""
+    // Catalog switcher: "services" | "coefficients".
+    property string activeTab: "services"
+
+    onActiveTabChanged:
+    {
+        if(compact)
+            mobileServicesRoot.rebuild()
+    }
+
+    function openAddForActiveTab()
+    {
+        if(activeTab === "coefficients")
+        {
+            coefficientDialog.openForCreate("")
+            return
+        }
+        serviceDialog.clearInfo()
+        serviceDialog.open()
+    }
 
     function saveServicesExport()
     {
@@ -50,6 +69,48 @@ Item {
     function servicePriceSuffix(unitValue)
     {
         return isPercentUnit(unitValue) ? "%" : "\u20BD"
+    }
+
+    component CatalogTab: Item
+    {
+        id: tab
+
+        property string label: ""
+        property bool active: false
+        property int pixelSize: 24
+
+        signal clicked()
+
+        implicitWidth: tabLabel.implicitWidth
+        implicitHeight: tabLabel.implicitHeight + 10
+
+        Label
+        {
+            id: tabLabel
+
+            anchors.top: parent.top
+            text: tab.label
+            font.pixelSize: tab.pixelSize
+            font.weight: Font.Black
+            color: tab.active ? textColor : textSecondaryColor
+        }
+
+        Rectangle
+        {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 2
+            radius: 1
+            color: primaryColor
+            visible: tab.active
+        }
+
+        MouseArea
+        {
+            anchors.fill: parent
+            onClicked: tab.clicked()
+        }
     }
 
     component FileActionInfoDialog: Dialog
@@ -114,41 +175,14 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 52
-                anchors.rightMargin: 52
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
                 text: infoDialog.title
                 wrapMode: Text.WordWrap
                 font.pixelSize: 18
                 font.bold: true
                 color: textColor
                 horizontalAlignment: Text.AlignHCenter
-            }
-
-            Rectangle
-            {
-                anchors.right: parent.right
-                anchors.rightMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                width: 40
-                height: 40
-                radius: 20
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: "\u2715"
-                    font.pixelSize: 16
-                    color: textColor
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    onClicked: infoDialog.close()
-                }
             }
         }
 
@@ -203,7 +237,7 @@ Item {
                     {
                         anchors.centerIn: parent
                         text: qsTr("Отмена")
-                        font.pixelSize: 16
+                        font.pixelSize: 14
                         color: textSecondaryColor
                     }
 
@@ -225,7 +259,7 @@ Item {
                     {
                         anchors.centerIn: parent
                         text: infoDialog.actionText
-                        font.pixelSize: 16
+                        font.pixelSize: 14
                         font.bold: true
                         color: "white"
                     }
@@ -273,6 +307,29 @@ Item {
         onProceedRequested: root.saveServicesPresentation()
     }
 
+    Connections
+    {
+        target: invoiceBackend
+
+        function onImportCompleted(servicesAdded, servicesTotal, coefficientsAdded, coefficientsTotal)
+        {
+            var message = qsTr("Импорт: услуг добавлено %1 из %2, коэффициентов — %3 из %4")
+                    .arg(servicesAdded)
+                    .arg(servicesTotal)
+                    .arg(coefficientsAdded)
+                    .arg(coefficientsTotal)
+            if(servicesAdded === 0 && coefficientsAdded === 0)
+                notificationManager.pushWarning(message, "", 9000)
+            else
+                notificationManager.pushInfo(message, "", 9000)
+        }
+
+        function onImportFailed(message)
+        {
+            notificationManager.pushError(message)
+        }
+    }
+
     ServiceFormDialog {
         id: addServiceDialog
         mode: "add"
@@ -290,6 +347,16 @@ Item {
         compact: root.compact
     }
 
+    CoefficientDialog {
+        id: coefficientDialog
+        compact: root.compact
+    }
+
+    CoefficientDeleteDialog {
+        id: deleteCoefficientDialog
+        compact: root.compact
+    }
+
     ServiceDialog {
         id: serviceDialog
         compact: root.compact
@@ -302,11 +369,7 @@ Item {
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Excel файлы (*.xlsx)")]
 
-        onAccepted:
-        {
-            if(!invoiceBackend.importServicesFromFile(selectedFile))
-                console.log("Не удалось импортировать услуги из файла")
-        }
+        onAccepted: invoiceBackend.importServicesFromFile(selectedFile)
     }
 
     FileDialog
@@ -347,17 +410,18 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Label {
-                text: qsTr("Услуги")
-                font.pixelSize: 28
-                font.bold: true
-                color: textColor
+            CatalogTab {
+                label: qsTr("Услуги (%1)").arg(servicesModel.count)
+                active: root.activeTab === "services"
+                pixelSize: 16
+                onClicked: root.activeTab = "services"
             }
 
-            Label {
-                text: "(" + servicesModel.count + ")"
-                font.pixelSize: 14
-                color: textSecondaryColor
+            CatalogTab {
+                label: qsTr("Коэффициенты (%1)").arg(coefficientsModel.count)
+                active: root.activeTab === "coefficients"
+                pixelSize: 16
+                onClicked: root.activeTab = "coefficients"
             }
 
             Item { Layout.fillWidth: true }
@@ -409,14 +473,16 @@ Item {
                         anchors.rightMargin: 16
 
                         Label {
-                            text: qsTr("Название услуги")
+                            text: root.activeTab === "coefficients" ? qsTr("Название коэффициента")
+                                                       : qsTr("Название услуги")
                             font.bold: true
                             color: textSecondaryColor
                             Layout.fillWidth: true
                         }
 
                         Label {
-                            text: qsTr("Цена за ед.")
+                            text: root.activeTab === "coefficients" ? qsTr("Коэффициент")
+                                                       : qsTr("Цена за ед.")
                             font.bold: true
                             color: textSecondaryColor
                             Layout.preferredWidth: 120
@@ -435,6 +501,7 @@ Item {
 
                 ListView {
                     id: desktopList
+                    visible: root.activeTab !== "coefficients"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
@@ -542,6 +609,76 @@ Item {
                         }
                     }
                 }
+
+                ListView {
+                    id: desktopCoefficientList
+                    visible: root.activeTab === "coefficients"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: 1
+                    bottomMargin: 80
+                    model: coefficientsModel
+
+                    delegate: Rectangle {
+                        width: desktopCoefficientList.width
+                        height: 56
+                        color: index % 2 === 0 ? "white" : Qt.rgba(0, 0, 0, 0.02)
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+
+                            ServiceNameText {
+                                text: name
+                                baseFontSize: 14
+                                compactFontSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Label {
+                                text: Math.round(price / 100) + " %"
+                                Layout.preferredWidth: 120
+                                horizontalAlignment: Text.AlignRight
+                                color: primaryColor
+                                font.bold: true
+                            }
+
+                            RowLayout
+                            {
+                                Layout.preferredWidth: compact ? 108 : 100
+                                spacing: 8
+
+                                OutlinedIconToolButton
+                                {
+                                    compact: root.compact
+                                    tooltipText: qsTr("Редактировать")
+                                    onClicked: coefficientDialog.openForEdit(id)
+                                }
+
+                                OutlinedIconToolButton
+                                {
+                                    compact: root.compact
+                                    destructive: true
+                                    tooltipText: qsTr("Удалить")
+                                    onClicked:
+                                    {
+                                        deleteCoefficientDialog.coefficientId = id
+                                        deleteCoefficientDialog.name = name
+                                        deleteCoefficientDialog.open()
+                                    }
+                                }
+                            }
+                        }
+
+                        DividerLine {
+                            anchors.bottom: parent.bottom
+                            visible: index < desktopCoefficientList.count - 1
+                        }
+                    }
+                }
             }
         }
     }
@@ -570,6 +707,21 @@ Item {
             }
         }
 
+        // CoefficientsModel roles: id, name, price, unit, keywords, created_at, updated_at.
+        function readCoefficient(row)
+        {
+            var idx = coefficientsModel.index(row, 0)
+            return {
+                id: String(coefficientsModel.data(idx, Qt.UserRole + 1) || ""),
+                name: String(coefficientsModel.data(idx, Qt.UserRole + 2) || ""),
+                note: "",
+                paragraph: "",
+                price: Number(coefficientsModel.data(idx, Qt.UserRole + 3) || 0),
+                unit: String(coefficientsModel.data(idx, Qt.UserRole + 4) || "%"),
+                keywords: String(coefficientsModel.data(idx, Qt.UserRole + 5) || "")
+            }
+        }
+
         function openServiceEditor(service)
         {
             serviceDialog.service_id = service.id
@@ -589,6 +741,26 @@ Item {
             rebuilding = true
 
             var query = serviceSearch.text.trim().toLowerCase()
+            mobileServiceModel.clear()
+            mobileCoefficientModel.clear()
+
+            if(root.activeTab === "coefficients")
+            {
+                categoryModel.clear()
+                categoryFilter = ""
+                var coefficientTotal = coefficientsModel.count
+                for(var ci = 0; ci < coefficientTotal; ++ci)
+                {
+                    var coefficient = readCoefficient(ci)
+                    var coefficientHaystack = (coefficient.name + " " + coefficient.keywords).toLowerCase()
+                    if(query !== "" && coefficientHaystack.indexOf(query) === -1)
+                        continue
+                    mobileCoefficientModel.append(coefficient)
+                }
+                rebuilding = false
+                return
+            }
+
             var rows = []
             var counts = {}
             var total = servicesModel.count
@@ -640,6 +812,7 @@ Item {
 
         ListModel { id: categoryModel }
         ListModel { id: mobileServiceModel }
+        ListModel { id: mobileCoefficientModel }
 
         Connections
         {
@@ -647,28 +820,111 @@ Item {
             function onSizeChanged() { mobileServicesRoot.rebuild() }
         }
 
+        Connections
+        {
+            target: coefficientsModel
+            function onSizeChanged() { mobileServicesRoot.rebuild() }
+        }
+
         Component.onCompleted: mobileServicesRoot.rebuild()
 
-        ColumnLayout
+        Item
         {
             anchors.fill: parent
-            anchors.topMargin: root.topScrollPadding + 8
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            spacing: 12
 
-            RowLayout
+            Rectangle
             {
-                Layout.fillWidth: true
-                spacing: 8
+                id: mobileTopOverlay
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                anchors.topMargin: root.topScrollPadding + 8
+                height: mobileOverlayColumn.implicitHeight + 16
+                radius: 18
+                color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, 0.88)
+                z: 5
 
-                Label
+                ColumnLayout
+                {
+                    id: mobileOverlayColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 8
+                    spacing: 10
+
+                    RowLayout
+                    {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                Rectangle
                 {
                     Layout.fillWidth: true
-                    text: qsTr("Услуги")
-                    font.pixelSize: 28
-                    font.weight: Font.Black
-                    color: textColor
+                    Layout.preferredHeight: 38
+                    radius: 12
+                    color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.68)
+                    border.width: 1
+                    border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+
+                    RowLayout
+                    {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        spacing: 3
+
+                        Rectangle
+                        {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: root.activeTab === "services"
+                                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.9)
+                                   : "transparent"
+
+                            Label
+                            {
+                                anchors.centerIn: parent
+                                text: qsTr("Услуги")
+                                font.pixelSize: 14
+                                font.bold: root.activeTab === "services"
+                                color: root.activeTab === "services" ? "white" : textColor
+                            }
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                onClicked: root.activeTab = "services"
+                            }
+                        }
+
+                        Rectangle
+                        {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: root.activeTab === "coefficients"
+                                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.9)
+                                   : "transparent"
+
+                            Label
+                            {
+                                anchors.centerIn: parent
+                                text: qsTr("Коэффициенты")
+                                font.pixelSize: 14
+                                font.bold: root.activeTab === "coefficients"
+                                color: root.activeTab === "coefficients" ? "white" : textColor
+                            }
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                onClicked: root.activeTab = "coefficients"
+                            }
+                        }
+                    }
                 }
 
                 Rectangle
@@ -677,9 +933,9 @@ Item {
                     Layout.preferredWidth: 36
                     Layout.preferredHeight: 36
                     radius: 18
-                    color: cardColor
+                    color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.7)
                     border.width: 1
-                    border.color: "#E4EAF2"
+                    border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
 
                     Column
                     {
@@ -712,9 +968,9 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
                 radius: 14
-                color: cardColor
+                color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.7)
                 border.width: 1
-                border.color: "#E4EAF2"
+                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
 
                 Item
                 {
@@ -757,7 +1013,8 @@ Item {
                     anchors.fill: parent
                     anchors.leftMargin: 34
                     anchors.rightMargin: 8
-                    placeholderText: qsTr("Поиск услуг...")
+                    placeholderText: root.activeTab === "coefficients" ? qsTr("Поиск коэффициентов...")
+                                                           : qsTr("Поиск услуг...")
                     font.pixelSize: 15
                     color: textColor
                     leftPadding: 4
@@ -770,8 +1027,9 @@ Item {
 
             Flickable
             {
+                visible: root.activeTab !== "coefficients"
                 Layout.fillWidth: true
-                Layout.preferredHeight: 36
+                Layout.preferredHeight: visible ? 36 : 0
                 contentWidth: chipRow.width
                 contentHeight: height
                 clip: true
@@ -799,9 +1057,11 @@ Item {
                             width: chipLabel.implicitWidth + 28
                             height: 36
                             radius: 12
-                            color: selected ? primaryColor : cardColor
+                            color: selected
+                                   ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.9)
+                                   : Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.7)
                             border.width: selected ? 0 : 1
-                            border.color: "#E4EAF2"
+                            border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
 
                             Label
                             {
@@ -827,32 +1087,33 @@ Item {
                 }
             }
 
+                }
+            }
+
             ListView
             {
                 id: mobileList
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                anchors.fill: parent
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                topMargin: root.topScrollPadding + mobileTopOverlay.height + 16
+                bottomMargin: root.bottomScrollPadding + 72
                 clip: true
                 spacing: 10
                 boundsBehavior: Flickable.StopAtBounds
-                model: mobileServiceModel
+                model: root.activeTab === "coefficients" ? mobileCoefficientModel : mobileServiceModel
 
                 header: Label
                 {
                     width: mobileList.width
-                    height: mobileServiceModel.count === 0 ? 48 : 0
+                    height: mobileList.count === 0 ? 48 : 0
                     visible: height > 0
-                    text: qsTr("Услуги не найдены")
+                    text: root.activeTab === "coefficients" ? qsTr("Коэффициенты не найдены")
+                                               : qsTr("Услуги не найдены")
                     color: textSecondaryColor
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                }
-
-                footer: Item
-                {
-                    width: mobileList.width
-                    height: root.bottomScrollPadding + 72
                 }
 
                 delegate: Rectangle
@@ -941,7 +1202,13 @@ Item {
                                 MouseArea
                                 {
                                     anchors.fill: parent
-                                    onClicked: mobileServicesRoot.openServiceEditor(serviceCard)
+                                    onClicked:
+                                    {
+                                        if(root.activeTab === "coefficients")
+                                            coefficientDialog.openForEdit(serviceCard.id)
+                                        else
+                                            mobileServicesRoot.openServiceEditor(serviceCard)
+                                    }
                                 }
                             }
 
@@ -970,9 +1237,18 @@ Item {
                                     anchors.fill: parent
                                     onClicked:
                                     {
-                                        deleteServiceDialog.id = serviceCard.id
-                                        deleteServiceDialog.name = serviceCard.name
-                                        deleteServiceDialog.open()
+                                        if(root.activeTab === "coefficients")
+                                        {
+                                            deleteCoefficientDialog.coefficientId = serviceCard.id
+                                            deleteCoefficientDialog.name = serviceCard.name
+                                            deleteCoefficientDialog.open()
+                                        }
+                                        else
+                                        {
+                                            deleteServiceDialog.id = serviceCard.id
+                                            deleteServiceDialog.name = serviceCard.name
+                                            deleteServiceDialog.open()
+                                        }
                                     }
                                 }
                             }
@@ -1090,15 +1366,12 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked:
-            {
-                serviceDialog.clearInfo()
-                serviceDialog.open()
-            }
+            onClicked: root.openAddForActiveTab()
         }
 
         ToolTip.visible: addServiceArea.containsMouse
-        ToolTip.text: qsTr("Добавить услугу")
+        ToolTip.text: root.activeTab === "coefficients" ? qsTr("Добавить коэффициент")
+                                           : qsTr("Добавить услугу")
     }
 
     ListModel { id: servicesListModel }

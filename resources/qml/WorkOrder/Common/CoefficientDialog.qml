@@ -8,13 +8,16 @@ Dialog
 
     property bool compact: true
     property string name: ""
+    // Non-empty id switches the dialog into edit mode.
+    property string coefficientId: ""
 
+    readonly property bool editMode: coefficientId !== ""
     readonly property bool canSave: nameField.text.trim() !== ""
         && /^[0-9]+$/.test(coefficientField.text.trim())
 
-    signal serviceCreated(string id, string name, string unit, int price)
+    signal coefficientCreated(string id, string name, string unit, int price)
 
-    title: qsTr("Новый коэффициент")
+    title: editMode ? qsTr("Изменить коэффициент") : qsTr("Новый коэффициент")
     standardButtons: Dialog.NoButton
     modal: true
     parent: Overlay.overlay
@@ -44,15 +47,22 @@ Dialog
         input.cursorPosition = 0
     }
 
-    function createdServiceId(serviceName)
+    function openForCreate(presetName)
     {
-        var services = invoiceBackend.getAllServices()
-        for(var i = 0; i < services.length; ++i)
-        {
-            if(String(services[i].name || "").trim() === serviceName)
-                return String(services[i].id || "")
-        }
-        return ""
+        coefficientId = ""
+        name = presetName === undefined ? "" : presetName
+        open()
+    }
+
+    function openForEdit(id)
+    {
+        var item = coefficientsModel.itemData(id)
+        if(!item || Object.keys(item).length === 0)
+            return
+
+        coefficientId = id
+        name = item.name || ""
+        open()
     }
 
     onOpened:
@@ -60,6 +70,18 @@ Dialog
         nameField.text = name
         coefficientField.text = ""
         keywordsField.text = ""
+
+        if(editMode)
+        {
+            var item = coefficientsModel.itemData(coefficientId)
+            if(item && Object.keys(item).length > 0)
+            {
+                nameField.text = item.name || ""
+                coefficientField.text = String(Math.round(Number(item.price || 0) / 100))
+                keywordsField.text = item.keywords || ""
+            }
+        }
+
         Qt.callLater(function()
         {
             showFieldStart(nameField.field)
@@ -67,6 +89,8 @@ Dialog
             showFieldStart(keywordsField.field)
         })
     }
+
+    onClosed: coefficientId = ""
 
     onAccepted:
     {
@@ -77,18 +101,30 @@ Dialog
 
         var data = {
             "name": trimmedName,
-            "note": "",
-            "paragraph": "",
             "price": coefficientText,
             "unit": "%",
             "keywords": keywordsField.text
         }
 
-        if(!invoiceBackend.addService(data))
-            return
-
         var cents = Math.round(Number(coefficientText) * 100)
-        serviceCreated(createdServiceId(trimmedName), trimmedName, "%", cents)
+
+        if(editMode)
+        {
+            data["id"] = coefficientId
+            if(!invoiceBackend.updateCoefficient(data))
+                return
+            coefficientCreated(coefficientId, trimmedName, "%", cents)
+            return
+        }
+
+        var newId = invoiceBackend.addCoefficient(data)
+        if(newId === "")
+        {
+            notificationManager.pushError(qsTr("Коэффициент с таким названием уже есть"))
+            return
+        }
+
+        coefficientCreated(newId, trimmedName, "%", cents)
     }
 
     header: Item
@@ -225,7 +261,7 @@ Dialog
                 Label
                 {
                     anchors.centerIn: parent
-                    text: qsTr("Добавить")
+                    text: root.editMode ? qsTr("Сохранить") : qsTr("Добавить")
                     font.pixelSize: 16
                     font.bold: true
                     color: "white"

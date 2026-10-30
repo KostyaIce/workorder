@@ -308,7 +308,7 @@ Dialog
                 id: unitField
                 Layout.fillWidth: true
                 label: qsTr("Единица измерения")
-                placeholder: qsTr("шт, м символ % будет коэфициентом")
+                placeholder: qsTr("шт, м, час")
                 compact: root.compact
             }
 

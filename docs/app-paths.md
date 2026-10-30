@@ -19,7 +19,7 @@ Linux does **not** use `/opt` — only user/app writable locations.
 {STORAGE}/
   data/
     log/       # rotating WorkOrder_DD-MM-YYYY.log
-    db/        # *.db (clients, services, objects)
+    db/        # *.db (clients, services + coefficients, objects)
     config/    # WorkOrder.conf (QSettings Ini), app_settings.json
 ```
 

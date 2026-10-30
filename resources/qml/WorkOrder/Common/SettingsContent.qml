@@ -578,14 +578,6 @@ ColumnLayout {
                 leftPadding: 16
                 rightPadding: 16
 
-                Label
-                {
-                    text: qsTr("Настройки")
-                    font.pixelSize: 28
-                    font.weight: Font.Black
-                    color: textColor
-                }
-
                 Rectangle
                 {
                     width: parent.width - 32

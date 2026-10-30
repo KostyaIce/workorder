@@ -345,61 +345,10 @@ Item {
                     id: reportsColumn
                     width: reportsFlick.width
                     spacing: 12
-                    topPadding: 8
-                    bottomPadding: root.bottomScrollPadding + 16
+                    topPadding: 16
+                    bottomPadding: root.bottomScrollPadding + 88
                     leftPadding: compactHorizontalMargin
                     rightPadding: compactHorizontalMargin
-
-                    Row
-                    {
-                        width: parent.width - compactHorizontalMargin * 2
-                        height: 44
-
-                        Label
-                        {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: qsTr("Отчёты")
-                            font.pixelSize: 28
-                            font.weight: Font.Black
-                            color: textColor
-                        }
-
-                        Rectangle
-                        {
-                            id: reportsMenuButton
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 36
-                            height: 36
-                            radius: 18
-                            color: reportsMenuArea.pressed ? "#D5E4F8" : cardColor
-
-                            Column
-                            {
-                                anchors.centerIn: parent
-                                spacing: 3
-
-                                Repeater
-                                {
-                                    model: 3
-                                    Rectangle
-                                    {
-                                        width: 4
-                                        height: 4
-                                        radius: 2
-                                        color: textSecondaryColor
-                                    }
-                                }
-                            }
-
-                            MouseArea
-                            {
-                                id: reportsMenuArea
-                                anchors.fill: parent
-                                onClicked: reportsPageMenu.openAt(reportsMenuButton)
-                            }
-                        }
-                    }
 
                     Rectangle
                     {
@@ -719,57 +668,34 @@ Item {
                 }
             }
 
-            Popup
+            Rectangle
             {
-                id: reportsPageMenu
-                parent: Overlay.overlay
-                modal: true
-                padding: 8
-                width: 196
-                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                id: refreshReportsButton
+                width: 56
+                height: 56
+                radius: 28
+                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b,
+                               refreshReportsArea.pressed ? 0.72 : 0.82)
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 16 + root.bottomScrollPadding
+                z: 12
 
-                function openAt(item)
+                Label
                 {
-                    var point = item.mapToItem(Overlay.overlay, item.width - width, item.height + 6)
-                    x = Math.max(8, point.x)
-                    y = point.y
-                    open()
+                    anchors.centerIn: parent
+                    text: "\u21BB"
+                    font.pixelSize: 28
+                    font.bold: true
+                    color: "white"
                 }
 
-                background: Rectangle
+                MouseArea
                 {
-                    radius: 14
-                    color: cardColor
-                    border.width: 1
-                    border.color: "#E4EAF2"
-                }
-
-                contentItem: Rectangle
-                {
-                    implicitHeight: 40
-                    radius: 10
-                    color: refreshMenuArea.pressed ? "#E7F1FE" : "transparent"
-
-                    Label
-                    {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8
-                        text: qsTr("Обновить список")
-                        font.pixelSize: 15
-                        color: textColor
-                    }
-
-                    MouseArea
-                    {
-                        id: refreshMenuArea
-                        anchors.fill: parent
-                        onClicked:
-                        {
-                            reportsPageMenu.close()
-                            root.activate()
-                        }
-                    }
+                    id: refreshReportsArea
+                    anchors.fill: parent
+                    onClicked: root.activate()
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 #include "ClientDbDocument.h"
 #include "ClientsDatabase.h"
+#include "CoefficientsDatabase.h"
 #include "DatabaseStorage.h"
 #include "ExpensesDatabase.h"
 #include "JsonRecordStore.h"
@@ -194,6 +195,63 @@ bool writeServicesArray(const QString &dbPath, const QJsonArray &records)
         query.addBindValue(record.value(QStringLiteral("name")).toString());
         query.addBindValue(record.value(QStringLiteral("note")).toString());
         query.addBindValue(record.value(QStringLiteral("paragraph")).toString());
+        query.addBindValue(record.value(QStringLiteral("price")).toInt());
+        query.addBindValue(record.value(QStringLiteral("unit")).toString());
+        query.addBindValue(record.value(QStringLiteral("keywords")).toString());
+        query.addBindValue(record.value(QStringLiteral("created_at")).toVariant().toString());
+        query.addBindValue(record.value(QStringLiteral("updated_at")).toVariant().toString());
+        if(!query.exec())
+            return false;
+    }
+    return transaction.commit();
+}
+
+QJsonArray readCoefficientsArray(const QString &dbPath)
+{
+    QJsonArray array;
+    QSqlDatabase db = openServicesDb(dbPath);
+    QSqlQuery query(db);
+    if(!query.exec(QStringLiteral(
+            "SELECT id, name, price, unit, keywords, created_at, updated_at"
+            " FROM coefficients")))
+    {
+        throw std::runtime_error("Failed to read coefficients table");
+    }
+
+    while(query.next())
+    {
+        QJsonObject record;
+        record.insert(QStringLiteral("id"), query.value(0).toString());
+        record.insert(QStringLiteral("name"), query.value(1).toString());
+        record.insert(QStringLiteral("price"), query.value(2).toInt());
+        record.insert(QStringLiteral("unit"), query.value(3).toString());
+        record.insert(QStringLiteral("keywords"), query.value(4).toString());
+        record.insert(QStringLiteral("created_at"), query.value(5).toString());
+        record.insert(QStringLiteral("updated_at"), query.value(6).toString());
+        array.append(record);
+    }
+    return array;
+}
+
+bool writeCoefficientsArray(const QString &dbPath, const QJsonArray &records)
+{
+    QSqlDatabase db = openServicesDb(dbPath);
+    WriteTransaction transaction(db);
+    for(const QJsonValue &value : records)
+    {
+        if(!value.isObject())
+            continue;
+        const QJsonObject record = value.toObject();
+        QSqlQuery query(db);
+        query.prepare(QStringLiteral(
+            "INSERT INTO coefficients"
+            "(id, name, price, unit, keywords, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET"
+            " name=excluded.name, price=excluded.price, unit=excluded.unit,"
+            " keywords=excluded.keywords, created_at=excluded.created_at,"
+            " updated_at=excluded.updated_at"));
+        query.addBindValue(record.value(QStringLiteral("id")).toString());
+        query.addBindValue(record.value(QStringLiteral("name")).toString());
         query.addBindValue(record.value(QStringLiteral("price")).toInt());
         query.addBindValue(record.value(QStringLiteral("unit")).toString());
         query.addBindValue(record.value(QStringLiteral("keywords")).toString());
@@ -435,26 +493,46 @@ int DatabaseCloudJson::mergeServicesFromJsonFile(const QString &jsonPath)
         return 0;
 
     ServicesDatabase::createServicesTable();
+    CoefficientsDatabase::createCoefficientsTable();
     const QString targetPath = ServicesDatabase::defaultServicesDbPath();
     const QJsonObject remoteDocument = JsonRecordStore::loadDocument(jsonPath);
-    const QJsonArray remoteRecords = remoteDocument.value(QStringLiteral("services")).toArray();
-    const QJsonArray localRecords = readServicesArray(targetPath);
-    const int added = mergeArrayIntoSqlite(localRecords, remoteRecords, [&](const QJsonArray &merged)
-    {
-        return writeServicesArray(targetPath, merged);
-    });
-    qInfo("DatabaseCloudJson::mergeServicesFromJsonFile added=%d from %s",
-          added,
+
+    const int addedServices = mergeArrayIntoSqlite(
+        readServicesArray(targetPath),
+        remoteDocument.value(QStringLiteral("services")).toArray(),
+        [&](const QJsonArray &merged)
+        {
+            return writeServicesArray(targetPath, merged);
+        });
+    if(addedServices < 0)
+        return -1;
+
+    // Coefficients share the services.json document but have their own table.
+    const int addedCoefficients = mergeArrayIntoSqlite(
+        readCoefficientsArray(targetPath),
+        remoteDocument.value(QStringLiteral("coefficients")).toArray(),
+        [&](const QJsonArray &merged)
+        {
+            return writeCoefficientsArray(targetPath, merged);
+        });
+    if(addedCoefficients < 0)
+        return -1;
+
+    qInfo("DatabaseCloudJson::mergeServicesFromJsonFile added services=%d coefficients=%d from %s",
+          addedServices,
+          addedCoefficients,
           qPrintable(jsonPath));
-    return added;
+    return addedServices + addedCoefficients;
 }
 
 bool DatabaseCloudJson::exportServicesToJsonFile(const QString &jsonPath)
 {
     ServicesDatabase::createServicesTable();
+    CoefficientsDatabase::createCoefficientsTable();
     const QString sourcePath = ServicesDatabase::defaultServicesDbPath();
     QJsonObject document;
     document.insert(QStringLiteral("services"), readServicesArray(sourcePath));
+    document.insert(QStringLiteral("coefficients"), readCoefficientsArray(sourcePath));
     return JsonRecordStore::saveDocument(jsonPath, document);
 }
 

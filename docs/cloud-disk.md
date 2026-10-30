@@ -65,7 +65,7 @@ Results are shown in the dialog list.
 Local DB files stay SQLite in `AppPaths::dbDir()` (`{STORAGE}/data/db`):
 
 - `clients.db`
-- `services.db`
+- `services.db` — таблицы `services` (услуги) и `coefficients` (коэффициенты)
 - `{clientName}_{clientId}.db`
 
 Cloud copies in `app:/workOrder` are JSON with the same base name and a `.json` suffix. Sync exports SQLite to JSON before upload and merges downloaded JSON back into SQLite.
@@ -81,8 +81,12 @@ Cloud copies in `app:/workOrder` are JSON with the same base name and a `.json` 
 `syncDatabases()` compares every record from downloaded JSON with the local SQLite row
 that has the same `id`. The comparison is applied to all synced tables:
 
-- `clients` and `services` use their ISO `updated_at`;
+- `clients`, `services` and `coefficients` use their ISO `updated_at`;
 - `objects`, `completed_works` and `expenses` use their integer `updated_at` timestamp.
+
+`services.json` carries two arrays: `"services"` and `"coefficients"`. Both are
+merged by the same rules; a file without the `"coefficients"` key simply leaves the
+local coefficients untouched.
 
 For each record:
 

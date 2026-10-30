@@ -8,18 +8,29 @@
 namespace workorder
 {
 
+// One workbook holds services and coefficients. Coefficients are written as a
+// separate section, so importing an old file without that section still works.
+struct ExcelCatalog
+{
+    StringMapList services;
+    StringMapList coefficients;
+};
+
 class ServicesExcelBuilder
 {
 public:
-    StringMapList readServices(const QString &filePath);
-    QString writeExport(const QString &filePath, const StringMapList &services);
+    ExcelCatalog readCatalog(const QString &filePath);
+    QString writeExport(const QString &filePath, const ExcelCatalog &catalog);
 
     static QString resolveExcelPath(const QString &fileUrl, bool ensureExtension = false);
     static int parseExcelPrice(const QVariant &value);
+    // Section title that separates coefficients from services in the sheet.
+    static QString coefficientsSectionTitle();
+    static bool isCoefficientsSection(const QString &title);
 };
 
-StringMapList importServicesFromExcel(const QString &fileUrl);
-QString exportServicesExcel(const QString &fileUrl, const StringMapList &services = StringMapList());
+ExcelCatalog importCatalogFromExcel(const QString &fileUrl);
+QString exportCatalogExcel(const QString &fileUrl, const ExcelCatalog &catalog = ExcelCatalog());
 
 } // namespace workorder
 

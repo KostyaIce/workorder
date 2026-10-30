@@ -1,9 +1,11 @@
 #include "InvoiceBackend.h"
 
 #include "CoefficientsFilterModel.h"
+#include "CoefficientsModel.h"
 #include "ReportBackend.h"
 #include "ServicesFilterModel.h"
 #include "ServicesModel.h"
+#include "CoefficientsDatabase.h"
 #include "ServicesDatabase.h"
 #include "ServicesExcelBuilder.h"
 #include "ServicesPdfBuilder.h"
@@ -58,13 +60,16 @@ QString defaultPresentationTitle()
 InvoiceBackend::InvoiceBackend(QQmlApplicationEngine *engine, QObject *parent)
     : QObject(parent)
     , m_services(new ServicesModel(this))
+    , m_coefficients(new CoefficientsModel(this))
     , m_servicesFilter(new ServicesFilterModel(this))
     , m_coefficientsFilter(new CoefficientsFilterModel(this))
 {
     ServicesDatabase::createServicesTable();
+    CoefficientsDatabase::createCoefficientsTable();
     m_servicesFilter->setSourceModel(m_services);
-    m_coefficientsFilter->setSourceModel(m_services);
+    m_coefficientsFilter->setSourceModel(m_coefficients);
     loadServices();
+    loadCoefficients();
     loadPresentationTitle();
     registerModels(engine);
 }
@@ -79,6 +84,7 @@ void InvoiceBackend::registerModels(QQmlApplicationEngine *engine)
     QQmlContext *context = engine->rootContext();
     context->setContextProperty("servicesModel", m_services);
     context->setContextProperty("servicesFilterModel", m_servicesFilter);
+    context->setContextProperty("coefficientsModel", m_coefficients);
     context->setContextProperty("coefficientsFilterModel", m_coefficientsFilter);
 }
 
@@ -90,6 +96,7 @@ void InvoiceBackend::bindReportBackend(ReportBackend *reportBackend)
 void InvoiceBackend::reloadAfterSync()
 {
     loadServices();
+    loadCoefficients();
 }
 
 void InvoiceBackend::loadPresentationTitle()
@@ -124,6 +131,42 @@ void InvoiceBackend::loadServices()
     m_services->updateModelFromMaps(items);
 }
 
+void InvoiceBackend::loadCoefficients()
+{
+    QVariantList items;
+    for(const QVariant &item : CoefficientsDatabase::loadCoefficients())
+        items.append(item);
+    m_coefficients->updateModelFromMaps(items);
+}
+
+QString InvoiceBackend::addCoefficient(const QVariantMap &data)
+{
+    const QString coefficientId = CoefficientsDatabase::addCoefficient(data);
+    if(coefficientId.isEmpty())
+        return {};
+
+    loadCoefficients();
+    return coefficientId;
+}
+
+bool InvoiceBackend::updateCoefficient(const QVariantMap &data)
+{
+    if(data.isEmpty() || !CoefficientsDatabase::updateCoefficient(data))
+        return false;
+
+    loadCoefficients();
+    return true;
+}
+
+bool InvoiceBackend::deleteCoefficient(const QString &coefficientId)
+{
+    if(coefficientId.isEmpty() || !CoefficientsDatabase::deleteCoefficient(coefficientId))
+        return false;
+
+    loadCoefficients();
+    return true;
+}
+
 bool InvoiceBackend::addService(const QVariantMap &data)
 {
     if(data.isEmpty() || !ServicesDatabase::addService(data))
@@ -152,39 +195,57 @@ bool InvoiceBackend::importServicesFromFile(const QString &fileUrl)
 {
     try
     {
-        const StringMapList services = importServicesFromExcel(fileUrl);
-        if(services.isEmpty())
+        const ExcelCatalog catalog = importCatalogFromExcel(fileUrl);
+        if(catalog.services.isEmpty() && catalog.coefficients.isEmpty())
         {
-            qWarning("InvoiceBackend: import produced no services from %s",
+            qWarning("InvoiceBackend: import produced no rows from %s",
                      qPrintable(fileUrl));
+            emit importFailed(tr("В файле не найдено услуг или коэффициентов"));
             return false;
         }
 
-        int savedCount = 0;
-        for(const QVariant &item : services)
+        int savedServices = 0;
+        for(const QVariant &item : catalog.services)
         {
             if(ServicesDatabase::addService(item.toMap()))
-                ++savedCount;
+                ++savedServices;
+        }
+
+        int savedCoefficients = 0;
+        for(const QVariant &item : catalog.coefficients)
+        {
+            if(!CoefficientsDatabase::addCoefficient(item.toMap()).isEmpty())
+                ++savedCoefficients;
         }
 
         loadServices();
-        qInfo("InvoiceBackend: imported %d of %d services from %s",
-              savedCount,
-              static_cast<int>(services.size()),
+        loadCoefficients();
+        qInfo("InvoiceBackend: imported %d/%d services and %d/%d coefficients from %s",
+              savedServices,
+              static_cast<int>(catalog.services.size()),
+              savedCoefficients,
+              static_cast<int>(catalog.coefficients.size()),
               qPrintable(fileUrl));
-        return savedCount > 0;
+        emit importCompleted(savedServices,
+                             static_cast<int>(catalog.services.size()),
+                             savedCoefficients,
+                             static_cast<int>(catalog.coefficients.size()));
+        // Parsing succeeded; duplicates are skipped rather than treated as an error.
+        return true;
     }
     catch(const std::exception &ex)
     {
         qWarning("InvoiceBackend: import failed from %s: %s",
                  qPrintable(fileUrl),
                  ex.what());
+        emit importFailed(tr("Не удалось прочитать Excel-файл"));
         return false;
     }
     catch(...)
     {
         qWarning("InvoiceBackend: import failed from %s: unknown error",
                  qPrintable(fileUrl));
+        emit importFailed(tr("Не удалось прочитать Excel-файл"));
         return false;
     }
 }
@@ -198,7 +259,10 @@ bool InvoiceBackend::exportServicesToFile(const QString &fileUrl)
 
     try
     {
-        const QString saved = exportServicesExcel(target, ServicesDatabase::loadServices());
+        ExcelCatalog catalog;
+        catalog.services = ServicesDatabase::loadServices();
+        catalog.coefficients = CoefficientsDatabase::loadCoefficients();
+        const QString saved = exportCatalogExcel(target, catalog);
         announceSavedFile(saved, QStringLiteral("Шаблон"));
         return !saved.isEmpty();
     }
@@ -313,6 +377,18 @@ QVariantList InvoiceBackend::getAllServices() const
         const QModelIndex index = m_services->index(row, 0);
         const QString id = m_services->data(index, ServicesModel::IdRole).toString();
         result.append(m_services->itemData(id));
+    }
+    return result;
+}
+
+QVariantList InvoiceBackend::getAllCoefficients() const
+{
+    QVariantList result;
+    for(int row = 0; row < m_coefficients->rowCount(); ++row)
+    {
+        const QModelIndex index = m_coefficients->index(row, 0);
+        const QString id = m_coefficients->data(index, CoefficientsModel::IdRole).toString();
+        result.append(m_coefficients->itemData(id));
     }
     return result;
 }

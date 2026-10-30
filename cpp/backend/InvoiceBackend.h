@@ -8,6 +8,7 @@ namespace workorder
 {
 
 class CoefficientsFilterModel;
+class CoefficientsModel;
 class ReportBackend;
 class ServicesFilterModel;
 class ServicesModel;
@@ -28,6 +29,10 @@ public:
     Q_INVOKABLE bool addService(const QVariantMap &data);
     Q_INVOKABLE bool updateService(const QVariantMap &data);
     Q_INVOKABLE bool deleteService(const QString &serviceId);
+    // Coefficients have their own table and model; addCoefficient returns the new id.
+    Q_INVOKABLE QString addCoefficient(const QVariantMap &data);
+    Q_INVOKABLE bool updateCoefficient(const QVariantMap &data);
+    Q_INVOKABLE bool deleteCoefficient(const QString &coefficientId);
     Q_INVOKABLE bool importServicesFromFile(const QString &fileUrl);
     Q_INVOKABLE bool exportServicesToFile(const QString &fileUrl);
     Q_INVOKABLE bool exportServicesPresentationToFile(const QString &fileUrl, const QString &title);
@@ -43,6 +48,7 @@ public:
     Q_INVOKABLE bool createInvoice();
     Q_INVOKABLE void clearForm();
     Q_INVOKABLE QVariantList getAllServices() const;
+    Q_INVOKABLE QVariantList getAllCoefficients() const;
     Q_INVOKABLE QVariantMap getServiceById(int serviceId) const;
     Q_INVOKABLE QString getCurrentInvoiceNumber() const;
 
@@ -50,6 +56,10 @@ public:
 
 signals:
     void countFound(int count);
+    // Emitted after an Excel import with how many rows were newly inserted.
+    void importCompleted(int servicesAdded, int servicesTotal,
+                         int coefficientsAdded, int coefficientsTotal);
+    void importFailed(const QString &message);
     void coefficientsCountFound(int count);
     void suggestionsUpdated(const QVariantList &suggestions);
     void suggestionsCleared();
@@ -58,6 +68,7 @@ signals:
 
 private:
     void loadServices();
+    void loadCoefficients();
     void loadPresentationTitle();
     void registerModels(QQmlApplicationEngine *engine);
 
@@ -65,6 +76,7 @@ private:
     int m_invoiceCounter = 0;
     QString m_presentationTitle;
     ServicesModel *m_services = nullptr;
+    CoefficientsModel *m_coefficients = nullptr;
     ServicesFilterModel *m_servicesFilter = nullptr;
     CoefficientsFilterModel *m_coefficientsFilter = nullptr;
 };

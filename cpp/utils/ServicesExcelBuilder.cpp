@@ -1,6 +1,8 @@
 #include "ServicesExcelBuilder.h"
 
+#include "CoefficientsDatabase.h"
 #include "FileIo.h"
+#include "ServiceUnits.h"
 #include "ServicesDatabase.h"
 
 #include <QDir>
@@ -21,6 +23,11 @@ namespace workorder
 
 namespace
 {
+
+// Section title separating coefficients from services inside the sheet.
+const QString kCoefficientsSectionTitle = QStringLiteral("Коэффициенты");
+// Tolerated legacy misspelling of the same section.
+const QString kCoefficientsSectionTitleAlt = QStringLiteral("Коэфициенты");
 
 const double kBaseColWidth = 15.0;
 const double kExportCol1Width = kBaseColWidth * 4.0;
@@ -142,10 +149,11 @@ QStringList readSharedStrings(const QByteArray &sharedStringsXml)
     return strings;
 }
 
-StringMapList readSheetRows(const QByteArray &sheetXml, const QStringList &sharedStrings)
+ExcelCatalog readSheetRows(const QByteArray &sheetXml, const QStringList &sharedStrings)
 {
-    StringMapList services;
+    ExcelCatalog catalog;
     QString currentParagraph;
+    bool inCoefficientsSection = false;
     QXmlStreamReader reader(sheetXml);
 
     QStringList rowCells(4);
@@ -200,27 +208,85 @@ StringMapList readSheetRows(const QByteArray &sheetXml, const QStringList &share
             {
                 const QString paragraphText = !rowCells.at(0).isEmpty() ? rowCells.at(0) : rowCells.at(1);
                 if(!paragraphText.isEmpty())
-                    currentParagraph = paragraphText;
+                {
+                    inCoefficientsSection = ServicesExcelBuilder::isCoefficientsSection(paragraphText);
+                    currentParagraph = inCoefficientsSection ? QString() : paragraphText;
+                }
                 continue;
             }
 
             if(rowCells.at(0).isEmpty())
                 continue;
 
+            const QString unit = rowCells.at(3).trimmed();
+            // Percent rows are coefficients even in workbooks without the section.
+            if(inCoefficientsSection || ServiceUnits::isPercentUnit(unit))
+            {
+                StringMap coefficient;
+                coefficient.insert("name", rowCells.at(0));
+                coefficient.insert("keywords", rowCells.at(1));
+                coefficient.insert("price", priceForDb(priceCents));
+                coefficient.insert("unit", unit.isEmpty() ? QStringLiteral("%") : unit);
+                catalog.coefficients.append(coefficient);
+                continue;
+            }
+
             StringMap service;
             service.insert("name", rowCells.at(0));
             service.insert("note", rowCells.at(1));
             service.insert("paragraph", currentParagraph);
             service.insert("price", priceForDb(priceCents));
-            service.insert("unit", rowCells.at(3));
-            services.append(service);
+            service.insert("unit", unit);
+            catalog.services.append(service);
         }
     }
 
-    return services;
+    return catalog;
 }
 
-QString buildSheetXml(const StringMapList &services)
+void writeRow(QXmlStreamWriter &writer, int rowNum, const QStringList &values)
+{
+    writer.writeStartElement("row");
+    writer.writeAttribute("r", QString::number(rowNum));
+
+    for(int col = 0; col < values.size(); ++col)
+    {
+        writer.writeStartElement("c");
+        writer.writeAttribute("r", QString("%1%2").arg(columnName(col + 1), QString::number(rowNum)));
+        if(col == 2 && !values.at(col).isEmpty())
+        {
+            writer.writeStartElement("v");
+            writer.writeCharacters(values.at(col));
+            writer.writeEndElement();
+        }
+        else if(!values.at(col).isEmpty())
+        {
+            writer.writeAttribute("t", "inlineStr");
+            writer.writeStartElement("is");
+            writer.writeTextElement("t", values.at(col));
+            writer.writeEndElement();
+        }
+        writer.writeEndElement();
+    }
+
+    writer.writeEndElement();
+}
+
+void writeSectionTitle(QXmlStreamWriter &writer, int rowNum, const QString &title)
+{
+    writer.writeStartElement("row");
+    writer.writeAttribute("r", QString::number(rowNum));
+    writer.writeStartElement("c");
+    writer.writeAttribute("r", QString("%1%2").arg(columnName(1), QString::number(rowNum)));
+    writer.writeAttribute("t", "inlineStr");
+    writer.writeStartElement("is");
+    writer.writeTextElement("t", title);
+    writer.writeEndElement();
+    writer.writeEndElement();
+    writer.writeEndElement();
+}
+
+QString buildSheetXml(const ExcelCatalog &catalog)
 {
     QString xml;
     QXmlStreamWriter writer(&xml);
@@ -243,20 +309,11 @@ QString buildSheetXml(const StringMapList &services)
 
     writer.writeStartElement("sheetData");
     int rowNum = 1;
-    for(const ParagraphGroup &group : groupServicesByParagraph(services))
+    for(const ParagraphGroup &group : groupServicesByParagraph(catalog.services))
     {
         if(!group.first.isEmpty())
         {
-            writer.writeStartElement("row");
-            writer.writeAttribute("r", QString::number(rowNum));
-            writer.writeStartElement("c");
-            writer.writeAttribute("r", QString("%1%2").arg(columnName(1), QString::number(rowNum)));
-            writer.writeAttribute("t", "inlineStr");
-            writer.writeStartElement("is");
-            writer.writeTextElement("t", group.first);
-            writer.writeEndElement();
-            writer.writeEndElement();
-            writer.writeEndElement();
+            writeSectionTitle(writer, rowNum, group.first);
             ++rowNum;
         }
 
@@ -267,40 +324,39 @@ QString buildSheetXml(const StringMapList &services)
             if(name.isEmpty())
                 continue;
 
-            writer.writeStartElement("row");
-            writer.writeAttribute("r", QString::number(rowNum));
-
-            const QStringList values = {
+            writeRow(writer, rowNum, {
                 name,
                 service.value("note").toString().trimmed(),
                 priceForExcel(service.value("price").toInt()).toString(),
                 service.value("unit").toString().trimmed(),
-            };
-
-            for(int col = 0; col < values.size(); ++col)
-            {
-                writer.writeStartElement("c");
-                writer.writeAttribute("r", QString("%1%2").arg(columnName(col + 1), QString::number(rowNum)));
-                if(col == 2 && !values.at(col).isEmpty())
-                {
-                    writer.writeStartElement("v");
-                    writer.writeCharacters(values.at(col));
-                    writer.writeEndElement();
-                }
-                else if(!values.at(col).isEmpty())
-                {
-                    writer.writeAttribute("t", "inlineStr");
-                    writer.writeStartElement("is");
-                    writer.writeTextElement("t", values.at(col));
-                    writer.writeEndElement();
-                }
-                writer.writeEndElement();
-            }
-
-            writer.writeEndElement();
+            });
             ++rowNum;
         }
     }
+
+    // Coefficients always form their own section at the end of the sheet.
+    if(!catalog.coefficients.isEmpty())
+    {
+        writeSectionTitle(writer, rowNum, kCoefficientsSectionTitle);
+        ++rowNum;
+
+        for(const QVariant &item : catalog.coefficients)
+        {
+            const StringMap coefficient = item.toMap();
+            const QString name = coefficient.value("name").toString().trimmed();
+            if(name.isEmpty())
+                continue;
+
+            writeRow(writer, rowNum, {
+                name,
+                coefficient.value("keywords").toString().trimmed(),
+                priceForExcel(coefficient.value("price").toInt()).toString(),
+                QStringLiteral("%"),
+            });
+            ++rowNum;
+        }
+    }
+
     writer.writeEndElement();
     writer.writeEndElement();
     writer.writeEndDocument();
@@ -369,7 +425,20 @@ int ServicesExcelBuilder::parseExcelPrice(const QVariant &value)
     return static_cast<int>(whole * 100 + fractionValue);
 }
 
-StringMapList ServicesExcelBuilder::readServices(const QString &filePath)
+QString ServicesExcelBuilder::coefficientsSectionTitle()
+{
+    return kCoefficientsSectionTitle;
+}
+
+bool ServicesExcelBuilder::isCoefficientsSection(const QString &title)
+{
+    const QString value = title.trimmed();
+    return value.compare(kCoefficientsSectionTitle, Qt::CaseInsensitive) == 0
+        || value.compare(kCoefficientsSectionTitleAlt, Qt::CaseInsensitive) == 0
+        || value.compare(QStringLiteral("Coefficients"), Qt::CaseInsensitive) == 0;
+}
+
+ExcelCatalog ServicesExcelBuilder::readCatalog(const QString &filePath)
 {
     QString error;
     const QByteArray data = FileIo::readBytes(filePath, &error);
@@ -390,7 +459,7 @@ StringMapList ServicesExcelBuilder::readServices(const QString &filePath)
     return readSheetRows(sheetXml, sharedStrings);
 }
 
-QString ServicesExcelBuilder::writeExport(const QString &filePath, const StringMapList &services)
+QString ServicesExcelBuilder::writeExport(const QString &filePath, const ExcelCatalog &catalog)
 {
     const QByteArray contentTypes =
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
@@ -422,7 +491,7 @@ QString ServicesExcelBuilder::writeExport(const QString &filePath, const StringM
     zip.addFile("_rels/.rels", rootRels);
     zip.addFile("xl/workbook.xml", buildWorkbookXml());
     zip.addFile("xl/_rels/workbook.xml.rels", workbookRels);
-    zip.addFile("xl/worksheets/sheet1.xml", buildSheetXml(services).toUtf8());
+    zip.addFile("xl/worksheets/sheet1.xml", buildSheetXml(catalog).toUtf8());
 
     QString error;
     if(!FileIo::writeBytes(filePath, zip.writeToBytes(), &error))
@@ -433,23 +502,28 @@ QString ServicesExcelBuilder::writeExport(const QString &filePath, const StringM
     return FileIo::nativeTarget(filePath);
 }
 
-StringMapList importServicesFromExcel(const QString &fileUrl)
+ExcelCatalog importCatalogFromExcel(const QString &fileUrl)
 {
     const QString path = ServicesExcelBuilder::resolveExcelPath(fileUrl);
     if(path.isEmpty())
         throw std::runtime_error("Services import path is empty");
-    return ServicesExcelBuilder().readServices(path);
+    return ServicesExcelBuilder().readCatalog(path);
 }
 
-QString exportServicesExcel(const QString &fileUrl, const StringMapList &services)
+QString exportCatalogExcel(const QString &fileUrl, const ExcelCatalog &catalog)
 {
     const QString path = ServicesExcelBuilder::resolveExcelPath(fileUrl, true);
     if(path.isEmpty())
         throw std::runtime_error("Services export path is empty");
 
-    StringMapList data = services;
-    if(data.isEmpty())
-        data = ServicesDatabase::loadServices();
+    ExcelCatalog data = catalog;
+    // Only an entirely empty request falls back to the databases, so an explicit
+    // catalog is never mixed with unrelated stored rows.
+    if(data.services.isEmpty() && data.coefficients.isEmpty())
+    {
+        data.services = ServicesDatabase::loadServices();
+        data.coefficients = CoefficientsDatabase::loadCoefficients();
+    }
 
     return ServicesExcelBuilder().writeExport(path, data);
 }

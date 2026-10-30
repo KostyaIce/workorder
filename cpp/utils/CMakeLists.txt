@@ -16,6 +16,7 @@ set(WORKORDER_UTILS_SOURCES
     QSettingsStore.cpp
     ReportBuilder.cpp
     ServiceUnits.cpp
+    CoefficientsDatabase.cpp
     ServicesDatabase.cpp
     ServicesExcelBuilder.cpp
     ServicesPdfBuilder.cpp
@@ -40,6 +41,7 @@ set(WORKORDER_UTILS_HEADERS
     QSettingsStore.h
     ReportBuilder.h
     ServiceUnits.h
+    CoefficientsDatabase.h
     ServicesDatabase.h
     ServicesExcelBuilder.h
     ServicesPdfBuilder.h

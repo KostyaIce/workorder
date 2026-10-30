@@ -168,10 +168,9 @@ ColumnLayout
                                                  ? reportBackend.currentCoefficients : ""), false)
     }
 
-    function openAddServiceDialog(serviceName)
+    function openAddCoefficientDialog(coefficientName)
     {
-        coefficientDialog.name = serviceName
-        coefficientDialog.open()
+        coefficientDialog.openForCreate(coefficientName)
     }
 
     function updateSuggestions()
@@ -195,7 +194,7 @@ ColumnLayout
         parent: Overlay.overlay
         anchors.centerIn: parent
 
-        onServiceCreated: function(id, name, unit, price)
+        onCoefficientCreated: function(id, name, unit, price)
         {
             root.chooseCoefficient(id, name, unit, price)
         }
@@ -491,7 +490,7 @@ ColumnLayout
                     && isValueGrowing
                     && currentQuery() !== ""
                     && !coefficientDialog.visible)
-                openAddServiceDialog(currentQuery())
+                openAddCoefficientDialog(currentQuery())
         }
     }
 

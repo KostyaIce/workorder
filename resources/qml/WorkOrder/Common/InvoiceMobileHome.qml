@@ -59,26 +59,10 @@ Item
             x: 16
             spacing: 12
 
-            RowLayout
-            {
-                Layout.fillWidth: true
-                Layout.topMargin: 8
-                Layout.bottomMargin: 4
-                spacing: 8
-
-                Label
-                {
-                    text: qsTr("Счет")
-                    font.pixelSize: 24
-                    font.weight: Font.Black
-                    color: textColor
-                    Layout.fillWidth: true
-                }
-            }
-
             Rectangle
             {
                 Layout.fillWidth: true
+                Layout.topMargin: 16
                 implicitHeight: clientColumn.implicitHeight + 28
                 radius: 18
                 color: cardColor

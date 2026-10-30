@@ -22,7 +22,7 @@ public:
     // Insert rows from source that are missing locally (by primary key id).
     static int mergeFromDatabase(const QString &sourceDbPath);
 
-private:
+    // Shared by CoefficientsDatabase: prices are stored in kopecks/percent*100.
     static int parsePriceCents(const QVariant &value);
     static QString keywordsFromName(const QString &name);
 };

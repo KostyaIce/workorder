@@ -1,6 +1,8 @@
 #include "JsonRecordStore.h"
 #include "DatabaseCloudJson.h"
 #include "ClientsDatabase.h"
+#include "CoefficientsDatabase.h"
+#include "ServicesDatabase.h"
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <QSqlDatabase>
@@ -98,5 +100,50 @@ int main(int argc, char **argv)
     check(DatabaseCloudJson::mergeClientsFromJsonFile(jsonPath, dbPath) == -1);
 
     QSqlDatabase::removeDatabase(QStringLiteral("clients_%1").arg(dbPath));
+
+    // Services and coefficients share services.db and one cloud JSON document.
+    qputenv("WORKORDER_DATA_DIR", dir.path().toUtf8());
+    const QString servicesJson = dir.filePath("services.json");
+    StringMap service;
+    service.insert("name", "Montazh");
+    service.insert("price", "500");
+    service.insert("unit", "sht");
+    check(ServicesDatabase::addService(service));
+    StringMap coefficient;
+    coefficient.insert("name", "Stesnennye usloviya");
+    coefficient.insert("price", "150");
+    coefficient.insert("unit", "%");
+    check(!CoefficientsDatabase::addCoefficient(coefficient).isEmpty());
+
+    check(DatabaseCloudJson::exportServicesToJsonFile(servicesJson));
+    QJsonObject catalog = JsonRecordStore::loadDocument(servicesJson);
+    check(catalog.value("services").toArray().size() == 1);
+    check(catalog.value("coefficients").toArray().size() == 1);
+    QJsonObject remoteCoefficient = catalog.value("coefficients").toArray().first().toObject();
+
+    // Newer remote coefficient replaces the local one.
+    remoteCoefficient["updated_at"] = "2099-01-01T00:00:00.000Z";
+    remoteCoefficient["price"] = 20000;
+    check(JsonRecordStore::saveDocument(servicesJson, {{"coefficients", QJsonArray{remoteCoefficient}}}));
+    check(DatabaseCloudJson::mergeServicesFromJsonFile(servicesJson) == 0);
+    check(CoefficientsDatabase::loadCoefficients().first().toMap().value("price").toInt() == 20000);
+
+    // Older remote coefficient is ignored.
+    QJsonObject stale = remoteCoefficient;
+    stale["updated_at"] = "2000-01-01T00:00:00.000Z";
+    stale["price"] = 11000;
+    check(JsonRecordStore::saveDocument(servicesJson, {{"coefficients", QJsonArray{stale}}}));
+    check(DatabaseCloudJson::mergeServicesFromJsonFile(servicesJson) == 0);
+    check(CoefficientsDatabase::loadCoefficients().first().toMap().value("price").toInt() == 20000);
+
+    // A document without the coefficients key leaves the local table untouched.
+    check(JsonRecordStore::saveDocument(servicesJson, {{"services", QJsonArray{}}}));
+    check(DatabaseCloudJson::mergeServicesFromJsonFile(servicesJson) == 0);
+    check(CoefficientsDatabase::loadCoefficients().size() == 1);
+    check(ServicesDatabase::loadServices().size() == 1);
+
+    QSqlDatabase::removeDatabase(QStringLiteral("services"));
+    QSqlDatabase::removeDatabase(QStringLiteral("cloudjson_services_%1")
+                                     .arg(ServicesDatabase::defaultServicesDbPath()));
     return 0;
 }
