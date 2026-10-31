@@ -4,6 +4,9 @@ Settings → **Облачный диск**: connect OAuth token, list `app:/work
 
 Справочник REST API Яндекс.Диска (эндпоинты, коды, upload/download): [yandex-disk-api.md](yandex-disk-api.md).
 
+Синхронизация запускается **только вручную** кнопкой «Синхронизировать»;
+автоматической фоновой синхронизации нет.
+
 ## Auth flow
 
 WorkOrder uses the Yandex OAuth Client ID from `cpp/CMakeLists.txt` (`e015e5639e814d569f163477e7eb9415`).

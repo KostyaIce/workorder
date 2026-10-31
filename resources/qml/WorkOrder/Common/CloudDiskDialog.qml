@@ -105,6 +105,60 @@ Dialog
         Rectangle { width: 20; height: 14; radius: 7; color: tint; x: 10; y: 10 }
     }
 
+    component StepRow: Row
+    {
+        id: step
+
+        property string number: ""
+        property string title: ""
+        property string description: ""
+
+        width: parent ? parent.width : 0
+        spacing: 10
+
+        Rectangle
+        {
+            width: 26
+            height: 26
+            radius: 13
+            color: primaryColor
+
+            Label
+            {
+                anchors.centerIn: parent
+                text: step.number
+                color: "white"
+                font.pixelSize: 13
+                font.bold: true
+            }
+        }
+
+        Column
+        {
+            width: step.width - 36
+            spacing: 2
+
+            Label
+            {
+                width: parent.width
+                text: step.title
+                font.pixelSize: 14
+                font.bold: true
+                color: textColor
+                wrapMode: Text.WordWrap
+            }
+
+            Label
+            {
+                width: parent.width
+                text: step.description
+                font.pixelSize: 12
+                color: textSecondaryColor
+                wrapMode: Text.WordWrap
+            }
+        }
+    }
+
     contentItem: Flickable
     {
         id: contentFlick
@@ -131,185 +185,176 @@ Dialog
                 Rectangle
                 {
                     width: parent.width
-                    radius: 18
-                    color: cardColor
-                    implicitHeight: disconnectedColumn.implicitHeight + 36
-
-                    Column
-                    {
-                        id: disconnectedColumn
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Rectangle
-                        {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: 72
-                            height: 72
-                            radius: 18
-                            color: "#E7F1FE"
-
-                            DiskCloud
-                            {
-                                anchors.centerIn: parent
-                                tint: primaryColor
-                            }
-                        }
-
-                        Label
-                        {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            text: qsTr("Яндекс.Диск не подключён")
-                            font.pixelSize: 18
-                            font.bold: true
-                            color: textColor
-                            wrapMode: Text.WordWrap
-                        }
-
-                        Label
-                        {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            text: qsTr("Подключите Яндекс.Диск для синхронизации данных между устройствами и безопасного хранения.")
-                            font.pixelSize: 14
-                            color: textSecondaryColor
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                }
-
-                Rectangle
-                {
-                    width: parent.width
                     radius: 16
                     color: "#FFF6E4"
-                    implicitHeight: warningColumn.implicitHeight + 28
-
-                    Column
-                    {
-                        id: warningColumn
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: 14
-                        spacing: 8
-
-                        Row
-                        {
-                            width: parent.width
-                            spacing: 8
-
-                            WorkOrderIcon
-                            {
-                                width: 18
-                                height: 18
-                                name: "warning"
-                                tone: "orange"
-                            }
-
-                            Label
-                            {
-                                width: parent.width - 26
-                                text: qsTr("Перед синхронизацией")
-                                font.pixelSize: 15
-                                font.bold: true
-                                color: textColor
-                            }
-                        }
-
-                        Label
-                        {
-                            width: parent.width
-                            leftPadding: 26
-                            text: qsTr("•  Используйте Wi-Fi или проводной интернет. Мобильная сеть может быть медленной и дорогой.")
-                            font.pixelSize: 13
-                            color: textSecondaryColor
-                            wrapMode: Text.WordWrap
-                        }
-
-                        Label
-                        {
-                            width: parent.width
-                            leftPadding: 26
-                            text: qsTr("•  Не запускайте синхронизацию одновременно на нескольких устройствах.")
-                            font.pixelSize: 13
-                            color: textSecondaryColor
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                }
-
-                Rectangle
-                {
-                    width: parent.width
-                    height: 52
-                    radius: 14
-                    color: loginArea.pressed ? secondaryColor : primaryColor
-                    opacity: (!cloudDiskBackend.busy && !cloudDiskBackend.oauthInProgress) ? 1 : 0.7
+                    implicitHeight: introRow.implicitHeight + 24
 
                     Row
                     {
-                        anchors.centerIn: parent
-                        spacing: 10
+                        id: introRow
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 12
 
-                        Rectangle
+                        WorkOrderIcon
                         {
-                            visible: !cloudDiskBackend.oauthInProgress
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 22
-                            height: 22
-                            radius: 11
-                            color: "#FC3F1D"
+                            width: 28
+                            height: 28
+                            name: "warning"
+                            tone: "orange"
+                        }
+
+                        Column
+                        {
+                            width: parent.width - 40
+                            spacing: 2
 
                             Label
                             {
-                                anchors.centerIn: parent
-                                text: "Я"
-                                color: "white"
-                                font.pixelSize: 13
+                                text: qsTr("Не подключено")
+                                font.pixelSize: 16
                                 font.bold: true
+                                color: "#C47A12"
+                            }
+
+                            Label
+                            {
+                                width: parent.width
+                                text: qsTr("Подключите Яндекс.Диск для резервного копирования")
+                                font.pixelSize: 12
+                                color: textSecondaryColor
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+                }
+
+                Rectangle
+                {
+                    width: parent.width
+                    radius: 18
+                    color: cardColor
+                    implicitHeight: guideColumn.implicitHeight + 32
+
+                    Column
+                    {
+                        id: guideColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 16
+                        spacing: 14
+
+                        Label
+                        {
+                            width: parent.width
+                            text: qsTr("Подключение")
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: textColor
+                        }
+
+                        Label
+                        {
+                            width: parent.width
+                            text: qsTr("Два шага. После разрешения доступ появится в приложении сам.")
+                            font.pixelSize: 13
+                            color: textSecondaryColor
+                            wrapMode: Text.WordWrap
+                        }
+
+                        StepRow
+                        {
+                            number: "1"
+                            title: qsTr("Откройте страницу Яндекса")
+                            description: qsTr("Кнопка ниже откроет вход Яндекса. Приложение останется открытым.")
+                        }
+
+                        StepRow
+                        {
+                            number: "2"
+                            title: qsTr("Войдите и разрешите доступ к Диску")
+                            description: qsTr("Выберите аккаунт и нажмите «Разрешить».")
+                        }
+
+                        StepRow
+                        {
+                            number: "3"
+                            title: qsTr("Вернитесь в приложение")
+                            description: qsTr("Подключение завершится автоматически.")
+                        }
+
+                        Rectangle
+                        {
+                            width: parent.width
+                            height: 52
+                            radius: 14
+                            color: loginArea.pressed ? secondaryColor : primaryColor
+                            opacity: (!cloudDiskBackend.busy && !cloudDiskBackend.oauthInProgress) ? 1 : 0.7
+
+                            Row
+                            {
+                                anchors.centerIn: parent
+                                spacing: 10
+
+                                Rectangle
+                                {
+                                    visible: !cloudDiskBackend.oauthInProgress
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 22
+                                    height: 22
+                                    radius: 11
+                                    color: "#FC3F1D"
+
+                                    Label
+                                    {
+                                        anchors.centerIn: parent
+                                        text: "Я"
+                                        color: "white"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+                                }
+
+                                Label
+                                {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: cloudDiskBackend.oauthInProgress
+                                          ? qsTr("Ожидание входа...")
+                                          : qsTr("Войти через Яндекс")
+                                    color: "white"
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                }
+                            }
+
+                            MouseArea
+                            {
+                                id: loginArea
+                                anchors.fill: parent
+                                enabled: !cloudDiskBackend.busy && !cloudDiskBackend.oauthInProgress
+                                onClicked: cloudDiskBackend.openAuthInBrowser()
                             }
                         }
 
                         Label
                         {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: cloudDiskBackend.oauthInProgress
-                                  ? qsTr("Ожидание входа...")
-                                  : qsTr("Войти в Яндекс.Диск")
-                            color: "white"
-                            font.pixelSize: 16
-                            font.bold: true
+                            visible: cloudDiskBackend.oauthInProgress
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            text: qsTr("Отменить вход")
+                            font.pixelSize: 14
+                            color: primaryColor
+
+                            MouseArea
+                            {
+                                anchors.fill: parent
+                                anchors.margins: -8
+                                onClicked: cloudDiskBackend.cancelOAuth()
+                            }
                         }
-                    }
-
-                    MouseArea
-                    {
-                        id: loginArea
-                        anchors.fill: parent
-                        enabled: !cloudDiskBackend.busy && !cloudDiskBackend.oauthInProgress
-                        onClicked: cloudDiskBackend.openAuthInBrowser()
-                    }
-                }
-
-                Label
-                {
-                    visible: cloudDiskBackend.oauthInProgress
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Отменить вход")
-                    font.pixelSize: 14
-                    color: primaryColor
-
-                    MouseArea
-                    {
-                        anchors.fill: parent
-                        anchors.margins: -8
-                        onClicked: cloudDiskBackend.cancelOAuth()
                     }
                 }
 
