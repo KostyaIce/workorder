@@ -7,6 +7,11 @@ Rectangle {
 
     property string label: ""
     property string value: ""
+    // Optional framed icon shown right after the label.
+    property string iconSource: ""
+    property bool showDivider: true
+    // Horizontal inset inside the parent section; 0 aligns with settings cards.
+    property real contentInset: 12
 
     signal activated()
 
@@ -16,8 +21,29 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
+        anchors.leftMargin: root.contentInset
+        anchors.rightMargin: root.contentInset
+        spacing: 10
+
+        Rectangle {
+            visible: root.iconSource !== ""
+            Layout.preferredWidth: 40
+            Layout.preferredHeight: 40
+            radius: 12
+            color: "#E7F1FE"
+
+            Image {
+                anchors.centerIn: parent
+                width: 22
+                height: 22
+                source: root.iconSource
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                sourceSize.width: 96
+                sourceSize.height: 96
+            }
+        }
 
         Label {
             text: root.label
@@ -52,5 +78,6 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
+        visible: root.showDivider
     }
 }

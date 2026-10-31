@@ -9,6 +9,31 @@ ColumnLayout {
     property real bottomScrollPadding: 0
     property real topScrollPadding: 0
     readonly property bool compact: layoutStyle === "mobile"
+    readonly property var currencyOptions: settingsBackend.getAvailableCurrencies()
+
+    function currencyLabels()
+    {
+        var labels = []
+        for(var i = 0; i < currencyOptions.length; ++i)
+            labels.push(currencyOptions[i].code + " (" + currencyOptions[i].symbol + ")")
+        return labels
+    }
+
+    function currencyIndex()
+    {
+        for(var i = 0; i < currencyOptions.length; ++i)
+        {
+            if(currencyOptions[i].code === settingsBackend.currency)
+                return i
+        }
+        return 0
+    }
+
+    function selectCurrency(index)
+    {
+        if(index >= 0 && index < currencyOptions.length)
+            settingsBackend.currency = currencyOptions[index].code
+    }
 
     component SettingsGlyph: Item
     {
@@ -206,11 +231,8 @@ ColumnLayout {
         id: currencyDialog
         title: qsTr("Выберите валюту")
         compact: root.compact
-        options: ["RUB (₽)", "USD ($)", "EUR (€)"]
-        onOptionSelected: function(index) {
-            var currencies = ["RUB", "USD", "EUR"]
-            settingsBackend.currency = currencies[index]
-        }
+        options: root.currencyLabels()
+        onOptionSelected: function(index) { root.selectCurrency(index) }
     }
 
     SelectionDialog {
@@ -405,60 +427,27 @@ ColumnLayout {
             }
 
             SettingsSection {
-                visible: false
-                title: compact ? qsTr("Счета") : qsTr("Настройки счетов")
+                title: qsTr("Региональные настройки")
                 compact: root.compact
 
                 SettingsListItem {
                     visible: compact
                     label: qsTr("Валюта")
-                    value: settingsBackend.currency === "USD" ? "USD ($)"
-                           : (settingsBackend.currency === "EUR" ? "EUR (€)" : "RUB (₽)")
+                    value: settingsBackend.currency
+                    iconSource: "qrc:/resources/icons/currency/" + settingsBackend.currency + ".svg"
+                    showDivider: false
+                    contentInset: 0
                     onActivated: currencyDialog.open()
                 }
 
-                SettingsListItem {
-                    visible: compact
-                    label: qsTr("НДС")
-                    value: settingsBackend.vatRate + "%"
-                    onActivated: vatDialog.open()
-                }
-
                 SettingsFormRow {
                     visible: !compact
-                    label: qsTr("Валюта по умолчанию")
+                    label: qsTr("Валюта")
                     WorkOrderComboBox {
                         Layout.fillWidth: true
-                        model: ["RUB (₽)", "USD ($)", "EUR (€)"]
-                        currentIndex: settingsBackend.currency === "USD" ? 1
-                                      : (settingsBackend.currency === "EUR" ? 2 : 0)
-                        onActivated: {
-                            var currencies = ["RUB", "USD", "EUR"]
-                            settingsBackend.currency = currencies[currentIndex]
-                        }
-                    }
-                }
-
-                SettingsFormRow {
-                    visible: !compact
-                    label: qsTr("НДС (%)")
-                    SpinBox {
-                        Layout.fillWidth: true
-                        from: 0
-                        to: 100
-                        value: settingsBackend.vatRate
-                        onValueModified: settingsBackend.vatRate = value
-                    }
-                }
-
-                SettingsFormRow {
-                    visible: !compact
-                    label: qsTr("Префикс номера счета")
-                    TextField {
-                        Layout.fillWidth: true
-                        text: settingsBackend.invoicePrefix
-                        horizontalAlignment: Text.AlignRight
-                        onEditingFinished: settingsBackend.invoicePrefix = text
+                        model: root.currencyLabels()
+                        currentIndex: root.currencyIndex()
+                        onActivated: root.selectCurrency(currentIndex)
                     }
                 }
             }

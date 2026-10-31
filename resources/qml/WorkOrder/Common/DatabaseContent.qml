@@ -68,7 +68,7 @@ Item {
 
     function servicePriceSuffix(unitValue)
     {
-        return isPercentUnit(unitValue) ? "%" : "\u20BD"
+        return isPercentUnit(unitValue) ? "%" : settingsBackend.currencySymbol
     }
 
     component CatalogTab: Item

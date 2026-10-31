@@ -131,7 +131,7 @@ Dialog
             id: amountField
             Layout.fillWidth: true
             Layout.preferredHeight: 56
-            placeholderText: qsTr("0,00 ₽")
+            placeholderText: qsTr("0,00 %1").arg(settingsBackend.currencySymbol)
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             font.pixelSize: 22

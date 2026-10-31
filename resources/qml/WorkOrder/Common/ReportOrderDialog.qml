@@ -173,7 +173,7 @@ Dialog
         var rubles = Math.floor(value / 100)
         var cents = value % 100
         var grouped = String(rubles).replace(/\B(?=(\d{3})+(?!\d))/g, " ")
-        var text = grouped + "." + (cents < 10 ? "0" : "") + cents + " \u20BD"
+        var text = grouped + "." + (cents < 10 ? "0" : "") + cents + " " + settingsBackend.currencySymbol
         return Number(kopecks) < 0 ? "-" + text : text
     }
 

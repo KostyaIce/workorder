@@ -351,7 +351,7 @@ Dialog
 
                 Label
                 {
-                    text: "\u20BD/" + unitName
+                    text: settingsBackend.currencySymbol + "/" + unitName
                     font.pixelSize: 14
                     color: textSecondaryColor
                 }
@@ -512,7 +512,7 @@ Dialog
 
                     Label
                     {
-                        text: (root.lineTotalKopecks / 100).toFixed(2) + " \u20BD"
+                        text: (root.lineTotalKopecks / 100).toFixed(2) + " " + settingsBackend.currencySymbol
                         font.pixelSize: root.compact ? 20 : 22
                         font.bold: true
                         color: primaryColor

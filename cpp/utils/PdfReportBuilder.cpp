@@ -1,6 +1,7 @@
 #include "PdfReportBuilder.h"
 
 #include "AppPaths.h"
+#include "RegionalSettings.h"
 #include "DatabaseStorage.h"
 #include "FileIo.h"
 #include "ReportBuilder.h"
@@ -108,7 +109,8 @@ QString PdfReportBuilder::escapeHtml(const QString &value) const
 
 QString PdfReportBuilder::formatMoney(double value) const
 {
-    return QStringLiteral("%1 \u20BD").arg(QString::number(value, 'f', 2));
+    return QStringLiteral("%1 %2").arg(QString::number(value, 'f', 2),
+                                      RegionalSettings::currencySymbol());
 }
 
 QString PdfReportBuilder::formatMultiplier(int percentSum) const

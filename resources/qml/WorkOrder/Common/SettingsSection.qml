@@ -24,11 +24,11 @@ Rectangle {
         spacing: compact ? 8 : 16
 
         Label {
-            text: compact ? root.title.toUpperCase() : root.title
-            font.pixelSize: compact ? 13 : 16
+            text: root.title
+            font.pixelSize: 16
             font.bold: true
-            color: compact ? textSecondaryColor : textColor
-            Layout.leftMargin: compact ? 12 : 0
+            color: textColor
+            Layout.leftMargin: 0
         }
 
         ColumnLayout {

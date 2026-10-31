@@ -25,6 +25,7 @@ class SettingsBackend : public QObject
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
     Q_PROPERTY(bool autoSave READ autoSave WRITE setAutoSave NOTIFY settingsChanged)
     Q_PROPERTY(QString currency READ currency WRITE setCurrency NOTIFY settingsChanged)
+    Q_PROPERTY(QString currencySymbol READ currencySymbol NOTIFY settingsChanged)
     Q_PROPERTY(int vatRate READ vatRate WRITE setVatRate NOTIFY settingsChanged)
     Q_PROPERTY(QString invoicePrefix READ invoicePrefix WRITE setInvoicePrefix NOTIFY settingsChanged)
     Q_PROPERTY(QString dbPath READ dbPath WRITE setDbPath NOTIFY settingsChanged)
@@ -57,6 +58,7 @@ public:
     void setAutoSave(bool value);
 
     QString currency() const;
+    QString currencySymbol() const;
     void setCurrency(const QString &value);
 
     int vatRate() const;

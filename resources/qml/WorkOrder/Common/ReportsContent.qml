@@ -190,7 +190,7 @@ Item {
                                     Item { Layout.fillWidth: true }
 
                                     Label {
-                                        text: (total_price / 100).toFixed(2) + " \u20BD"
+                                        text: (total_price / 100).toFixed(2) + " " + settingsBackend.currencySymbol
                                         font.pixelSize: 15
                                         font.bold: true
                                         color: textColor
@@ -284,12 +284,12 @@ Item {
                                 }
 
                                 Label {
-                                    text: quantity + " \u00D7 " +  + percent_sum / 100 + " \u00D7 " + (price/100).toFixed(2) + " \u20BD"
+                                    text: quantity + " \u00D7 " +  + percent_sum / 100 + " \u00D7 " + (price/100).toFixed(2) + " " + settingsBackend.currencySymbol
                                     color: textSecondaryColor
                                 }
 
                                 Label {
-                                    text: (((quantity * price) / 100) * (percent_sum / 100)).toFixed(2) + " \u20BD"
+                                    text: (((quantity * price) / 100) * (percent_sum / 100)).toFixed(2) + " " + settingsBackend.currencySymbol
                                     font.bold: true
                                     color: primaryColor
                                 }
@@ -720,7 +720,7 @@ Item {
         var rubles = Math.floor(value / 100)
         var cents = value % 100
         var grouped = String(rubles).replace(/\B(?=(\d{3})+(?!\d))/g, " ")
-        var text = grouped + "." + (cents < 10 ? "0" : "") + cents + " \u20BD"
+        var text = grouped + "." + (cents < 10 ? "0" : "") + cents + " " + settingsBackend.currencySymbol
         return Number(kopecks) < 0 ? "-" + text : text
     }
 

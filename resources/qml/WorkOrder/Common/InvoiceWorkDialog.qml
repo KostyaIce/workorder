@@ -340,7 +340,7 @@ Dialog
                     SummaryLabel
                     {
                         text: (reportBackend.currentPrice / 100).toFixed(2)
-                              + " ₽/" + reportBackend.currentUnit
+                              + " " + settingsBackend.currencySymbol + "/" + reportBackend.currentUnit
                     }
 
                     DividerLine
@@ -454,7 +454,7 @@ Dialog
                         SummaryLabel
                         {
                             text: (reportBackend.currentPrice / 100).toFixed(2)
-                                  + " ₽/" + reportBackend.currentUnit
+                                  + " " + settingsBackend.currencySymbol + "/" + reportBackend.currentUnit
                         }
                     }
                 }
@@ -761,7 +761,8 @@ Dialog
                         Label
                         {
                             Layout.fillWidth: true
-                            text: qsTr("%1 ₽").arg((root.totalPrice / 100).toFixed(2))
+                            text: qsTr("%1 %2").arg((root.totalPrice / 100).toFixed(2),
+                                        settingsBackend.currencySymbol)
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: root.compact ? 24 : 28
                             font.bold: true

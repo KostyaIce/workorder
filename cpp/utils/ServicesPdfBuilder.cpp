@@ -3,6 +3,7 @@
 #include "CoefficientsDatabase.h"
 #include "FileIo.h"
 #include "PdfReportBuilder.h"
+#include "RegionalSettings.h"
 #include "ServiceUnits.h"
 #include "ServicesDatabase.h"
 #include "ServicesExcelBuilder.h"
@@ -49,7 +50,8 @@ QString formatPriceForPdf(int cents, const QString &unit)
         return text;
     }
 
-    return QStringLiteral("%1 \u20bd").arg(QString::number(value / 100.0, 'f', 2));
+    return QStringLiteral("%1 %2").arg(QString::number(value / 100.0, 'f', 2),
+                                          RegionalSettings::currencySymbol());
 }
 
 QString escapeHtml(const QString &value)

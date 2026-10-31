@@ -35,7 +35,7 @@ Item
                 grouped += " "
             grouped += whole.charAt(i)
         }
-        return (negative ? "-" : "") + grouped + "." + parts[1] + " \u20BD"
+        return (negative ? "-" : "") + grouped + "." + parts[1] + " " + settingsBackend.currencySymbol
     }
 
     Flickable

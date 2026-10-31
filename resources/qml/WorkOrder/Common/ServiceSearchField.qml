@@ -334,7 +334,7 @@ ColumnLayout
 
                     Label
                     {
-                        text: (model.price / 100).toFixed(2) + " \u20BD"
+                        text: (model.price / 100).toFixed(2) + " " + settingsBackend.currencySymbol
                         font.pixelSize: 15
                         font.bold: true
                         color: primaryColor
@@ -407,7 +407,7 @@ ColumnLayout
 
                 Label
                 {
-                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    text: (model.price / 100).toFixed(2) + " " + settingsBackend.currencySymbol
                     font.pixelSize: 12
                     color: primaryColor
                     font.bold: true
@@ -434,7 +434,7 @@ ColumnLayout
 
                 Label
                 {
-                    text: (model.price / 100).toFixed(2) + " \u20BD"
+                    text: (model.price / 100).toFixed(2) + " " + settingsBackend.currencySymbol
                     font.pixelSize: 13
                     color: primaryColor
                     font.bold: true

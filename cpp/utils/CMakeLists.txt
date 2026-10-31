@@ -14,6 +14,7 @@ set(WORKORDER_UTILS_SOURCES
     ObjectsDatabase.cpp
     PdfReportBuilder.cpp
     QSettingsStore.cpp
+    RegionalSettings.cpp
     ReportBuilder.cpp
     ServiceUnits.cpp
     CoefficientsDatabase.cpp
@@ -39,6 +40,7 @@ set(WORKORDER_UTILS_HEADERS
     ObjectsDatabase.h
     PdfReportBuilder.h
     QSettingsStore.h
+    RegionalSettings.h
     ReportBuilder.h
     ServiceUnits.h
     CoefficientsDatabase.h

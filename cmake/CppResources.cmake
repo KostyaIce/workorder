@@ -29,6 +29,9 @@ function(workorder_setup_qrc_resources target)
     file(GLOB _ui_icons CONFIGURE_DEPENDS
         "${WORKORDER_ROOT}/resources/icons/ui/*.png"
     )
+    file(GLOB _currency_icons CONFIGURE_DEPENDS
+        "${WORKORDER_ROOT}/resources/icons/currency/*.svg"
+    )
 
     qt_add_resources(${target} "workorder_qml_assets"
         PREFIX "/"
@@ -40,6 +43,7 @@ function(workorder_setup_qrc_resources target)
             ${_fonts}
             ${_app_icons}
             ${_ui_icons}
+            ${_currency_icons}
     )
 
     set_target_properties(${target} PROPERTIES AUTORCC ON)

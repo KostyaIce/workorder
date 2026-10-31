@@ -200,7 +200,7 @@ Dialog
             Layout.fillWidth: true
             Layout.leftMargin: 8
             Layout.rightMargin: 8
-            placeholderText: qsTr("0,00 ₽")
+            placeholderText: qsTr("0,00 %1").arg(settingsBackend.currencySymbol)
             horizontalAlignment: Text.AlignRight
             validator: RegularExpressionValidator { regularExpression: /^[0-9]*[.,]?[0-9]{0,2}$/ }
             background: Rectangle

@@ -4,6 +4,7 @@
 #include "DatabaseStorage.h"
 #include "MinimalZip.h"
 #include "NotificationManager.h"
+#include "RegionalSettings.h"
 
 #include <QDesktopServices>
 #include <QDebug>
@@ -84,6 +85,7 @@ SettingsBackend::SettingsBackend(QObject *parent)
     , m_dbPath(QDir(AppPaths::dbDir()).filePath("services.db"))
 {
     loadPersistedSettings();
+    RegionalSettings::setCurrency(m_currency);
 }
 
 SettingsBackend::~SettingsBackend() = default;
@@ -128,12 +130,19 @@ void SettingsBackend::setAutoSave(bool value)
 
 QString SettingsBackend::currency() const { return m_currency; }
 
+QString SettingsBackend::currencySymbol() const
+{
+    return RegionalSettings::currencySymbol();
+}
+
 void SettingsBackend::setCurrency(const QString &value)
 {
     if(m_currency == value)
         return;
     m_currency = value;
+    RegionalSettings::setCurrency(value);
     emit settingsChanged();
+    saveSettings();
 }
 
 int SettingsBackend::vatRate() const { return m_vatRate; }
@@ -351,6 +360,7 @@ bool SettingsBackend::resetSettings()
     m_language = QStringLiteral("ru");
     m_autoSave = true;
     m_currency = QStringLiteral("RUB");
+    RegionalSettings::setCurrency(m_currency);
     m_vatRate = 20;
     m_invoicePrefix = QStringLiteral("INV");
     m_dbPath = QDir(AppPaths::dbDir()).filePath("services.db");
@@ -452,11 +462,7 @@ QVariantList SettingsBackend::getAvailableLanguages() const
 
 QVariantList SettingsBackend::getAvailableCurrencies() const
 {
-    return {
-        QVariantMap{{"code", "RUB"}, {"symbol", "₽"}, {"name", "Российский рубль"}},
-        QVariantMap{{"code", "USD"}, {"symbol", "$"}, {"name", "Доллар США"}},
-        QVariantMap{{"code", "EUR"}, {"symbol", "€"}, {"name", "Евро"}},
-    };
+    return RegionalSettings::availableCurrencies();
 }
 
 void SettingsBackend::loadPersistedSettings()

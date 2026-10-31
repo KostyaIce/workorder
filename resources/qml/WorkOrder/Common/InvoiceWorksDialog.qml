@@ -30,7 +30,7 @@ Dialog
                 grouped += " "
             grouped += whole.charAt(i)
         }
-        return (negative ? "-" : "") + grouped + "." + parts[1] + " \u20BD"
+        return (negative ? "-" : "") + grouped + "." + parts[1] + " " + settingsBackend.currencySymbol
     }
 
     component FilterChip: Rectangle

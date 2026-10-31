@@ -39,7 +39,7 @@ ColumnLayout
 
     Label
     {
-        text: (reportBackend.invoiceTotal / 100).toFixed(2) + " \u20BD"
+        text: (reportBackend.invoiceTotal / 100).toFixed(2) + " " + settingsBackend.currencySymbol
         font.pixelSize: compact ? 32 : 36
         font.bold: true
         color: primaryColor
@@ -70,7 +70,7 @@ ColumnLayout
 
         Label
         {
-            text: (reportBackend.worksTotal / 100).toFixed(2) + " \u20BD"
+            text: (reportBackend.worksTotal / 100).toFixed(2) + " " + settingsBackend.currencySymbol
             font.pixelSize: compact ? 14 : 15
             color: textColor
         }
@@ -91,7 +91,7 @@ ColumnLayout
 
         Label
         {
-            text: (reportBackend.expensesTotal / 100).toFixed(2) + " \u20BD"
+            text: (reportBackend.expensesTotal / 100).toFixed(2) + " " + settingsBackend.currencySymbol
             font.pixelSize: compact ? 14 : 15
             color: textColor
         }
@@ -113,7 +113,7 @@ ColumnLayout
 
         Label
         {
-            text: (reportBackend.invoiceTotal / 100).toFixed(2) + " \u20BD"
+            text: (reportBackend.invoiceTotal / 100).toFixed(2) + " " + settingsBackend.currencySymbol
             font.pixelSize: compact ? 14 : 15
             font.bold: true
             color: primaryColor
