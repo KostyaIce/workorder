@@ -58,6 +58,12 @@ CRUD в `InvoiceBackend`: `addCoefficient(data)` (возвращает новы�
 Код: `cpp/utils/ServicesExcelBuilder.{h,cpp}` (`ExcelCatalog`,
 `importCatalogFromExcel`, `exportCatalogExcel`).
 
+## PDF-презентация услуг
+
+`exportServicesPdf()` принимает услуги и коэффициенты. В конце документа
+коэффициенты выводятся отдельным разделом **«Коэффициенты»** (название, значение,
+единица).
+
 ## Облачная синхронизация
 
 `services.json` содержит два массива: `"services"` и `"coefficients"`. Оба

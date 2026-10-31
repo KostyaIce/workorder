@@ -1,5 +1,6 @@
 #include "ServicesPdfBuilder.h"
 
+#include "CoefficientsDatabase.h"
 #include "FileIo.h"
 #include "PdfReportBuilder.h"
 #include "ServiceUnits.h"
@@ -93,7 +94,8 @@ QVector<ParagraphGroup> groupServicesByParagraph(const StringMapList &services)
     return result;
 }
 
-QString buildServicesHtml(const StringMapList &services, const QString &title, const QString &fontPath)
+QString buildServicesHtml(const StringMapList &services, const StringMapList &coefficients,
+                          const QString &title, const QString &fontPath)
 {
     const QString fontFamily = PdfReportBuilder::registerReportFont(fontPath);
     const QString resolvedFontPath = PdfReportBuilder::resolveReportFontPath(fontPath);
@@ -155,6 +157,19 @@ QString buildServicesHtml(const StringMapList &services, const QString &title, c
         html += headerRow;
     };
 
+    // The section title is the first table row, so Qt can repeat it with the
+    // header on every page and it can never be orphaned above the table.
+    auto beginSectionTable = [&](const QString &section)
+    {
+        html += QStringLiteral(
+            "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"4\" "
+            "style=\"border-collapse:collapse;border:1px solid #B7C0CC;\">");
+        html += QStringLiteral(
+            "<tr><td colspan=\"3\" style=\"%1font-size:10pt;font-weight:bold;\">%2</td></tr>")
+            .arg(cellStyle, escapeHtml(section));
+        html += headerRow;
+    };
+
     // Qt ignores a table's own top margin and drops a block that touches the next table.
     auto gapBeforeNext = [&]()
     {
@@ -178,11 +193,7 @@ QString buildServicesHtml(const StringMapList &services, const QString &title, c
         }
 
         gapBeforeNext();
-        html += QStringLiteral(
-            "<p style=\"%1font-size:10pt;font-weight:bold;margin-top:0;margin-bottom:2pt;\">%2</p>"
-            "<p style=\"margin:0;font-size:2pt;\">&nbsp;</p>")
-            .arg(fontCss, escapeHtml(group.first));
-        beginTable();
+        beginSectionTable(group.first);
         appendRows(group.second);
         html += QStringLiteral("</table>");
         wroteTable = true;
@@ -195,23 +206,51 @@ QString buildServicesHtml(const StringMapList &services, const QString &title, c
         beginTable();
         appendRows(untitled);
         html += QStringLiteral("</table>");
+        wroteTable = true;
+    }
+
+    // Coefficients are listed as a separate section at the end.
+    if(!coefficients.isEmpty())
+    {
+        gapBeforeNext();
+        html += QStringLiteral(
+            "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"4\" "
+            "style=\"border-collapse:collapse;border:1px solid #B7C0CC;\">");
+        html += QStringLiteral(
+            "<tr><td colspan=\"3\" style=\"%1font-size:10pt;font-weight:bold;\">%2</td></tr>")
+            .arg(cellStyle, escapeHtml(QStringLiteral("Коэффициенты")));
+        html += QStringLiteral(
+            "<tr><td width=\"72%\" style=\"%1\"><b>Коэффициент</b></td>"
+            "<td width=\"18%\" align=\"right\" style=\"%1\"><b>Значение</b></td>"
+            "<td width=\"10%\" align=\"center\" style=\"%1\"><b>Ед.</b></td></tr>")
+            .arg(cellStyle);
+
+        StringMapList sorted = coefficients;
+        std::sort(sorted.begin(), sorted.end(), [](const QVariant &left, const QVariant &right)
+        {
+            return left.toMap().value("name").toString().compare(
+                right.toMap().value("name").toString(), Qt::CaseInsensitive) < 0;
+        });
+
+        for(const QVariant &item : sorted)
+        {
+            const StringMap coefficient = item.toMap();
+            const QString name = coefficient.value("name").toString().trimmed();
+            if(name.isEmpty())
+                continue;
+            const QString unit = coefficient.value("unit").toString().trimmed();
+            const QString priceText = formatPriceForPdf(coefficient.value("price").toInt(), unit);
+            html += QStringLiteral(
+                "<tr><td width=\"72%\" style=\"%1\">%2</td>"
+                "<td width=\"18%\" align=\"right\" style=\"%1\">%3</td>"
+                "<td width=\"10%\" align=\"center\" style=\"%1\">%4</td></tr>")
+                .arg(cellStyle, escapeHtml(name), escapeHtml(priceText), escapeHtml(unit));
+        }
+        html += QStringLiteral("</table>");
     }
 
     html += QStringLiteral("</body></html>");
     return html;
-}
-
-bool isSectionHeading(const QTextBlock &block)
-{
-    if(!block.isValid() || block.text().trimmed().isEmpty())
-        return false;
-
-    qreal size = block.charFormat().fontPointSize();
-    if(size <= 0 && block.begin() != block.end())
-        size = block.begin().fragment().charFormat().fontPointSize();
-
-    // Section labels are 10pt. The document title is 16pt.
-    return size > 0 && size <= 11.0;
 }
 
 bool isGapBlock(const QTextBlock &block)
@@ -240,12 +279,55 @@ void breakBeforeTable(QTextTable *table)
     table->setFormat(format);
 }
 
+// Repeat the section title and column header on every page of a table.
+void repeatTableHeaders(QTextDocument *document)
+{
+    for(QTextFrame::iterator it = document->rootFrame()->begin(); !it.atEnd(); ++it)
+    {
+        QTextTable *table = qobject_cast<QTextTable *>(it.currentFrame());
+        if(!table || table->rows() == 0 || table->columns() == 0)
+            continue;
+
+        const QTextTableCell firstCell = table->cellAt(0, 0);
+        const bool hasSectionTitle = firstCell.columnSpan() == table->columns();
+        const int headerRows = hasSectionTitle ? 2 : 1;
+
+        QTextTableFormat format = table->format();
+        format.setHeaderRowCount(qMin(headerRows, table->rows()));
+        if(hasSectionTitle)
+            format.setBorder(0);
+        table->setFormat(format);
+
+        // The section title looks like a caption: no top/left/right frame.
+        if(hasSectionTitle)
+        {
+            QTextTableCellFormat cellFormat = firstCell.format().toTableCellFormat();
+            cellFormat.setLeftBorder(0);
+            cellFormat.setTopBorder(0);
+            cellFormat.setRightBorder(0);
+            cellFormat.setLeftBorderStyle(QTextFrameFormat::BorderStyle_None);
+            cellFormat.setTopBorderStyle(QTextFrameFormat::BorderStyle_None);
+            cellFormat.setRightBorderStyle(QTextFrameFormat::BorderStyle_None);
+            table->cellAt(0, 0).setFormat(cellFormat);
+        }
+    }
+}
+
 // A section label or a column header must not be the last thing on a page.
 void keepHeadsWithFirstRow(QTextDocument *document)
 {
     const qreal pageHeight = document->pageSize().height();
     if(pageHeight <= 0)
         return;
+
+    // The very first block is the document title; everything else that is a
+    // non-empty paragraph directly before a table is a section heading.
+    QTextBlock titleBlock;
+    {
+        const QTextFrame::iterator first = document->rootFrame()->begin();
+        if(!first.atEnd())
+            titleBlock = first.currentBlock();
+    }
 
     for(int pass = 0; pass < 64; ++pass)
     {
@@ -259,10 +341,14 @@ void keepHeadsWithFirstRow(QTextDocument *document)
                 const QTextBlock block = it.currentBlock();
                 if(!block.isValid())
                     continue;
-                if(isSectionHeading(block))
-                    pendingHeading = block;
-                else if(!isGapBlock(block))
+                if(block == titleBlock)
+                {
                     pendingHeading = QTextBlock();
+                    continue;
+                }
+                if(isGapBlock(block))
+                    continue;
+                pendingHeading = block;
                 continue;
             }
 
@@ -344,12 +430,14 @@ QString ServicesPdfBuilder::resolvePdfPath(const QString &fileUrl)
     return path;
 }
 
-QByteArray ServicesPdfBuilder::buildPdfBytes(const StringMapList &services, const QString &title) const
+QByteArray ServicesPdfBuilder::buildPdfBytes(const StringMapList &services,
+                                             const StringMapList &coefficients,
+                                             const QString &title) const
 {
     const QString resolvedTitle = title.isEmpty() ? QStringLiteral("Презентация услуг") : title;
 
     QTextDocument document;
-    document.setHtml(buildServicesHtml(services, resolvedTitle, m_fontPath));
+    document.setHtml(buildServicesHtml(services, coefficients, resolvedTitle, m_fontPath));
 
     QByteArray bytes;
     QBuffer buffer(&bytes);
@@ -364,6 +452,7 @@ QByteArray ServicesPdfBuilder::buildPdfBytes(const StringMapList &services, cons
     const QPageLayout layout = writer.pageLayout();
     document.setDocumentMargin(0);
     document.setPageSize(layout.paintRect(QPageLayout::Point).size());
+    repeatTableHeaders(&document);
     keepHeadsWithFirstRow(&document);
     document.print(&writer);
 
@@ -371,9 +460,10 @@ QByteArray ServicesPdfBuilder::buildPdfBytes(const StringMapList &services, cons
 }
 
 QString ServicesPdfBuilder::savePdf(const QString &filePath, const StringMapList &services,
+                                      const StringMapList &coefficients,
                                       const QString &title) const
 {
-    const QByteArray pdfBytes = buildPdfBytes(services, title);
+    const QByteArray pdfBytes = buildPdfBytes(services, coefficients, title);
     QString error;
     if(!FileIo::writeBytes(filePath, pdfBytes, &error))
     {
@@ -384,17 +474,23 @@ QString ServicesPdfBuilder::savePdf(const QString &filePath, const StringMapList
     return FileIo::nativeTarget(filePath);
 }
 
-QString exportServicesPdf(const QString &fileUrl, const StringMapList &services, const QString &title)
+QString exportServicesPdf(const QString &fileUrl, const StringMapList &services,
+                          const StringMapList &coefficients, const QString &title)
 {
     const QString path = ServicesPdfBuilder::resolvePdfPath(fileUrl);
     if(path.isEmpty())
         throw std::runtime_error("Services presentation path is empty");
 
     StringMapList data = services;
-    if(data.isEmpty())
+    StringMapList coefficientData = coefficients;
+    // An entirely empty request falls back to the databases.
+    if(data.isEmpty() && coefficientData.isEmpty())
+    {
         data = ServicesDatabase::loadServices();
+        coefficientData = CoefficientsDatabase::loadCoefficients();
+    }
 
-    return ServicesPdfBuilder().savePdf(path, data, title);
+    return ServicesPdfBuilder().savePdf(path, data, coefficientData, title);
 }
 
 } // namespace workorder

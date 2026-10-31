@@ -11,6 +11,7 @@ Dialog {
 
     standardButtons: Dialog.NoButton
     modal: true
+    padding: 0
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: {
         if(!parent)
@@ -28,11 +29,20 @@ Dialog {
         compact: root.compact
     }
 
-    Label {
-        text: root.message
-        wrapMode: Text.WordWrap
-        width: parent.width
-        color: danger ? "#F44336" : textColor
+    contentItem: Item {
+        implicitWidth: 280
+        implicitHeight: messageLabel.implicitHeight + 32
+
+        Label {
+            id: messageLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 16
+            text: root.message
+            wrapMode: Text.WordWrap
+            color: root.danger ? "#F44336" : textColor
+        }
     }
 
     footer: DialogEdgeButtons {

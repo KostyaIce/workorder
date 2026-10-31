@@ -97,29 +97,11 @@ Dialog
                 elide: Text.ElideRight
             }
 
-            Rectangle
+            // Spacer keeps the title centered now that the close button is gone.
+            Item
             {
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
-                Layout.alignment: Qt.AlignVCenter
-                radius: 20
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
-
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: "\u2715"
-                    font.pixelSize: 16
-                    color: textColor
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    onClicked: root.close()
-                }
             }
         }
     }

@@ -7,7 +7,6 @@ Dialog
     id: root
 
     property bool compact: true
-    readonly property int edgeTop: compact ? screenInsets.top : 0
     property string workId: ""
     property string unitName: ""
 
@@ -155,7 +154,7 @@ Dialog
 
     header: Item
     {
-        implicitHeight: 52 + root.edgeTop
+        implicitHeight: 52
         implicitWidth: root.width
 
         Rectangle
@@ -163,7 +162,7 @@ Dialog
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.top: parent.top
-            anchors.topMargin: root.edgeTop + 6
+            anchors.topMargin: 6
             width: 40
             height: 40
             radius: 20
@@ -195,7 +194,7 @@ Dialog
             anchors.leftMargin: 56
             anchors.rightMargin: 56
             anchors.top: parent.top
-            anchors.topMargin: root.edgeTop + 16
+            anchors.topMargin: 16
             text: root.title
             font.pixelSize: 20
             font.bold: true
@@ -209,7 +208,7 @@ Dialog
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.top: parent.top
-            anchors.topMargin: root.edgeTop + 6
+            anchors.topMargin: 6
             width: 40
             height: 40
             radius: 20

@@ -290,7 +290,10 @@ bool InvoiceBackend::exportServicesPresentationToFile(const QString &fileUrl, co
 
     try
     {
-        const QString saved = exportServicesPdf(target, ServicesDatabase::loadServices(), title.trimmed());
+        const QString saved = exportServicesPdf(target,
+                                                ServicesDatabase::loadServices(),
+                                                CoefficientsDatabase::loadCoefficients(),
+                                                title.trimmed());
         announceSavedFile(saved, QStringLiteral("PDF"));
         return !saved.isEmpty();
     }

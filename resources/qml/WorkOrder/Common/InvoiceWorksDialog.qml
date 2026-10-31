@@ -145,39 +145,15 @@ Dialog
         Label
         {
             anchors.left: parent.left
-            anchors.right: closeMark.left
+            anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 16
-            anchors.rightMargin: 8
+            anchors.rightMargin: 16
             text: root.title
             font.pixelSize: 22
             font.bold: true
             color: textColor
             elide: Text.ElideRight
-        }
-
-        Item
-        {
-            id: closeMark
-            anchors.right: parent.right
-            anchors.rightMargin: 8
-            anchors.verticalCenter: parent.verticalCenter
-            width: 40
-            height: 40
-
-            Label
-            {
-                anchors.centerIn: parent
-                text: "\u2715"
-                font.pixelSize: 18
-                color: textSecondaryColor
-            }
-
-            MouseArea
-            {
-                anchors.fill: parent
-                onClicked: root.close()
-            }
         }
     }
 
