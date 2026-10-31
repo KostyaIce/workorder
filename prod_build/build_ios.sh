@@ -11,7 +11,7 @@ QT_VERSION="${QT_VERSION:-6.8.3}"
 QT_ROOT="${QT_ROOT:-$HOME/Qt/$QT_VERSION}"
 QT_IOS_PATH="${QT_IOS_PATH:-$QT_ROOT/ios}"
 QT_HOST_PATH="${QT_HOST_PATH:-$QT_ROOT/macos}"
-BUNDLE_ID="${BUNDLE_ID:-com.workorder}"
+BUNDLE_ID="${BUNDLE_ID:-com.konstantin.workorder}"
 # Same developer team as Planer's local iOS script. Override with TEAM_ID.
 TEAM_ID="${TEAM_ID:-74FAM6RATH}"
 BUILD_DIR="${BUILD_DIR:-$PROJECT_ROOT/build/ios-local}"

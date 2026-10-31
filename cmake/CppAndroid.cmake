@@ -36,7 +36,7 @@ function(workorder_setup_android_target target)
         )
     endif()
 
-    message(STATUS "Android target configured: compact mobile UI, package com.workorder")
+    message(STATUS "Android target configured: compact mobile UI, package com.konstantin.workorder")
 endfunction()
 
 function(workorder_add_android_run_target target_name)

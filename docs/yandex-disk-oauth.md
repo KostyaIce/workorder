@@ -5,8 +5,8 @@
 | Параметр | Значение по умолчанию | Где менять |
 |----------|----------------------|------------|
 | OAuth Client ID | `e015e5639e814d569f163477e7eb9415` | `cpp/CMakeLists.txt` |
-| Android application id | `com.workorder` | `cpp/android/AndroidManifest.xml`, `-DWORKORDER_MOBILE_APPLICATION_ID=...` |
-| iOS Bundle ID | `com.workorder` | `-DWORKORDER_IOS_BUNDLE_ID=...` |
+| Android application id | `com.konstantin.workorder` | `cpp/android/AndroidManifest.xml` и Java-пакет `cpp/android/src/com/konstantin/workorder` |
+| iOS Bundle ID | `com.konstantin.workorder` | `-DWORKORDER_IOS_BUNDLE_ID=...` |
 | Redirect scheme | `workorder` | `-DWORKORDER_OAUTH_CALLBACK_SCHEME=...` |
 | Mobile redirect URI (Android) | `workorder://oauth-callback` | scheme + host в коде |
 | Login SDK iOS scheme | `yx` + Client ID | `cpp/ios/Info.plist.in` (генерируется CMake) |
@@ -19,12 +19,12 @@
 ### Платформы iOS и Android
 
 1. **iOS**
-   - Bundle ID: `com.workorder` (или ваш `-DWORKORDER_IOS_BUNDLE_ID`).
-   - В кабинете Яндекса App ID имеет вид **`{TeamID}.com.workorder`** (Team ID из Apple Developer → Membership).
+   - Bundle ID: `com.konstantin.workorder` (или ваш `-DWORKORDER_IOS_BUNDLE_ID`).
+   - В кабинете Яндекса App ID имеет вид **`{TeamID}.com.konstantin.workorder`** (Team ID из Apple Developer → Membership).
    - URL scheme для Login SDK: **`yxe015e5639e814d569f163477e7eb9415`** (после смены Client ID пересоберите iOS — CMake подставит `yx` + id в `Info.plist`).
 
 2. **Android**
-   - Имя пакета: **`com.workorder`** (как в `AndroidManifest.xml`).
+   - Имя пакета: **`com.konstantin.workorder`** (как в `AndroidManifest.xml`).
    - Отпечаток **SHA-256** release-ключа. Как создать ключ и снять отпечаток: [android-signing-key.md](android-signing-key.md).
 
 3. **Redirect URI (Android, браузер / PKCE)**

@@ -207,7 +207,7 @@ reportlab и openpyxl — **без C-расширений под Android ABI**; 
 ```text
 android/
   main.py              # entry для pyside6-android-deploy (p4a ищет main.py в корне app)
-  pysidedeploy.spec    # package com.workorder.app, arm64-v8a
+  pysidedeploy.spec    # package com.konstantin.workorder, arm64-v8a
   requirements.txt     # PySide6, Pillow, reportlab 4.2.5, openpyxl, chardet
   src -> ../src        # symlink, создаёт build_apk.sh перед сборкой
   resources -> ../resources

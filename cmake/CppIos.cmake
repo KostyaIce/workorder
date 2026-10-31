@@ -21,7 +21,7 @@ function(workorder_setup_ios_target target)
     endif()
 
     if(NOT DEFINED WORKORDER_IOS_BUNDLE_ID)
-        set(WORKORDER_IOS_BUNDLE_ID "com.workorder")
+        set(WORKORDER_IOS_BUNDLE_ID "com.konstantin.workorder")
     endif()
 
     if(NOT DEFINED WORKORDER_IOS_TEAM_ID)

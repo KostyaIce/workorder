@@ -70,7 +70,7 @@ keyPassword=<пароль ключа>
 Скрипт проверяет срок, тип и bundle ID профиля, выбирает установленный сертификат
 из профиля и берёт production Team ID из него. Если сертификатов несколько,
 укажите `SIGN_IDENTITY`. `--check` также устанавливает профиль для Xcode.
-По умолчанию bundle ID — `com.workorder`; можно задать `BUNDLE_ID`.
+По умолчанию bundle ID — `com.konstantin.workorder`; можно задать `BUNDLE_ID`.
 Тестовая команда по умолчанию — `74FAM6RATH`, переопределяется через `TEAM_ID`.
 
 ## Windows (C++ desktop)

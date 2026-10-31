@@ -22,11 +22,11 @@ include("${WORKORDER_ROOT}/cmake/WorkOrderLogging.cmake")
 
 set(WORKORDER_YANDEX_OAUTH_CLIENT_ID "e015e5639e814d569f163477e7eb9415"
     CACHE STRING "Yandex OAuth client id (oauth.yandex.ru)" FORCE)
-set(WORKORDER_IOS_BUNDLE_ID "com.workorder"
+set(WORKORDER_IOS_BUNDLE_ID "com.konstantin.workorder"
     CACHE STRING "iOS bundle identifier (Yandex OAuth iOS platform)")
 set(WORKORDER_OAUTH_CALLBACK_SCHEME "workorder"
     CACHE STRING "Mobile OAuth redirect URL scheme")
-set(WORKORDER_MOBILE_APPLICATION_ID "com.workorder"
+set(WORKORDER_MOBILE_APPLICATION_ID "com.konstantin.workorder"
     CACHE STRING "Android application id / iOS bundle id")
 
 if(ANDROID OR IOS)

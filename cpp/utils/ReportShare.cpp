@@ -30,7 +30,7 @@ QString ReportShare::publish(const QString &savedPath)
         return {};
 
     const QJniObject place = QJniObject::callStaticObjectMethod(
-        "com/workorder/ReportExport",
+        "com/konstantin/workorder/ReportExport",
         "publishAndShare",
         "(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;",
         context.object(),

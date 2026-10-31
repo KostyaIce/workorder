@@ -39,7 +39,7 @@ Release-сборка читает этот каталог как `../workorder-s
 SIGNING_DIR=/absolute/path/workorder-signing bash prod_build/build_android_apk.sh release
 ```
 
-Имя пакета приложения: `com.workorder`.
+Имя пакета приложения: `com.konstantin.workorder`.
 
 ## Снять SHA-256
 

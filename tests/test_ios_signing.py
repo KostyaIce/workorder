@@ -20,7 +20,7 @@ class SigningTests(unittest.TestCase):
         profile = dict(ExpirationDate=datetime.datetime(2099, 1, 1), Platform=['iOS'],
                        TeamIdentifier=['ABCDEFGHIJ'], ApplicationIdentifierPrefix=['PREFIX'],
                        UUID='12345678-1234-1234-1234-123456789abc', DeveloperCertificates=[cert],
-                       Entitlements={'application-identifier': 'PREFIX.com.workorder'})
+                       Entitlements={'application-identifier': 'PREFIX.com.konstantin.workorder'})
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'profile'
             source.write_bytes(b'profile')
@@ -30,7 +30,7 @@ class SigningTests(unittest.TestCase):
             with patch.object(signing.subprocess, 'check_output', side_effect=command), \
                     patch.object(signing.Path, 'home', return_value=Path(directory)), \
                     patch.dict(signing.os.environ, {}, clear=True):
-                signing.prepare(str(source), 'com.workorder', str(output))
+                signing.prepare(str(source), 'com.konstantin.workorder', str(output))
                 options = plistlib.loads(output.read_bytes())
                 self.assertEqual(options['signingCertificate'], identity)
                 self.assertEqual(options['teamID'], 'ABCDEFGHIJ')
@@ -38,11 +38,11 @@ class SigningTests(unittest.TestCase):
                     signing.prepare(str(source), 'wrong.bundle', str(output))
                 profile['ProvisionedDevices'] = ['device']
                 with self.assertRaisesRegex(ValueError, 'App Store profile'):
-                    signing.prepare(str(source), 'com.workorder', str(output))
+                    signing.prepare(str(source), 'com.konstantin.workorder', str(output))
                 del profile['ProvisionedDevices']
                 profile['ExpirationDate'] = datetime.datetime(2000, 1, 1)
                 with self.assertRaisesRegex(ValueError, 'expired'):
-                    signing.prepare(str(source), 'com.workorder', str(output))
+                    signing.prepare(str(source), 'com.konstantin.workorder', str(output))
 
 
 if __name__ == '__main__':

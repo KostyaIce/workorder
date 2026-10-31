@@ -2,7 +2,7 @@
 # Capture WorkOrder Android logs (logcat + optional file tail hint).
 set -euo pipefail
 
-PACKAGE="${WORKORDER_ANDROID_PACKAGE:-com.workorder}"
+PACKAGE="${WORKORDER_ANDROID_PACKAGE:-com.konstantin.workorder}"
 
 if ! command -v adb >/dev/null 2>&1; then
     echo "adb not found" >&2
@@ -31,5 +31,5 @@ if [ -n "$PID" ]; then
     adb logcat -v time --pid="$PID"
 else
     adb logcat -v time 2>&1 | grep --line-buffered -iE \
-        '\[workorder\]|python|Qt:|Traceback|AndroidRuntime|FATAL EXCEPTION|com\.workorder\.workorder'
+        '\[workorder\]|python|Qt:|Traceback|AndroidRuntime|FATAL EXCEPTION|com\.konstantin\.workorder'
 fi

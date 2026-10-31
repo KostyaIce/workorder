@@ -8,7 +8,7 @@
 
 // Must match Android package / iOS bundle id (see cmake/CppIos.cmake, cpp/android/AndroidManifest.xml).
 #ifndef WORKORDER_MOBILE_APPLICATION_ID
-#define WORKORDER_MOBILE_APPLICATION_ID "com.workorder"
+#define WORKORDER_MOBILE_APPLICATION_ID "com.konstantin.workorder"
 #endif
 
 #ifndef WORKORDER_OAUTH_CALLBACK_SCHEME

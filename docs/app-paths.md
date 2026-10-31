@@ -48,7 +48,7 @@ Desktop / Windows / Linux / macOS: `openLogDirectory()` / `openDbDirectory()` op
 `logDir` / `dbDir` in the file manager.
 
 Android: only `copyLogs()` — packs `logDir` into `logs.zip` and shares via
-`Intent.ACTION_SEND` (`com.workorder.LogShare` + FileProvider). Catalog buttons
+`Intent.ACTION_SEND` (`com.konstantin.workorder.LogShare` + FileProvider). Catalog buttons
 are hidden.
 
 ## Overrides

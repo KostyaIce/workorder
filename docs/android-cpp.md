@@ -47,7 +47,7 @@ cmake --build ../build/cpp-android-arm64 --target WorkOrder_make_apk
 
 ```
 cpp/android/
-  AndroidManifest.xml    # com.workorder, portrait, storage permissions
+  AndroidManifest.xml    # com.konstantin.workorder, portrait, storage permissions
   res/drawable/icon.png
 ```
 
@@ -56,10 +56,10 @@ QML (desktop + mobile + Common) и шрифты упаковываются в **
 ## Отладка
 
 ```bash
-adb logcat | rg -i 'WorkOrder|Qt|qml|FATAL|com.workorder'
+adb logcat | rg -i 'WorkOrder|Qt|qml|FATAL|com.konstantin.workorder'
 ```
 
-Package C++ APK: **`com.workorder`**. Python APK (pysidedeploy): `com.workorder.workorder`.
+Package C++ APK: **`com.konstantin.workorder`**. Python APK (pysidedeploy): `com.konstantin.workorder`.
 
 Если приложение сразу закрывается — проверьте logcat на `Failed to load QML` (частая причина: неверный URL для `qrc:`).
 

@@ -91,7 +91,7 @@ void ContactPicker::launchAndroidPicker()
     }
 
     QJniObject::callStaticMethod<void>(
-        "com/workorder/ContactPickerHelper",
+        "com/konstantin/workorder/ContactPickerHelper",
         "pick",
         "(Landroid/app/Activity;)V",
         activity.object<jobject>());
@@ -110,7 +110,7 @@ bool ContactPicker::handleActivityResult(jint requestCode, jint resultCode, jobj
 
     QJniObject activity = QtAndroidPrivate::activity();
     QJniObject result = QJniObject::callStaticObjectMethod(
-        "com/workorder/ContactPickerHelper",
+        "com/konstantin/workorder/ContactPickerHelper",
         "selectedContact",
         "(Landroid/app/Activity;Landroid/content/Intent;)[Ljava/lang/String;",
         activity.object<jobject>(),

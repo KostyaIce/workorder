@@ -86,7 +86,7 @@ app = BUNDLE(
     coll,
     name="WorkOrder.app",
     icon=str(ICON_PATH) if ICON_PATH.is_file() else None,
-    bundle_identifier="com.workorder.app",
+    bundle_identifier="com.konstantin.workorder",
     info_plist={
         "CFBundleShortVersionString": VERSION,
         "CFBundleVersion": VERSION,

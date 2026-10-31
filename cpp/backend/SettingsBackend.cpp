@@ -68,7 +68,7 @@ bool shareZipOnAndroid(const QString &zipPath)
     }
 
     const jboolean ok = QJniObject::callStaticMethod<jboolean>(
-        "com/workorder/LogShare",
+        "com/konstantin/workorder/LogShare",
         "shareZip",
         "(Landroid/content/Context;Ljava/lang/String;)Z",
         context.object(),

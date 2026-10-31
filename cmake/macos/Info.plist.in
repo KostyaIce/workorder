@@ -9,7 +9,7 @@
     <key>CFBundleIconFile</key>
     <string>icon_macos</string>
     <key>CFBundleIdentifier</key>
-    <string>com.workorder.app</string>
+    <string>com.konstantin.workorder</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

@@ -81,7 +81,7 @@ def patch_buildozer_config():
         )
         self.set_value("app", "requirements", requirements)
         self.set_value("app", "source.dir", ".")
-        self.set_value("app", "package.domain", "com.workorder")
+        self.set_value("app", "package.domain", "com.konstantin")
         include_exts = self.get_value("app", "source.include_exts")
         if include_exts:
             for ext in ("ttf", "json"):

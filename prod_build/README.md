@@ -41,7 +41,7 @@ bash prod_build/build_ios.sh ad-hoc
 Подготовьте соседний каталог `../workorder-signing/ios/`:
 
 - `distribution.p12` — сертификат с приватным ключом; импортируйте в Keychain;
-- `WorkOrder_AppStore.mobileprovision` — App Store-профиль для `com.workorder`.
+- `WorkOrder_AppStore.mobileprovision` — App Store-профиль для `com.konstantin.workorder`.
 
 ```bash
 # Проверить инструменты и подпись, установить профиль для Xcode:
