@@ -641,7 +641,7 @@ Item
             WorkOrderIcon
             {
                 visible: barButton.trailingIcon !== ""
-                name: barButton.trailingIcon
+                name: barButton.trailingIcon !== "" ? barButton.trailingIcon : "arrow-right"
                 tone: "white"
                 width: 18
                 height: 18

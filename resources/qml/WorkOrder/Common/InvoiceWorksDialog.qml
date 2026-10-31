@@ -140,8 +140,6 @@ Dialog
     header: Item
     {
         implicitHeight: 52
-        implicitWidth: root.width
-
         Label
         {
             anchors.left: parent.left
@@ -160,8 +158,6 @@ Dialog
     footer: Item
     {
         implicitHeight: 72
-        implicitWidth: root.width
-
         Rectangle
         {
             anchors.left: parent.left

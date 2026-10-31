@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.workorder"
     android:installLocation="auto"
-    android:versionCode="100037"
-    android:versionName="1.0-37">
+    android:versionCode="100038"
+    android:versionName="1.0-38">
     <!-- %%INSERT_PERMISSIONS -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- %%INSERT_FEATURES -->

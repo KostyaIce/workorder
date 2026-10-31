@@ -19,6 +19,7 @@ Rectangle {
 
     ColumnLayout {
         id: innerColumn
+        visible: root.visible
         anchors.fill: parent
         anchors.margins: compact ? 12 : 20
         spacing: compact ? 8 : 16
@@ -33,6 +34,7 @@ Rectangle {
 
         ColumnLayout {
             id: contentHost
+            visible: root.visible
             Layout.fillWidth: true
             spacing: compact ? 0 : 16
         }

@@ -37,8 +37,6 @@ Dialog
     header: Item
     {
         implicitHeight: Math.max(52, titleLabel.implicitHeight + 16)
-        implicitWidth: root.width
-
         Label
         {
             id: titleLabel
@@ -153,8 +151,6 @@ Dialog
     footer: Item
     {
         implicitHeight: 72
-        implicitWidth: root.width
-
         RowLayout
         {
             anchors.fill: parent

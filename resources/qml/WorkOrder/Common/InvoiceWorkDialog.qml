@@ -51,8 +51,6 @@ Dialog
     header: Item
     {
         implicitHeight: 52 + root.edgeTop
-        implicitWidth: root.width
-
         RowLayout
         {
             anchors.fill: parent
@@ -761,8 +759,8 @@ Dialog
                         Label
                         {
                             Layout.fillWidth: true
-                            text: qsTr("%1 %2").arg((root.totalPrice / 100).toFixed(2),
-                                        settingsBackend.currencySymbol)
+                            text: qsTr("%1 %2").arg((root.totalPrice / 100).toFixed(2))
+                                            .arg(settingsBackend.currencySymbol)
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: root.compact ? 24 : 28
                             font.bold: true
@@ -777,8 +775,6 @@ Dialog
     footer: Item
     {
         implicitHeight: 72 + root.edgeBottom
-        implicitWidth: root.width
-
         PrimaryButton
         {
             anchors.right: parent.right

@@ -43,8 +43,6 @@ Dialog
     header: Item
     {
         implicitHeight: 52
-        implicitWidth: root.width
-
         RowLayout
         {
             anchors.fill: parent
@@ -152,8 +150,6 @@ Dialog
     footer: Item
     {
         implicitHeight: 64
-        implicitWidth: root.width
-
         PrimaryButton
         {
             anchors.right: parent.right

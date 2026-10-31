@@ -59,7 +59,6 @@ Dialog
     // the scrolling list, like the other mobile dialogs.
     header: Item
     {
-        implicitWidth: root.width
         implicitHeight: 0
     }
 

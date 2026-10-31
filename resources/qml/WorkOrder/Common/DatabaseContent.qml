@@ -167,8 +167,6 @@ Item {
         header: Item
         {
             implicitHeight: Math.max(52, infoTitle.implicitHeight + 16)
-            implicitWidth: infoDialog.width
-
             Label
             {
                 id: infoTitle
@@ -214,8 +212,6 @@ Item {
         footer: Item
         {
             implicitHeight: 72
-            implicitWidth: infoDialog.width
-
             RowLayout
             {
                 anchors.fill: parent

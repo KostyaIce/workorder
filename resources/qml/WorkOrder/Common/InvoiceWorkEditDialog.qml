@@ -155,8 +155,6 @@ Dialog
     header: Item
     {
         implicitHeight: 52
-        implicitWidth: root.width
-
         Rectangle
         {
             anchors.left: parent.left

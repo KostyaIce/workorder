@@ -77,8 +77,6 @@ Dialog
     header: Item
     {
         implicitHeight: 56 + root.edgeTop
-        implicitWidth: root.width
-
         Rectangle
         {
             anchors.left: parent.left
@@ -125,8 +123,6 @@ Dialog
     footer: Item
     {
         implicitHeight: 76 + root.edgeBottom
-        implicitWidth: root.width
-
         Rectangle
         {
             anchors.left: parent.left

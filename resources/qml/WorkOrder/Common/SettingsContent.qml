@@ -290,8 +290,6 @@ ColumnLayout {
         header: Item
         {
             implicitHeight: 52
-            implicitWidth: aboutDialog.width
-
             Label
             {
                 anchors.centerIn: parent
@@ -362,7 +360,16 @@ ColumnLayout {
                 Layout.preferredHeight: root.topScrollPadding
             }
 
+            Loader {
+                active: false
+                visible: active
+                Layout.fillWidth: true
+                Layout.leftMargin: root.compact ? 16 : 0
+                Layout.rightMargin: root.compact ? 16 : 0
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                sourceComponent: Component {
             SettingsSection {
+                width: parent ? parent.width : 0
                 visible: false
                 title: compact ? qsTr("Общие") : qsTr("Общие настройки")
                 compact: root.compact
@@ -425,6 +432,8 @@ ColumnLayout {
                     }
                 }
             }
+                }
+            }
 
             SettingsSection {
                 title: qsTr("Региональные настройки")
@@ -440,7 +449,14 @@ ColumnLayout {
                     onActivated: currencyDialog.open()
                 }
 
+                Loader {
+                    active: !root.compact
+                    visible: active
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: item ? item.implicitHeight : 0
+                    sourceComponent: Component {
                 SettingsFormRow {
+                    width: parent ? parent.width : 0
                     visible: !compact
                     label: qsTr("Валюта")
                     WorkOrderComboBox {
@@ -450,9 +466,20 @@ ColumnLayout {
                         onActivated: root.selectCurrency(currentIndex)
                     }
                 }
+                    }
+                }
             }
 
+            Loader {
+                active: false
+                visible: active
+                Layout.fillWidth: true
+                Layout.leftMargin: root.compact ? 16 : 0
+                Layout.rightMargin: root.compact ? 16 : 0
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                sourceComponent: Component {
             SettingsSection {
+                width: parent ? parent.width : 0
                 visible: false
                 title: qsTr("База данных")
                 compact: root.compact
@@ -557,13 +584,14 @@ ColumnLayout {
                     }
                 }
             }
+                }
+            }
 
             Column
             {
                 visible: compact
                 Layout.fillWidth: true
                 spacing: 12
-                topPadding: 8
                 leftPadding: 16
                 rightPadding: 16
 
@@ -740,7 +768,16 @@ ColumnLayout {
                 }
             }
 
+            Loader {
+                active: !root.compact
+                visible: active
+                Layout.fillWidth: true
+                Layout.leftMargin: root.compact ? 16 : 0
+                Layout.rightMargin: root.compact ? 16 : 0
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                sourceComponent: Component {
             SettingsSection {
+                width: parent ? parent.width : 0
                 visible: !compact
                 title: qsTr("Яндекс.Диск")
                 compact: root.compact
@@ -787,8 +824,19 @@ ColumnLayout {
                     }
                 }
             }
+                }
+            }
 
+            Loader {
+                active: !root.compact
+                visible: active
+                Layout.fillWidth: true
+                Layout.leftMargin: root.compact ? 16 : 0
+                Layout.rightMargin: root.compact ? 16 : 0
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                sourceComponent: Component {
             SettingsSection {
+                width: parent ? parent.width : 0
                 visible: !compact
                 title: qsTr("Личная информация для отчёта")
                 compact: root.compact
@@ -828,13 +876,26 @@ ColumnLayout {
                     }
                 }
             }
+                }
+            }
 
+            Loader {
+                active: !root.compact
+                visible: active
+                Layout.fillWidth: true
+                Layout.leftMargin: root.compact ? 16 : 0
+                Layout.rightMargin: root.compact ? 16 : 0
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                sourceComponent: Component {
             SettingsSection {
+                width: parent ? parent.width : 0
                 visible: !compact
                 title: qsTr("О приложении")
                 compact: root.compact
                 SettingsAboutSection {
                     centered: compact
+                }
+            }
                 }
             }
 

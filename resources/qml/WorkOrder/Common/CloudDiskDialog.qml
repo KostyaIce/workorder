@@ -43,8 +43,6 @@ Dialog
     header: Item
     {
         implicitHeight: 56 + root.edgeTop
-        implicitWidth: root.width
-
         Rectangle
         {
             anchors.left: parent.left
