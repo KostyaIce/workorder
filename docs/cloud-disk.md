@@ -40,9 +40,15 @@ JNI bridge in `cpp/backend/YandexDiskOAuthFlow.cpp`.
 3. The SDK returns the OAuth token through the `yx<Client ID>` scheme; C++ stores
    it in `QSettings` (`cloud_disk/*`).
 
-The package name and release SHA-256 must be registered on the Android platform
-in `oauth.yandex.ru`. A separate browser redirect URI is not required for the
-native SDK.
+
+Android HTTPS requires OpenSSL 3 libraries. WorkOrder bundles
+`cpp/android/libs/arm64-v8a/libssl_3.so` and `libcrypto_3.so` (OpenSSL 3 from
+KDAB `android_openssl`, Apache 2.0). Without them Qt reports
+`No functional TLS backend was found` and Yandex Disk sync fails before any HTTP
+request with `Failed to check workOrder directory (0)`.
+
+Cloud files are stored under `app:/workOrder`; Yandex Disk displays this as
+`Приложения/WorkOrder/workOrder`.
 
 ### Desktop
 

@@ -41,6 +41,13 @@ TOOLCHAIN="$QT_ANDROID_PATH/lib/cmake/Qt6/qt.toolchain.cmake"
 [ -f "$TOOLCHAIN" ] || { echo "ERROR: Missing Qt toolchain: $TOOLCHAIN" >&2; exit 1; }
 [ -d "$QT_HOST_PATH" ] || { echo "ERROR: Missing Qt host tools: $QT_HOST_PATH" >&2; exit 1; }
 
+for openssl_lib in libssl_3.so libcrypto_3.so; do
+    [ -f "$ROOT/cpp/android/libs/arm64-v8a/$openssl_lib" ] || {
+        echo "ERROR: Missing Android OpenSSL library: cpp/android/libs/arm64-v8a/$openssl_lib" >&2
+        exit 1
+    }
+done
+
 CMAKE_BIN="$(command -v cmake || true)"
 NINJA_BIN="$(command -v ninja || true)"
 [ -n "$CMAKE_BIN" ] || { echo 'ERROR: Missing cmake' >&2; exit 1; }
