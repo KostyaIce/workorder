@@ -64,12 +64,20 @@ class ServiceFilterModelsTest(unittest.TestCase):
         self.services_filter.setFilterText("Монт")
         self.assertEqual(self.services_filter.rowCount(), 1)
 
+    def test_service_filter_shows_all_until_query(self):
+        self.services_filter.setFilterText("")
+        self.assertEqual(self.services_filter.rowCount(), 1)
+
     def test_coefficients_filter_includes_only_percent_units(self):
         self.coefficients_filter.setFilterText("Слож")
         self.assertEqual(self.coefficients_filter.rowCount(), 1)
 
         self.coefficients_filter.setFilterText("Монт")
         self.assertEqual(self.coefficients_filter.rowCount(), 0)
+
+    def test_coefficients_filter_shows_all_until_query(self):
+        self.coefficients_filter.setFilterText("")
+        self.assertEqual(self.coefficients_filter.rowCount(), 1)
 
 
 if __name__ == "__main__":

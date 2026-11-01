@@ -1032,8 +1032,9 @@ QVariantList ReportBackend::currentOrderTotals() const
     }
 
     QVariantList result;
-    for(auto it = totals.constBegin(); it != totals.constEnd(); ++it)
+    for(auto it = totals.constEnd(); it != totals.constBegin();)
     {
+        --it;
         QVariantMap order;
         order.insert("start_order_at", it.key());
         order.insert("total_price", it.value());

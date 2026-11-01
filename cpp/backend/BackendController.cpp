@@ -18,7 +18,7 @@ BackendController::BackendController(QQmlApplicationEngine *engine, QObject *par
     , m_notificationManager(std::make_unique<NotificationManager>())
     , m_settingsBackend(std::make_unique<SettingsBackend>())
     , m_reportOptionsBackend(std::make_unique<ReportOptionsBackend>())
-    , m_cloudDiskBackend(std::make_unique<CloudDiskBackend>())
+    , m_cloudDiskBackend(std::make_unique<CloudDiskBackend>(m_settingsBackend.get()))
     , m_contactPicker(std::make_unique<ContactPicker>())
     , m_databaseBackend(std::make_unique<DatabaseBackend>())
     , m_reportBackend(std::make_unique<ReportBackend>(

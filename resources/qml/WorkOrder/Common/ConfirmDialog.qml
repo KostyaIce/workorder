@@ -11,6 +11,12 @@ Dialog {
 
     standardButtons: Dialog.NoButton
     modal: true
+
+    Overlay.modal: Rectangle
+    {
+        color: "#66000000"
+    }
+
     padding: 0
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: {

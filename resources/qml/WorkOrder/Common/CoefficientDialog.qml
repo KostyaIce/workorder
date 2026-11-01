@@ -31,6 +31,12 @@ Dialog
     }
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 16
+
+    Overlay.modal: Rectangle
+    {
+        color: "#66000000"
+    }
+
     width: Math.min(compact ? parent.width - 24 : 480, parent.width - 16)
     height: Math.min(formLayout.implicitHeight + header.implicitHeight + footer.implicitHeight + padding * 2,
                      parent.height - 32 - (compact ? screenInsets.top + screenInsets.bottom : 0))
@@ -136,41 +142,14 @@ Dialog
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 52
-            anchors.rightMargin: 52
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
             text: root.title
             wrapMode: Text.WordWrap
             font.pixelSize: 18
             font.bold: true
             color: textColor
             horizontalAlignment: Text.AlignHCenter
-        }
-
-        Rectangle
-        {
-            anchors.right: parent.right
-            anchors.rightMargin: 8
-            anchors.verticalCenter: parent.verticalCenter
-            width: 40
-            height: 40
-            radius: 20
-            color: cardColor
-            border.width: 1
-            border.color: "#E4EAF2"
-
-            Label
-            {
-                anchors.centerIn: parent
-                text: "\u2715"
-                font.pixelSize: 16
-                color: textColor
-            }
-
-            MouseArea
-            {
-                anchors.fill: parent
-                onClicked: root.close()
-            }
         }
     }
 

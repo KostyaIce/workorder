@@ -17,6 +17,12 @@ ColumnLayout
     property string labelText: qsTr("Услуга")
     // When true, matches stay in a list under the field instead of a popup.
     property bool inlineSuggestions: false
+    // Hide the built-in list when the caller renders its own scrolling list.
+    property bool showInlineList: true
+    // Show the full list before the user starts typing.
+    property bool showAllWhenEmpty: false
+    property bool showAddButton: true
+    property color fieldColor: cardColor
 
     readonly property int suggestionRowHeight: compact ? 56 : 36
     readonly property int suggestionMaxRowHeight: compact ? 56 : 48
@@ -140,6 +146,7 @@ ColumnLayout
 
     function openAddServiceDialog(serviceName)
     {
+        suggestionsPopup.close()
         serviceDialog.clearInfo()
         serviceDialog.name = serviceName
         serviceDialog.open()
@@ -153,7 +160,10 @@ ColumnLayout
             return
         }
 
-        if(currentQuery().length > 0 && servicesFilterModel.count > 0)
+        var query = currentQuery()
+        var showList = query.length > 0
+                || (root.showAllWhenEmpty && serviceInput.activeFocus)
+        if(showList && servicesFilterModel.count > 0)
             suggestionsPopup.syncOpen()
         else
             suggestionsPopup.close()
@@ -212,8 +222,11 @@ ColumnLayout
             {
                 if(activeFocus)
                 {
+                    if(root.showAllWhenEmpty && currentQuery() === "")
+                        invoiceBackend.searchServices("")
                     if(suggestionsPopup.keyboardAware)
                         suggestionsPopup.scheduleEnsureVisible()
+                    updateSuggestions()
                 }
                 else
                 {
@@ -227,7 +240,7 @@ ColumnLayout
             background: Rectangle
             {
                 radius: 12
-                color: cardColor
+                color: root.fieldColor
                 border.width: serviceInput.activeFocus ? 2 : 1
                 border.color: serviceInput.activeFocus ? primaryColor : "#E4EAF2"
             }
@@ -269,12 +282,23 @@ ColumnLayout
                 text: qsTr("Очистить фильтр")
             }
         }
+
+        SearchAddButton
+        {
+            visible: root.showAddButton && root.reportReady
+            compact: root.compact
+            inlineStyle: root.inlineSuggestions
+            tooltip: qsTr("Создать услугу")
+            onClicked: root.openAddServiceDialog(root.currentQuery())
+        }
     }
 
     Label
     {
-        visible: root.inlineSuggestions && currentQuery().length > 0 && servicesFilterModel.count > 0
-        text: qsTr("Найденные услуги")
+        visible: root.inlineSuggestions
+                 && (currentQuery().length > 0 || root.showAllWhenEmpty)
+                 && servicesFilterModel.count > 0
+        text: currentQuery().length > 0 ? qsTr("Найденные услуги") : qsTr("Все услуги")
         font.pixelSize: 16
         font.bold: true
         color: textColor
@@ -284,7 +308,9 @@ ColumnLayout
     ListView
     {
         id: inlineList
-        visible: root.inlineSuggestions && currentQuery().length > 0 && servicesFilterModel.count > 0
+        visible: root.inlineSuggestions && root.showInlineList
+                 && (currentQuery().length > 0 || root.showAllWhenEmpty)
+                 && servicesFilterModel.count > 0
         Layout.fillWidth: true
         Layout.preferredHeight: contentHeight
         implicitHeight: contentHeight

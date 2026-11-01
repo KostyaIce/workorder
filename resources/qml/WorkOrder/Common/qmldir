@@ -22,6 +22,7 @@ CloudDiskDialog 1.0 CloudDiskDialog.qml
 PersonalInfoDialog 1.0 PersonalInfoDialog.qml
 SettingsAboutSection 1.0 SettingsAboutSection.qml
 SettingsContent 1.0 SettingsContent.qml
+SearchAddButton 1.0 SearchAddButton.qml
 ServiceSearchField 1.0 ServiceSearchField.qml
 CoefficientSearchField 1.0 CoefficientSearchField.qml
 CoefficientPickerDialog 1.0 CoefficientPickerDialog.qml

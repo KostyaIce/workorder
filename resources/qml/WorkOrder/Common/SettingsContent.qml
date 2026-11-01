@@ -278,6 +278,12 @@ ColumnLayout {
         standardButtons: Dialog.NoButton
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         padding: 16
+
+        Overlay.modal: Rectangle
+        {
+            color: "#66000000"
+        }
+
         width: Math.min(root.compact ? parent.width - 24 : 440, parent.width - 16)
         height: Math.min(aboutColumn.implicitHeight + header.implicitHeight + padding * 2, parent.height - 32)
 

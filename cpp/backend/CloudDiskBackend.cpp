@@ -12,6 +12,7 @@
 #include "ObjectsDatabase.h"
 #include "QSettingsStore.h"
 #include "ServicesDatabase.h"
+#include "SettingsBackend.h"
 #include "WorksDatabase.h"
 
 #include <QDate>
@@ -47,6 +48,8 @@ const char *KEY_CLIENT_ID_LEGACY = "cloud_disk/client_id";
 const char *DEFAULT_DISK_URL = "https://cloud-api.yandex.net/v1/disk";
 const char *AUTH_BASE_URL = "https://oauth.yandex.ru/authorize";
 const char *WORKORDER_FOLDER_PATH = "app:/workOrder";
+const char *SETTINGS_CLOUD_FILE = "settings.json";
+const char *PERSONAL_INFO_KEY = "personal_info";
 const int LIST_LIMIT = 1000;
 
 int httpStatusOf(QNetworkReply *reply)
@@ -85,10 +88,11 @@ bool isCloudDataFileName(const QString &name)
 
 } // namespace
 
-CloudDiskBackend::CloudDiskBackend(QObject *parent)
+CloudDiskBackend::CloudDiskBackend(SettingsBackend *settingsBackend, QObject *parent)
     : QObject(parent)
     , m_network(new QNetworkAccessManager(this))
     , m_diskUrl(QString::fromUtf8(DEFAULT_DISK_URL))
+    , m_settingsBackend(settingsBackend)
     , m_oauthFlow(new YandexDiskOAuthFlow(this))
 {
     connect(m_oauthFlow,
@@ -613,6 +617,24 @@ void CloudDiskBackend::beginUploadQueue()
         m_transferQueue.push_back(item);
     }
 
+    const QString settingsName = QString::fromUtf8(SETTINGS_CLOUD_FILE);
+    const QString settingsLocalPath = QDir(syncOutgoingDir()).filePath(settingsName);
+    if(QFileInfo::exists(settingsLocalPath))
+    {
+        const QString settingsIncomingPath = QDir(syncIncomingDir()).filePath(settingsName);
+        if(!QFileInfo::exists(settingsIncomingPath)
+           || !JsonRecordStore::documentsEqual(
+               JsonRecordStore::loadDocument(settingsLocalPath),
+               JsonRecordStore::loadDocument(settingsIncomingPath)))
+        {
+            TransferItem item;
+            item.name = settingsName;
+            item.localPath = settingsLocalPath;
+            item.remotePath = remoteDbPath(settingsName);
+            m_transferQueue.push_back(item);
+        }
+    }
+
     if(m_transferQueue.isEmpty())
     {
         clearSyncIncomingDir();
@@ -1017,6 +1039,13 @@ try
         if(!document.isObject() || document.object().isEmpty())
             return false;
 
+        if(logicalName.compare(QLatin1String("settings.db"), Qt::CaseInsensitive) == 0)
+        {
+            if(!mergeSettingsFromJsonFile(sourcePath))
+                return false;
+            continue;
+        }
+
         const QString targetPath = QDir(dataDir).filePath(logicalName);
         if(logicalName.compare(QLatin1String("clients.db"), Qt::CaseInsensitive) == 0)
         {
@@ -1140,12 +1169,72 @@ try
             return false;
     }
 
+    if(!exportSettingsToOutgoingJson())
+        return false;
+
     return true;
 }
 catch(const std::exception &error)
 {
     qWarning("Cloud export read failed: %s", error.what());
     return false;
+}
+
+bool CloudDiskBackend::exportSettingsToOutgoingJson() const
+{
+    if(!m_settingsBackend)
+        return true;
+
+    QJsonObject record = QJsonObject::fromVariantMap(m_settingsBackend->personalInfoCloudRecord());
+    record.insert(QStringLiteral("id"), QString::fromUtf8(PERSONAL_INFO_KEY));
+
+    QJsonObject document;
+    document.insert(QString::fromUtf8(PERSONAL_INFO_KEY), record);
+    const QString jsonPath = QDir(syncOutgoingDir())
+                                 .filePath(QString::fromUtf8(SETTINGS_CLOUD_FILE));
+    return JsonRecordStore::saveDocument(jsonPath, document);
+}
+
+bool CloudDiskBackend::mergeSettingsFromJsonFile(const QString &jsonPath)
+{
+    if(!m_settingsBackend)
+        return true;
+
+    const QJsonObject document = JsonRecordStore::loadDocument(jsonPath);
+    if(document.isEmpty())
+        return true;
+
+    QJsonObject remoteRecord = document.value(QString::fromUtf8(PERSONAL_INFO_KEY)).toObject();
+    if(remoteRecord.isEmpty()
+       && (document.contains(QStringLiteral("personal_name"))
+           || document.contains(QString::fromUtf8(PERSONAL_INFO_KEY))))
+    {
+        remoteRecord = document;
+    }
+    if(remoteRecord.isEmpty())
+        return true;
+
+    const QJsonObject localRecord =
+        QJsonObject::fromVariantMap(m_settingsBackend->personalInfoCloudRecord());
+    const qint64 remoteRevision = JsonRecordStore::recordRevision(remoteRecord);
+    const qint64 localRevision = JsonRecordStore::recordRevision(localRecord);
+    const bool localEmpty = m_settingsBackend->personalInfo().trimmed().isEmpty();
+
+    if(!localEmpty && remoteRevision <= localRevision)
+    {
+        qInfo("CloudDiskBackend: personal info kept local (remote=%lld local=%lld)",
+              static_cast<long long>(remoteRevision),
+              static_cast<long long>(localRevision));
+        return true;
+    }
+
+    if(!m_settingsBackend->applyPersonalInfoCloudRecord(remoteRecord.toVariantMap()))
+        return false;
+
+    qInfo("CloudDiskBackend: personal info updated from cloud (remote=%lld local=%lld)",
+          static_cast<long long>(remoteRevision),
+          static_cast<long long>(localRevision));
+    return true;
 }
 
 QString CloudDiskBackend::remoteDbPath(const QString &fileName) const

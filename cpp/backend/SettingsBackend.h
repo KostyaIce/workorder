@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <QVariantMap>
 
 #ifndef WORKORDER_VERSION
 #define WORKORDER_VERSION "1.0.0"
@@ -31,6 +32,7 @@ class SettingsBackend : public QObject
     Q_PROPERTY(QString dbPath READ dbPath WRITE setDbPath NOTIFY settingsChanged)
     Q_PROPERTY(QString defaultImportPath READ defaultImportPath CONSTANT)
     Q_PROPERTY(QString personalInfo READ personalInfo WRITE setPersonalInfo NOTIFY settingsChanged)
+    Q_PROPERTY(QString personalUpdatedAt READ personalUpdatedAt NOTIFY settingsChanged)
     Q_PROPERTY(QString personalName READ personalName WRITE setPersonalName NOTIFY settingsChanged)
     Q_PROPERTY(QString personalPhone READ personalPhone WRITE setPersonalPhone NOTIFY settingsChanged)
     Q_PROPERTY(QString personalEmail READ personalEmail WRITE setPersonalEmail NOTIFY settingsChanged)
@@ -74,6 +76,9 @@ public:
 
     QString personalInfo() const;
     void setPersonalInfo(const QString &value);
+    QString personalUpdatedAt() const;
+    QVariantMap personalInfoCloudRecord() const;
+    bool applyPersonalInfoCloudRecord(const QVariantMap &record);
     QString personalName() const;
     void setPersonalName(const QString &value);
     QString personalPhone() const;
@@ -127,6 +132,7 @@ private:
     QString m_invoicePrefix = QStringLiteral("INV");
     QString m_dbPath;
     QString m_personalInfo;
+    QString m_personalUpdatedAt;
     QString m_personalName;
     QString m_personalPhone;
     QString m_personalEmail;

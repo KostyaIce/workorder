@@ -14,6 +14,7 @@ class QNetworkReply;
 namespace workorder
 {
 
+class SettingsBackend;
 class YandexDiskOAuthFlow;
 
 class CloudDiskBackend : public QObject
@@ -32,7 +33,8 @@ class CloudDiskBackend : public QObject
     Q_PROPERTY(QVariantList entries READ entries NOTIFY entriesChanged)
 
 public:
-    explicit CloudDiskBackend(QObject *parent = nullptr);
+    explicit CloudDiskBackend(SettingsBackend *settingsBackend = nullptr,
+                              QObject *parent = nullptr);
     ~CloudDiskBackend() override;
 
     bool connected() const;
@@ -119,6 +121,8 @@ private:
     QString syncOutgoingDir() const;
     void closeAllSqlConnections() const;
     bool exportLocalDatabasesToOutgoingJson() const;
+    bool exportSettingsToOutgoingJson() const;
+    bool mergeSettingsFromJsonFile(const QString &jsonPath);
     void finishTransferSuccess(const QString &message, const QString &logMessage);
     void rememberLastSync();
     void finishWithError(const QString &message, const QString &logMessage);
@@ -139,6 +143,7 @@ private:
     QList<TransferItem> m_transferQueue;
     int m_transferIndex = 0;
     int m_syncRecordsAdded = 0;
+    SettingsBackend *m_settingsBackend = nullptr;
     YandexDiskOAuthFlow *m_oauthFlow = nullptr;
     bool m_oauthInProgress = false;
 };

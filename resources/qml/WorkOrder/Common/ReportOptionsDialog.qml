@@ -9,6 +9,7 @@ Dialog
 
     property bool compact: true
     property bool ordersListReady: false
+    readonly property int footerOverlayHeight: 96
 
     readonly property string clientNamePreview: reportBackend.selectedClientName
     readonly property string clientAddressPreview:
@@ -209,7 +210,6 @@ Dialog
         {
             anchors.fill: parent
             z: 1
-            preventStealing: true
             onClicked: reportOptionsBackend.setOrderSelected(orderCard.start_order_at, !orderCard.selected)
         }
     }
@@ -234,60 +234,75 @@ Dialog
 
     footer: Item
     {
-        implicitHeight: 72
-        RowLayout
+        implicitHeight: 0
+        z: 10
+
+        Rectangle
         {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            anchors.bottomMargin: 12
-            spacing: 10
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            anchors.bottomMargin: 8
+            height: 72
+            radius: 18
+            color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.88)
+            border.width: 1
+            border.color: "#E4EAF2"
 
-            Rectangle
+            RowLayout
             {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                radius: 14
-                color: cardColor
-                border.width: 1
-                border.color: "#E4EAF2"
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 10
 
-                Label
+                Rectangle
                 {
-                    anchors.centerIn: parent
-                    text: qsTr("Закрыть")
-                    font.pixelSize: 16
-                    color: textSecondaryColor
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 14
+                    color: cardColor
+                    border.width: 1
+                    border.color: "#E4EAF2"
+
+                    Label
+                    {
+                        anchors.centerIn: parent
+                        text: qsTr("Закрыть")
+                        font.pixelSize: 16
+                        color: textSecondaryColor
+                    }
+
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        onClicked: root.close()
+                    }
                 }
 
-                MouseArea
+                Rectangle
                 {
-                    anchors.fill: parent
-                    onClicked: root.close()
-                }
-            }
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 14
+                    color: root.canSave ? primaryColor : "#CCCCCC"
 
-            Rectangle
-            {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                radius: 14
-                color: root.canSave ? primaryColor : "#CCCCCC"
+                    Label
+                    {
+                        anchors.centerIn: parent
+                        text: qsTr("Сохранить")
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "white"
+                    }
 
-                Label
-                {
-                    anchors.centerIn: parent
-                    text: qsTr("Сохранить")
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: "white"
-                }
-
-                MouseArea
-                {
-                    anchors.fill: parent
-                    enabled: root.canSave
-                    onClicked: root.openSaveReportDialog()
+                    MouseArea
+                    {
+                        anchors.fill: parent
+                        enabled: root.canSave
+                        onClicked: root.openSaveReportDialog()
+                    }
                 }
             }
         }
@@ -299,7 +314,7 @@ Dialog
 
         clip: true
         contentWidth: width
-        contentHeight: optionsColumn.implicitHeight
+        contentHeight: optionsColumn.implicitHeight + root.footerOverlayHeight
         boundsBehavior: Flickable.StopAtBounds
 
         ScrollBar.vertical: ScrollBar
@@ -321,11 +336,23 @@ Dialog
                 color: textColor
             }
 
-            Repeater
+            ListView
             {
+                id: ordersList
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(52, Math.min(contentHeight, 280))
+                visible: ordersListReady && ordersModel.count > 0
+                clip: true
+                spacing: 8
                 model: ordersListReady ? ordersModel : null
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                delegate: OrderCheckCard { }
+                delegate: OrderCheckCard
+                {
+                    width: ordersList.width
+                    height: implicitHeight
+                }
             }
 
             Label

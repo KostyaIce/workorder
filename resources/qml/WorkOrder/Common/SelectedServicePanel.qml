@@ -87,6 +87,7 @@ Rectangle
         CoefficientSearchField
         {
             compact: root.compact
+            showAllWhenEmpty: true
         }
 
         Label
@@ -226,6 +227,7 @@ Rectangle
             Layout.fillWidth: true
             compact: false
             useRowLayout: true
+            showAllWhenEmpty: true
         }
 
         RowLayout

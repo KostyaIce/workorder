@@ -34,6 +34,11 @@ Dialog
                      parent.height - 32 - (compact ? screenInsets.top + screenInsets.bottom : 0))
     padding: compact ? 16 : 12
 
+    Overlay.modal: Rectangle
+    {
+        color: "#66000000"
+    }
+
     background: Rectangle
     {
         color: backgroundColor

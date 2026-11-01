@@ -341,6 +341,7 @@ def get_orders(client_name, client_id, object_id):
             FROM completed_works
             WHERE object_id = ?
             GROUP BY start_order_at
+            ORDER BY start_order_at DESC
         """, (object_id,)).fetchall()
         return [
             {

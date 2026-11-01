@@ -86,6 +86,7 @@ Dialog
                 Layout.rightMargin: 8
                 compact: root.compact
                 requireReportReady: false
+                showAllWhenEmpty: true
                 labelText: qsTr("Найти услугу")
             }
 
@@ -226,6 +227,7 @@ Dialog
                         Layout.fillWidth: true
                         compact: root.compact
                         clearAfterSelect: true
+                        showAllWhenEmpty: true
                     }
 
                     FormTextArea

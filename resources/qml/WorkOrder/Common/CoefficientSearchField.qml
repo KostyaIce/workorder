@@ -10,6 +10,12 @@ ColumnLayout
     property bool useRowLayout: false
     // When true: show matches under the field instead of a popup.
     property bool inlineSuggestions: false
+    // Hide the built-in list when the caller renders its own scrolling list.
+    property bool showInlineList: true
+    // Show the full list before the user starts typing.
+    property bool showAllWhenEmpty: false
+    property bool showAddButton: true
+    property color fieldColor: cardColor
     // When true: clear search field after picking a coefficient from suggestions.
     property bool clearAfterSelect: false
     // When false, selection is only reported through coefficientSelected and
@@ -170,6 +176,7 @@ ColumnLayout
 
     function openAddCoefficientDialog(coefficientName)
     {
+        suggestionsPopup.close()
         coefficientDialog.openForCreate(coefficientName)
     }
 
@@ -181,7 +188,10 @@ ColumnLayout
             return
         }
 
-        if(currentQuery().length > 0 && coefficientsFilterModel.count > 0)
+        var query = currentQuery()
+        var showList = query.length > 0
+                || (root.showAllWhenEmpty && activeInput.activeFocus)
+        if(showList && coefficientsFilterModel.count > 0)
             suggestionsPopup.syncOpen()
         else
             suggestionsPopup.close()
@@ -237,8 +247,11 @@ ColumnLayout
             {
                 if(activeFocus)
                 {
+                    if(root.showAllWhenEmpty && root.currentQuery() === "")
+                        invoiceBackend.searchCoefficients("")
                     if(suggestionsPopup.keyboardAware)
                         suggestionsPopup.scheduleEnsureVisible()
+                    root.updateSuggestions()
                 }
                 else
                 {
@@ -252,55 +265,84 @@ ColumnLayout
             background: Rectangle
             {
                 radius: 12
-                color: cardColor
+                color: root.fieldColor
                 border.width: coefficientInputRow.activeFocus ? 2 : 1
                 border.color: coefficientInputRow.activeFocus ? primaryColor : "#E4EAF2"
             }
         }
+
+        SearchAddButton
+        {
+            visible: root.showAddButton
+            compact: root.compact
+            inlineStyle: root.inlineSuggestions
+            tooltip: qsTr("Создать коэффициент")
+            onClicked: root.openAddCoefficientDialog(root.currentQuery())
+        }
     }
 
-    TextField
+    RowLayout
     {
-        id: coefficientInput
         visible: !useRowLayout
         Layout.fillWidth: true
-        focusPolicy: Qt.ClickFocus
-        placeholderText: qsTr("Введите название коэффициента...")
-        onTextChanged: root.runSearch()
-        onDisplayTextChanged:
+        spacing: 8
+
+        TextField
         {
-            root.runSearch()
-            root.tryFinishInputReset()
-        }
-        onActiveFocusChanged:
-        {
-            if(activeFocus)
+            id: coefficientInput
+            Layout.fillWidth: true
+            focusPolicy: Qt.ClickFocus
+            placeholderText: qsTr("Введите название коэффициента...")
+            onTextChanged: root.runSearch()
+            onDisplayTextChanged:
             {
-                if(suggestionsPopup.keyboardAware)
-                    suggestionsPopup.scheduleEnsureVisible()
+                root.runSearch()
+                root.tryFinishInputReset()
             }
-            else
+            onActiveFocusChanged:
             {
-                root.commitPendingInputValue()
+                if(activeFocus)
+                {
+                    if(root.showAllWhenEmpty && root.currentQuery() === "")
+                        invoiceBackend.searchCoefficients("")
+                    if(suggestionsPopup.keyboardAware)
+                        suggestionsPopup.scheduleEnsureVisible()
+                    root.updateSuggestions()
+                }
+                else
+                {
+                    root.commitPendingInputValue()
+                }
+            }
+
+            leftPadding: 12
+            rightPadding: 12
+
+            background: Rectangle
+            {
+                radius: 12
+                color: root.fieldColor
+                border.width: coefficientInput.activeFocus ? 2 : 1
+                border.color: coefficientInput.activeFocus ? primaryColor : "#E4EAF2"
             }
         }
 
-        leftPadding: 12
-        rightPadding: 12
-
-        background: Rectangle
+        SearchAddButton
         {
-            radius: 12
-            color: cardColor
-            border.width: coefficientInput.activeFocus ? 2 : 1
-            border.color: coefficientInput.activeFocus ? primaryColor : "#E4EAF2"
+            visible: root.showAddButton
+            compact: root.compact
+            inlineStyle: root.inlineSuggestions
+            tooltip: qsTr("Создать коэффициент")
+            onClicked: root.openAddCoefficientDialog(root.currentQuery())
         }
     }
 
     Label
     {
-        visible: root.inlineSuggestions && currentQuery().length > 0 && coefficientsFilterModel.count > 0
-        text: qsTr("Найденные коэффициенты")
+        visible: root.inlineSuggestions
+                 && (currentQuery().length > 0 || root.showAllWhenEmpty)
+                 && coefficientsFilterModel.count > 0
+        text: currentQuery().length > 0 ? qsTr("Найденные коэффициенты") : qsTr("Все коэффициенты")
         font.pixelSize: 16
         font.bold: true
         color: textColor
@@ -310,7 +352,9 @@ ColumnLayout
     ListView
     {
         id: inlineList
-        visible: root.inlineSuggestions && currentQuery().length > 0 && coefficientsFilterModel.count > 0
+        visible: root.inlineSuggestions && root.showInlineList
+                 && (currentQuery().length > 0 || root.showAllWhenEmpty)
+                 && coefficientsFilterModel.count > 0
         Layout.fillWidth: true
         Layout.preferredHeight: contentHeight
         implicitHeight: contentHeight

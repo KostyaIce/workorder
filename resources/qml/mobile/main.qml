@@ -39,6 +39,7 @@ ApplicationWindow
     palette.windowText: textColor
     palette.base: cardColor
     palette.text: textColor
+    palette.placeholderText: Theme.placeholderTextColor
     palette.button: cardColor
     palette.buttonText: textColor
     palette.highlight: primaryColor

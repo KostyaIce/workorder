@@ -6,6 +6,7 @@
 #include "NotificationManager.h"
 #include "RegionalSettings.h"
 
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QDebug>
 #include <QDir>
@@ -205,6 +206,11 @@ bool takePrefixed(const QString &line, const QString &prefix, QString *tail)
     return true;
 }
 
+QString currentIsoTimestamp()
+{
+    return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+}
+
 } // namespace
 
 void SettingsBackend::setPersonalFieldsFromText(const QString &value)
@@ -272,6 +278,7 @@ QString SettingsBackend::composePersonalInfo() const
 void SettingsBackend::publishPersonalInfo()
 {
     m_personalInfo = composePersonalInfo();
+    m_personalUpdatedAt = currentIsoTimestamp();
     emit settingsChanged();
 }
 
@@ -282,7 +289,58 @@ void SettingsBackend::setPersonalInfo(const QString &value)
     if(m_personalInfo == composed)
         return;
     m_personalInfo = composed;
+    m_personalUpdatedAt = currentIsoTimestamp();
     emit settingsChanged();
+}
+
+QString SettingsBackend::personalUpdatedAt() const
+{
+    return m_personalUpdatedAt;
+}
+
+QVariantMap SettingsBackend::personalInfoCloudRecord() const
+{
+    QVariantMap record;
+    record.insert(QStringLiteral("personal_name"), m_personalName);
+    record.insert(QStringLiteral("personal_phone"), m_personalPhone);
+    record.insert(QStringLiteral("personal_email"), m_personalEmail);
+    record.insert(QStringLiteral("personal_organization"), m_personalOrganization);
+    record.insert(QStringLiteral("personal_inn"), m_personalInn);
+    record.insert(QStringLiteral("personal_ogrnip"), m_personalOgrnip);
+    record.insert(QStringLiteral("updated_at"), m_personalUpdatedAt);
+    return record;
+}
+
+bool SettingsBackend::applyPersonalInfoCloudRecord(const QVariantMap &record)
+{
+    if(record.isEmpty())
+        return false;
+
+    if(record.contains(QStringLiteral("personal_name"))
+       || record.contains(QStringLiteral("personal_phone"))
+       || record.contains(QStringLiteral("personal_email"))
+       || record.contains(QStringLiteral("personal_organization"))
+       || record.contains(QStringLiteral("personal_inn"))
+       || record.contains(QStringLiteral("personal_ogrnip")))
+    {
+        m_personalName = record.value(QStringLiteral("personal_name")).toString();
+        m_personalPhone = record.value(QStringLiteral("personal_phone")).toString();
+        m_personalEmail = record.value(QStringLiteral("personal_email")).toString();
+        m_personalOrganization = record.value(QStringLiteral("personal_organization")).toString();
+        m_personalInn = record.value(QStringLiteral("personal_inn")).toString();
+        m_personalOgrnip = record.value(QStringLiteral("personal_ogrnip")).toString();
+    }
+    else
+    {
+        setPersonalFieldsFromText(record.value(QStringLiteral("personal_info")).toString());
+    }
+
+    m_personalInfo = composePersonalInfo();
+    const QString updatedAt = record.value(QStringLiteral("updated_at")).toString().trimmed();
+    m_personalUpdatedAt = updatedAt.isEmpty() ? currentIsoTimestamp() : updatedAt;
+    emit settingsChanged();
+    DatabaseStorage::saveAppSettings(collectSettings());
+    return true;
 }
 
 void SettingsBackend::setPersonalName(const QString &value)
@@ -350,6 +408,8 @@ void SettingsBackend::setPersonalInfoSlot(const QString &value)
 
 bool SettingsBackend::saveSettings()
 {
+    if(!m_personalInfo.trimmed().isEmpty() && m_personalUpdatedAt.isEmpty())
+        m_personalUpdatedAt = currentIsoTimestamp();
     DatabaseStorage::saveAppSettings(collectSettings());
     return true;
 }
@@ -371,6 +431,7 @@ bool SettingsBackend::resetSettings()
     m_personalInn.clear();
     m_personalOgrnip.clear();
     m_personalInfo.clear();
+    m_personalUpdatedAt.clear();
     emit settingsChanged();
     emit themeChanged();
     emit languageChanged();
@@ -496,6 +557,7 @@ void SettingsBackend::loadPersistedSettings()
     else
         setPersonalFieldsFromText(stored.value(QStringLiteral("personal_info")).toString());
     m_personalInfo = composePersonalInfo();
+    m_personalUpdatedAt = stored.value(QStringLiteral("personal_updated_at")).toString();
 }
 
 QVariantMap SettingsBackend::collectSettings() const
@@ -509,6 +571,7 @@ QVariantMap SettingsBackend::collectSettings() const
     map.insert("invoice_prefix", m_invoicePrefix);
     map.insert("db_path", m_dbPath);
     map.insert("personal_info", m_personalInfo);
+    map.insert("personal_updated_at", m_personalUpdatedAt);
     map.insert("personal_name", m_personalName);
     map.insert("personal_phone", m_personalPhone);
     map.insert("personal_email", m_personalEmail);

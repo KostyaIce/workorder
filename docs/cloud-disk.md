@@ -73,6 +73,27 @@ Local DB files stay SQLite in `AppPaths::dbDir()` (`{STORAGE}/data/db`):
 
 Cloud copies in `app:/workOrder` are JSON with the same base name and a `.json` suffix. Sync exports SQLite to JSON before upload and merges downloaded JSON back into SQLite.
 
+Personal information from Settings is synced separately in `settings.json`:
+
+```json
+{
+  "personal_info": {
+    "id": "personal_info",
+    "personal_name": "...",
+    "personal_phone": "...",
+    "personal_email": "...",
+    "personal_organization": "...",
+    "personal_inn": "...",
+    "personal_ogrnip": "...",
+    "updated_at": "2026-10-31T12:00:00.000Z"
+  }
+}
+```
+
+`personal_updated_at` is stored locally in `app_settings.json` and updated whenever
+the personal fields change. The same timestamp is written to `settings.json` and
+used to decide which copy is newer during sync.
+
 | QML / method | Behavior |
 |--------------|----------|
 | `syncDatabases()` | Download cloud `*.json` (and leftover `*.db` JSON) to temp → merge into local SQLite by latest revision → upload `*.json` |
@@ -85,11 +106,13 @@ Cloud copies in `app:/workOrder` are JSON with the same base name and a `.json` 
 that has the same `id`. The comparison is applied to all synced tables:
 
 - `clients`, `services` and `coefficients` use their ISO `updated_at`;
-- `objects`, `completed_works` and `expenses` use their integer `updated_at` timestamp.
+- `objects`, `completed_works` and `expenses` use their integer `updated_at` timestamp;
+- personal information in `settings.json` uses its ISO `updated_at`.
 
 `services.json` carries two arrays: `"services"` and `"coefficients"`. Both are
 merged by the same rules; a file without the `"coefficients"` key simply leaves the
-local coefficients untouched.
+local coefficients untouched. A missing `settings.json` only means the local personal
+information is uploaded.
 
 For each record:
 
@@ -97,9 +120,10 @@ For each record:
 - Exists locally and remote `updated_at` is newer → replace the local row;
 - Exists locally and remote `updated_at` is older or equal → keep the local row.
 
-After merging, the backend re-exports every local database to JSON, so the uploaded
-files contain the merged result. The file names stay the same (`clients.json`,
-`services.json`, `{clientName}_{clientId}.json`). Files whose merged JSON did not
+After merging, the backend re-exports every local database and personal information
+to JSON, so the uploaded files contain the merged result. The file names stay the same
+(`clients.json`, `services.json`, `{clientName}_{clientId}.json`, `settings.json`).
+Files whose merged JSON did not
 change are not uploaded again; local-only changes are uploaded as well, which lets
 the same merge rules resolve conflicts on the next device.
 

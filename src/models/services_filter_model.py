@@ -64,13 +64,10 @@ class ServicesFilterModel(QSortFilterProxyModel):
         )
     
     def filterAcceptsRow(self, source_row, source_parent):
-        if self._filter_text == "":
-            return False
-            
         source_model = self.sourceModel()
         if not source_model:
             return True
-            
+
         # Get name and keywords from source model
         name_index = source_model.index(source_row, 0, source_parent)
         name = source_model.data(name_index, source_model.NameRole) or ""
@@ -79,6 +76,10 @@ class ServicesFilterModel(QSortFilterProxyModel):
 
         if is_percent_unit(unit):
             return False
+
+        # The picker shows all services until the user starts typing.
+        if self._filter_text == "":
+            return True
 
         filter_lower = self._filter_text.lower()
         return filter_lower in name.lower() or filter_lower in keywords.lower()

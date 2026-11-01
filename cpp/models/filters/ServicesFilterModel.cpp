@@ -10,6 +10,14 @@ ServicesFilterModel::ServicesFilterModel(QObject *parent)
 {
 }
 
+bool ServicesFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+{
+    // The picker shows all services until the user starts typing.
+    if(filterText().isEmpty())
+        return true;
+    return TextFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
+}
+
 bool ServicesFilterModel::acceptSourceRow(int sourceRow, const QModelIndex &sourceParent) const
 {
     const auto *sourceModel = qobject_cast<const ServicesModel *>(this->sourceModel());

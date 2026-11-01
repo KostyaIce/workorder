@@ -65,9 +65,6 @@ class CoefficientsFilterModel(QSortFilterProxyModel):
         )
 
     def filterAcceptsRow(self, source_row, source_parent):
-        if self._filter_text == "":
-            return False
-
         source_model = self.sourceModel()
         if not source_model:
             return True
@@ -79,6 +76,10 @@ class CoefficientsFilterModel(QSortFilterProxyModel):
 
         if not is_percent_unit(unit):
             return False
+
+        # The picker shows all coefficients until the user starts typing.
+        if self._filter_text == "":
+            return True
 
         filter_lower = self._filter_text.lower()
         return filter_lower in name.lower() or filter_lower in keywords.lower()

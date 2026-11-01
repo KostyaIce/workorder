@@ -10,4 +10,5 @@ QtObject
     readonly property color cardColor: "#FFFFFF"
     readonly property color textColor: "#1B2430"
     readonly property color textSecondaryColor: "#8B95A5"
+    readonly property color placeholderTextColor: "#6B7686"
 }

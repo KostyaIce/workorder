@@ -7,6 +7,7 @@ Button {
 
     property bool filled: true
     property bool multiline: false
+    property real backgroundOpacity: 1.0
 
     Layout.fillWidth: true
     highlighted: filled
@@ -15,6 +16,7 @@ Button {
 
     background: Rectangle {
         visible: filled
+        opacity: root.backgroundOpacity
         color: root.enabled
                ? (root.pressed ? Qt.darker(primaryColor, 1.2) : primaryColor)
                : "#CCCCCC"

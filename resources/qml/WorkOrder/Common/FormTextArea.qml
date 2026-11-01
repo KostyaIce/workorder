@@ -13,6 +13,7 @@ ColumnLayout
     property bool compact: true
     property int preferredHeight: compact ? 96 : 80
     property bool readOnly: false
+    property color fieldColor: cardColor
 
     spacing: 4
     Layout.fillWidth: true
@@ -46,7 +47,7 @@ ColumnLayout
             radius: 12
             color: root.readOnly
                    ? Qt.rgba(0, 0, 0, 0.04)
-                   : cardColor
+                   : root.fieldColor
             border.width: field.activeFocus && !root.readOnly ? 2 : 1
             border.color: field.activeFocus && !root.readOnly
                           ? primaryColor

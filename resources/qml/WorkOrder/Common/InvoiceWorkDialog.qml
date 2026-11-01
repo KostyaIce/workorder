@@ -11,10 +11,14 @@ Dialog
     property bool compact: true
     readonly property int edgeTop: compact ? screenInsets.top : 0
     readonly property int edgeBottom: compact ? screenInsets.bottom : 0
+    readonly property int footerOverlayHeight: 88 + edgeBottom
     // 0 uses the object's latest invoice. A positive value attaches the work to that invoice.
     property int startOrderAt: 0
     property int currentStep: 1
     property string serviceSignature: ""
+    readonly property bool listStep: currentStep === 1 || currentStep === 3
+    readonly property real topBlockOpacity: 0.82
+    readonly property real topItemOpacity: 0.92
 
     readonly property bool hasService: reportBackend.currentServiceName !== ""
     readonly property real quantity: Math.max(0.1, parseFloat(quantityField.text.replace(",", ".")) || 0.1)
@@ -109,6 +113,7 @@ Dialog
         clearSelection()
         currentStep = 1
         quantityField.text = "1.00"
+        resetScrollTimer.restart()
         open()
     }
 
@@ -141,12 +146,28 @@ Dialog
         quantityField.text = value.toFixed(2)
     }
 
+    function resetStepScroll()
+    {
+        if(servicesList.headerItem)
+            servicesList.contentY = -servicesList.headerItem.height
+        if(coefficientsList.headerItem)
+            coefficientsList.contentY = -coefficientsList.headerItem.height
+    }
+
+    Timer
+    {
+        id: resetScrollTimer
+        interval: 50
+        repeat: false
+        onTriggered: resetStepScroll()
+    }
+
     function goForward()
     {
         if(currentStep < 4)
         {
             currentStep += 1
-            dialogFlickable.contentY = 0
+            resetScrollTimer.restart()
             return
         }
 
@@ -166,9 +187,10 @@ Dialog
         }
 
         currentStep -= 1
-        dialogFlickable.contentY = 0
+        resetScrollTimer.restart()
     }
 
+    onOpened: resetScrollTimer.restart()
     onClosed: clearSelection()
 
     onCurrentStepChanged:
@@ -181,25 +203,31 @@ Dialog
             reportBackend.refreshSubobject(objectData.id)
     }
 
-    contentItem: Flickable
+    contentItem: Item
     {
-        id: dialogFlickable
+        id: contentRoot
 
-        clip: true
-        contentWidth: width
-        contentHeight: dialogColumn.implicitHeight
-        boundsBehavior: Flickable.StopAtBounds
-
-        ScrollBar.vertical: ScrollBar
+        Rectangle
         {
-            policy: ScrollBar.AsNeeded
+            id: topBackdrop
+            z: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: dialogColumn.height
+            color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b,
+                           root.topBlockOpacity)
         }
 
         ColumnLayout
         {
             id: dialogColumn
 
-            width: dialogFlickable.width
+            z: 2
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            width: parent.width
             spacing: 14
 
             Item
@@ -221,7 +249,9 @@ Dialog
                 {
                     anchors.fill: parent
                     radius: 16
-                    color: cardColor
+                    color: root.listStep
+                           ? Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
+                           : cardColor
                     border.width: 1
                     border.color: "#E4EAF2"
                 }
@@ -310,7 +340,9 @@ Dialog
                 visible: root.currentStep > 1
                 implicitHeight: previousInfo.implicitHeight + 20
                 radius: 12
-                color: cardColor
+                color: root.listStep
+                       ? Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
+                       : cardColor
                 border.width: 1
                 border.color: "#E4EAF2"
 
@@ -392,67 +424,183 @@ Dialog
                 visible: root.currentStep === 1
                 spacing: 12
 
-                Label
+                ColumnLayout
                 {
+                    id: serviceHeader
                     Layout.fillWidth: true
-                    text: qsTr("Выберите услугу для текущего счёта")
-                    font.pixelSize: root.compact ? 14 : 15
-                    color: textSecondaryColor
-                    wrapMode: Text.WordWrap
-                }
+                    spacing: 12
 
-                ServiceSearchField
-                {
-                    id: searchField
-                    Layout.fillWidth: true
-                    compact: root.compact
-                    preserveServiceDataOnReselect: true
-                    inlineSuggestions: true
-                    labelText: ""
-                }
-
-                Rectangle
-                {
-                    Layout.fillWidth: true
-                    visible: root.hasService && searchField.currentQuery() === ""
-                    implicitHeight: selectedServiceColumn.implicitHeight + 20
-                    radius: 10
-                    color: backgroundColor
-                    border.width: 1
-                    border.color: primaryColor
-
-                    ColumnLayout
+                    Label
                     {
-                        id: selectedServiceColumn
+                        Layout.fillWidth: true
+                        text: qsTr("Выберите услугу для текущего счёта")
+                        font.pixelSize: root.compact ? 14 : 15
+                        color: textSecondaryColor
+                        wrapMode: Text.WordWrap
+                    }
 
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        spacing: 4
+                    ServiceSearchField
+                    {
+                        id: searchField
+                        Layout.fillWidth: true
+                        compact: root.compact
+                        preserveServiceDataOnReselect: true
+                        inlineSuggestions: true
+                        showInlineList: false
+                        showAllWhenEmpty: true
+                        fieldColor: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
+                        labelText: ""
+                    }
 
-                        Label
+                    Rectangle
+                    {
+                        Layout.fillWidth: true
+                        visible: root.hasService && searchField.currentQuery() === ""
+                        implicitHeight: selectedServiceColumn.implicitHeight + 20
+                        radius: 10
+                        color: Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, root.topItemOpacity)
+                        border.width: 1
+                        border.color: primaryColor
+
+                        ColumnLayout
                         {
-                            text: qsTr("Выбрано")
-                            font.pixelSize: 12
-                            color: textSecondaryColor
+                            id: selectedServiceColumn
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 4
+
+                            Label
+                            {
+                                text: qsTr("Выбрано")
+                                font.pixelSize: 12
+                                color: textSecondaryColor
+                            }
+
+                            Label
+                            {
+                                Layout.fillWidth: true
+                                text: reportBackend.currentServiceName
+                                font.pixelSize: root.compact ? 15 : 16
+                                font.bold: true
+                                color: textColor
+                                wrapMode: Text.WordWrap
+                            }
+
+                            SummaryLabel
+                            {
+                                text: (reportBackend.currentPrice / 100).toFixed(2)
+                                      + " " + settingsBackend.currencySymbol + "/" + reportBackend.currentUnit
+                            }
+                        }
+                    }
+                }
+
+                ListView
+                {
+                    id: servicesList
+                    parent: contentRoot
+                    visible: root.currentStep === 1
+                    z: 0
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    clip: true
+                    spacing: 10
+                    model: servicesFilterModel
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    header: Item
+                    {
+                        width: servicesList.width
+                        height: dialogColumn.height + 8
+                    }
+
+                    footer: Item
+                    {
+                        width: servicesList.width
+                        height: root.footerOverlayHeight
+                    }
+
+                    delegate: Rectangle
+                    {
+                        id: serviceCard
+                        required property string id
+                        required property string name
+                        required property string unit
+                        required property int price
+
+                        width: servicesList.width
+                        implicitHeight: serviceCardBody.implicitHeight + 20
+                        height: implicitHeight
+                        radius: 16
+                        readonly property bool selected: reportBackend.currentServiceName === name
+                                                          && reportBackend.currentUnit === unit
+                                                          && reportBackend.currentPrice === price
+                        color: selected
+                               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+                               : cardColor
+                        border.width: selected ? 1.5 : 1
+                        border.color: selected ? primaryColor : "#E6EBF2"
+
+                        RowLayout
+                        {
+                            id: serviceCardBody
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 12
+                            spacing: 8
+
+                            ColumnLayout
+                            {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                ServiceNameText
+                                {
+                                    text: serviceCard.name
+                                    baseFontSize: 15
+                                    compactFontSize: 14
+                                    font.bold: true
+                                    Layout.fillWidth: true
+                                }
+
+                                Label
+                                {
+                                    text: (serviceCard.price / 100).toFixed(2) + " " + settingsBackend.currencySymbol
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                    color: primaryColor
+                                }
+                            }
+
+                            WorkOrderIcon
+                            {
+                                name: "chevron-right"
+                                tone: "muted"
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
                         }
 
-                        Label
+                        MouseArea
                         {
-                            Layout.fillWidth: true
-                            text: reportBackend.currentServiceName
-                            font.pixelSize: root.compact ? 15 : 16
-                            font.bold: true
-                            color: textColor
-                            wrapMode: Text.WordWrap
-                        }
-
-                        SummaryLabel
-                        {
-                            text: (reportBackend.currentPrice / 100).toFixed(2)
-                                  + " " + settingsBackend.currencySymbol + "/" + reportBackend.currentUnit
+                            anchors.fill: parent
+                            onClicked:
+                            {
+                                if(!serviceCard.selected)
+                                    reportBackend.selectService(serviceCard.id, serviceCard.name,
+                                                                serviceCard.unit, serviceCard.price)
+                            }
                         }
                     }
                 }
@@ -632,84 +780,195 @@ Dialog
                 visible: root.currentStep === 3
                 spacing: 10
 
-                FormTextArea
+                ColumnLayout
                 {
-                    id: coefficientsEdit
+                    id: coefficientHeader
                     Layout.fillWidth: true
-                    visible: reportBackend.currentCoefficients !== ""
-                    compact: root.compact
-                    preferredHeight: root.compact ? 88 : 76
-                    label: qsTr("Выбранные коэффициенты")
-                    placeholder: qsTr("Коэффициенты не указаны")
-                    text: reportBackend.currentCoefficients
-                    field.onTextChanged:
+                    spacing: 10
+
+                    FormTextArea
                     {
-                        // Ignore updates pushed from the backend. Writing them back
-                        // replaces the accumulated coefficient list with a stale value.
-                        if(!coefficientsEdit.field.activeFocus)
-                            return
-                        if(coefficientsEdit.text !== reportBackend.currentCoefficients)
-                            reportBackend.setCurrentCoefficients(coefficientsEdit.text)
-                    }
-                }
-
-                RowLayout
-                {
-                    Layout.fillWidth: true
-                    visible: reportBackend.currentCoefficients !== ""
-                    spacing: 8
-
-                    Label
-                    {
-                        text: qsTr("Итоговый коэффициент")
-                        font.pixelSize: 14
-                        color: textSecondaryColor
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    TextField
-                    {
-                        id: percentField
-                        Layout.preferredWidth: 84
-                        Layout.preferredHeight: 40
-                        horizontalAlignment: Text.AlignRight
-                        leftPadding: 10
-                        rightPadding: 10
-                        text: String(reportBackend.currentPercentSum)
-                        validator: IntValidator { bottom: 100; top: 9999 }
-
-                        background: Rectangle
+                        id: coefficientsEdit
+                        Layout.fillWidth: true
+                        visible: reportBackend.currentCoefficients !== ""
+                        compact: root.compact
+                        preferredHeight: root.compact ? 88 : 76
+                        fieldColor: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
+                        label: qsTr("Выбранные коэффициенты")
+                        placeholder: qsTr("Коэффициенты не указаны")
+                        text: reportBackend.currentCoefficients
+                        field.onTextChanged:
                         {
-                            radius: 12
-                            color: cardColor
-                            border.width: percentField.activeFocus ? 2 : 1
-                            border.color: percentField.activeFocus ? primaryColor : "#E4EAF2"
-                        }
-                        onTextChanged:
-                        {
-                            if(!percentField.activeFocus)
+                            // Ignore updates pushed from the backend. Writing them back
+                            // replaces the accumulated coefficient list with a stale value.
+                            if(!coefficientsEdit.field.activeFocus)
                                 return
-                            var value = parseInt(text, 10)
-                            if(!isNaN(value))
-                                reportBackend.setCurrentPercentSum(value)
+                            if(coefficientsEdit.text !== reportBackend.currentCoefficients)
+                                reportBackend.setCurrentCoefficients(coefficientsEdit.text)
                         }
                     }
 
-                    Label
+                    RowLayout
                     {
-                        text: "%"
-                        color: textSecondaryColor
+                        Layout.fillWidth: true
+                        visible: reportBackend.currentCoefficients !== ""
+                        spacing: 8
+
+                        Label
+                        {
+                            text: qsTr("Итоговый коэффициент")
+                            font.pixelSize: 14
+                            color: textSecondaryColor
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        TextField
+                        {
+                            id: percentField
+                            Layout.preferredWidth: 84
+                            Layout.preferredHeight: 40
+                            horizontalAlignment: Text.AlignRight
+                            leftPadding: 10
+                            rightPadding: 10
+                            text: String(reportBackend.currentPercentSum)
+                            validator: IntValidator { bottom: 100; top: 9999 }
+
+                            background: Rectangle
+                            {
+                                radius: 12
+                                color: cardColor
+                                border.width: percentField.activeFocus ? 2 : 1
+                                border.color: percentField.activeFocus ? primaryColor : "#E4EAF2"
+                            }
+                            onTextChanged:
+                            {
+                                if(!percentField.activeFocus)
+                                    return
+                                var value = parseInt(text, 10)
+                                if(!isNaN(value))
+                                    reportBackend.setCurrentPercentSum(value)
+                            }
+                        }
+
+                        Label
+                        {
+                            text: "%"
+                            color: textSecondaryColor
+                        }
+                    }
+
+                    CoefficientSearchField
+                    {
+                        id: coefficientSearch
+                        Layout.fillWidth: true
+                        compact: root.compact
+                        clearAfterSelect: true
+                        inlineSuggestions: true
+                        showInlineList: false
+                        showAllWhenEmpty: true
+                        fieldColor: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
                     }
                 }
 
-                CoefficientSearchField
+                ListView
                 {
-                    id: coefficientSearch
-                    Layout.fillWidth: true
-                    compact: root.compact
-                    clearAfterSelect: true
-                    inlineSuggestions: true
+                    id: coefficientsList
+                    parent: contentRoot
+                    visible: root.currentStep === 3
+                    z: 0
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    clip: true
+                    spacing: 10
+                    model: coefficientsFilterModel
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    header: Item
+                    {
+                        width: coefficientsList.width
+                        height: dialogColumn.height + 8
+                    }
+
+                    footer: Item
+                    {
+                        width: coefficientsList.width
+                        height: root.footerOverlayHeight
+                    }
+
+                    delegate: Rectangle
+                    {
+                        id: coefficientCard
+                        required property string id
+                        required property string name
+                        required property string unit
+                        required property int price
+
+                        width: coefficientsList.width
+                        implicitHeight: coefficientCardBody.implicitHeight + 20
+                        height: implicitHeight
+                        radius: 16
+                        color: coefficientCardMouse.pressed
+                               ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+                               : cardColor
+                        border.width: 1
+                        border.color: "#E6EBF2"
+
+                        RowLayout
+                        {
+                            id: coefficientCardBody
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 12
+                            spacing: 8
+
+                            ColumnLayout
+                            {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                ServiceNameText
+                                {
+                                    text: coefficientCard.name
+                                    baseFontSize: 15
+                                    compactFontSize: 14
+                                    font.bold: true
+                                    Layout.fillWidth: true
+                                }
+
+                                Label
+                                {
+                                    text: (coefficientCard.price / 100).toFixed(0) + " %"
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                    color: primaryColor
+                                }
+                            }
+
+                            WorkOrderIcon
+                            {
+                                name: "chevron-right"
+                                tone: "muted"
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+
+                        MouseArea
+                        {
+                            id: coefficientCardMouse
+                            anchors.fill: parent
+                            onClicked: coefficientSearch.chooseCoefficient(coefficientCard.id, coefficientCard.name,
+                                                                           coefficientCard.unit, coefficientCard.price)
+                        }
+                    }
                 }
             }
 
@@ -769,22 +1028,31 @@ Dialog
                     }
                 }
             }
+
+            Item
+            {
+                Layout.preferredHeight: root.listStep ? 0 : root.footerOverlayHeight
+            }
         }
     }
 
     footer: Item
     {
-        implicitHeight: 72 + root.edgeBottom
+        implicitHeight: 0
+        z: 10
+
         PrimaryButton
         {
+            anchors.left: parent.left
             anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 16
             anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -root.edgeBottom / 2
-            Layout.fillWidth: false
-            width: 148
+            anchors.bottomMargin: 16 + root.edgeBottom
+            height: 56
             text: root.currentStep === 4 ? qsTr("Добавить") : qsTr("Далее")
             enabled: root.hasService
+            backgroundOpacity: 0.82
             onClicked: root.goForward()
         }
     }
