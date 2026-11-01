@@ -7,9 +7,9 @@
 | OAuth Client ID | `e015e5639e814d569f163477e7eb9415` | `cpp/CMakeLists.txt` |
 | Android application id | `com.konstantin.workorder` | `cpp/android/AndroidManifest.xml` и Java-пакет `cpp/android/src/com/konstantin/workorder` |
 | iOS Bundle ID | `com.konstantin.workorder` | `-DWORKORDER_IOS_BUNDLE_ID=...` |
-| Redirect scheme | `workorder` | `-DWORKORDER_OAUTH_CALLBACK_SCHEME=...` |
-| Mobile redirect URI (Android) | `workorder://oauth-callback` | scheme + host в коде |
-| Login SDK iOS scheme | `yx` + Client ID | `cpp/ios/Info.plist.in` (генерируется CMake) |
+| Android Auth SDK | `com.yandex.android:authsdk:3.1.3` | `cpp/android/build.gradle` |
+| Android SDK scheme | `yx` + Client ID | генерируется SDK из `YANDEX_CLIENT_ID` |
+| iOS Login SDK scheme | `yx` + Client ID | `cpp/ios/Info.plist.in` (генерируется CMake) |
 | Desktop redirect | `http://127.0.0.1:53683/callback` | порт в `YandexDiskConfig::desktopOAuthPort` |
 
 Право на Диск: **`cloud_api:disk.app_folder`**.
@@ -26,13 +26,16 @@
 2. **Android**
    - Имя пакета: **`com.konstantin.workorder`** (как в `AndroidManifest.xml`).
    - Отпечаток **SHA-256** release-ключа. Как создать ключ и снять отпечаток: [android-signing-key.md](android-signing-key.md).
+   - Право на Диск: **`cloud_api:disk.app_folder`**.
 
-3. **Redirect URI (Android, браузер / PKCE)**
-   - Добавьте в раздел **«Веб-сервисы»**: **`workorder://oauth-callback`**
+   Android использует нативный **Yandex Auth SDK** (`com.yandex.android:authsdk:3.1.3`).
+   SDK сам открывает Яндекс-приложение, Chrome Custom Tabs или WebView и
+   возвращает токен через схему **`yx<Client ID>`**. Отдельный redirect URI
+   для Android вручную регистрировать не нужно; главное — пакет, SHA-256 и
+   Client ID должны совпадать с настройками приложения в oauth.yandex.ru.
 
-   Для iOS отдельный redirect URI вручную добавлять не нужно: Login SDK
-   использует собственную схему **`yx<Client ID>`** и
-   `ASWebAuthenticationSession`.
+   Для iOS также используется нативный Login SDK со схемой
+   **`yx<Client ID>`** и `ASWebAuthenticationSession`.
 
 ### Desktop (macOS / Windows / Linux)
 
@@ -46,12 +49,16 @@
 | iOS CMake | `cmake/CppIos.cmake` |
 | iOS Login SDK | `cpp/ios/YandexAuth.swift`, `cpp/ios/YandexAuth.mm`, `cpp/ios/YandexAuth.h` |
 | iOS CocoaPods | `prod_build/ios_pods.sh` (YandexLoginSDK, `WorkOrder.xcworkspace`) |
-| Android deep link | `cpp/android/AndroidManifest.xml` (intent-filter `workorder` / `oauth-callback`) |
+| Android Gradle | `cpp/android/build.gradle` (`com.yandex.android:authsdk:3.1.3`) |
+| Android Java bridge | `cpp/android/src/com/konstantin/workorder/YandexAuthHelper.java` |
+| Android C++ bridge | `cpp/backend/YandexDiskOAuthFlow.cpp` |
 
 На iOS вход идёт через **YandexLoginSDK** (`cpp/ios/YandexAuth.swift`), который
-подключается CocoaPods в `prod_build/ios_pods.sh`. Сборка использует
-`WorkOrder.xcworkspace`. Android пока использует браузерный redirect.
+подключается CocoaPods в `prod_build/ios_pods.sh`. На Android используется
+**Yandex Auth SDK** через `YandexAuthHelper.java` и JNI-мост в
+`YandexDiskOAuthFlow.cpp`. Сборка iOS использует `WorkOrder.xcworkspace`.
 
 ## После смены Client ID
 
-Отключите Диск в настройках и войдите снова. Обновите iOS scheme `yx...`, redirect URI и платформы в oauth.yandex.ru.
+Отключите Диск в настройках и войдите снова. Обновите scheme `yx...` и
+платформы iOS/Android (package + SHA-256) в oauth.yandex.ru.

@@ -15,6 +15,14 @@ class QTcpServer;
 class QTcpSocket;
 class QTimer;
 
+#if defined(Q_OS_ANDROID)
+namespace QtAndroidPrivate
+{
+class ActivityResultListener;
+class NewIntentListener;
+}
+#endif
+
 namespace workorder
 {
 
@@ -35,6 +43,12 @@ public:
     bool begin();
     void cancel();
     QString buildAuthorizeUrl() const;
+
+#if defined(Q_OS_ANDROID)
+    // Called from the Android intent listener when the browser returns to the app.
+    void handleAndroidOAuthCallback(const QString &url);
+    void handleAndroidSdkResult(const QString &result);
+#endif
 
 signals:
     void progressMessageChanged(const QString &message);
@@ -71,6 +85,9 @@ private:
     void exchangeAuthorizationCode(const QString &code, const QString &redirectUri);
     void onTokenExchangeFinished();
     void finishHttpOAuthResponse(bool success);
+#if defined(Q_OS_ANDROID)
+    void checkAndroidLaunchIntent();
+#endif
 
     static QString newCodeVerifier();
     static QString newOAuthState();
@@ -89,6 +106,10 @@ private:
     QHash<QTcpSocket *, PendingHttpRequest> m_pending;
     QPointer<QTcpSocket> m_httpResponseSocket;
     QPointer<QNetworkReply> m_tokenReply;
+#if defined(Q_OS_ANDROID)
+    QtAndroidPrivate::ActivityResultListener *m_androidResultListener = nullptr;
+    QtAndroidPrivate::NewIntentListener *m_androidIntentListener = nullptr;
+#endif
 };
 
 } // namespace workorder

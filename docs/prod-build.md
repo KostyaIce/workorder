@@ -27,9 +27,7 @@ bash prod_build/build_ios.sh ad-hoc
 # iOS: App Store / TestFlight (manual distribution signing)
 bash prod_build/build_ios_app_store.sh --check
 bash prod_build/build_ios_app_store.sh
-# Android: debug / production APK
-export ANDROID_NDK_ROOT=/absolute/path/to/android-ndk
-export ANDROID_BUILD_TOOLS_VERSION=35.0.0
+# Android: debug / production APK (SDK, NDK, build-tools, JDK auto-detected)
 bash prod_build/build_android_apk.sh debug
 bash prod_build/build_android_apk.sh release
 ```
@@ -39,6 +37,24 @@ bash prod_build/build_android_apk.sh release
 App Store IPA загружается через Transporter; для прямой установки нужен тестовый режим.
 Android release создаётся через Qt/CMake и подписывается `apksigner` с production-ключом.
 Результат: `build/android-cpp-release/WorkOrder-release.apk`.
+
+В конце сборки скрипт выводит время старта/завершения, длительность, размер APK,
+имя пакета и команды для установки и запуска. SDK, NDK, build-tools и JDK 17/21
+определяются автоматически; при наличии preview-платформы вроде `android-37.0`
+используется временный SDK только со стабильными платформами.
+
+```bash
+ADB="$HOME/Library/Android/sdk/platform-tools/adb"
+"$ADB" devices
+"$ADB" install -r build/android-cpp-debug/WorkOrder-debug.apk
+"$ADB" shell monkey -p com.konstantin.workorder 1
+bash prod_build/android/logcat_workorder.sh
+```
+
+Если на Huawei/Honor установка отклоняется с
+`INSTALL_FAILED_ABORTED: User rejected permissions`, разблокируйте экран,
+включите **Developer options → Install via USB** и подтвердите установку на
+устройстве. При наличии пункта **Verify apps over USB** его лучше отключить.
 
 Файлы подписи располагаются **вне репозитория**, рядом с проектом:
 

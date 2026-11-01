@@ -1,13 +1,99 @@
 #include "ScreenInsets.h"
 
+#include <QDebug>
 #include <QGuiApplication>
+#include <QMargins>
 #include <QScreen>
 #include <QTimer>
 #include <QWindow>
 #include <qpa/qplatformwindow.h>
 
+#if defined(Q_OS_ANDROID)
+#include <QJniObject>
+#include <QtCore/qcoreapplication_platform.h>
+#include <QtMath>
+#endif
+
 namespace workorder
 {
+
+namespace
+{
+
+#if defined(Q_OS_ANDROID)
+QMargins androidWindowInsets(QWindow *window)
+{
+    if(!window)
+        return {};
+
+    const QJniObject activity = QJniObject::callStaticObjectMethod(
+        "org/qtproject/qt/android/QtNative",
+        "activity",
+        "()Landroid/app/Activity;");
+    if(!activity.isValid())
+        return {};
+
+    const QJniObject windowObject = activity.callObjectMethod(
+        "getWindow", "()Landroid/view/Window;");
+    if(!windowObject.isValid())
+        return {};
+
+    const QJniObject decorView = windowObject.callObjectMethod(
+        "getDecorView", "()Landroid/view/View;");
+    if(!decorView.isValid())
+        return {};
+
+    const QJniObject insets = decorView.callObjectMethod(
+        "getRootWindowInsets", "()Landroid/view/WindowInsets;");
+    if(!insets.isValid())
+        return {};
+
+    jint pxLeft = 0;
+    jint pxTop = 0;
+    jint pxRight = 0;
+    jint pxBottom = 0;
+    bool resolved = false;
+
+    if(QNativeInterface::QAndroidApplication::sdkVersion() >= 30)
+    {
+        jint types = QJniObject::callStaticMethod<jint>(
+            "android/view/WindowInsets$Type", "systemBars", "()I");
+        types |= QJniObject::callStaticMethod<jint>(
+            "android/view/WindowInsets$Type", "displayCutout", "()I");
+        const QJniObject graphicsInsets = insets.callObjectMethod(
+            "getInsets", "(I)Landroid/graphics/Insets;", types);
+        if(graphicsInsets.isValid())
+        {
+            pxLeft = graphicsInsets.getField<jint>("left");
+            pxTop = graphicsInsets.getField<jint>("top");
+            pxRight = graphicsInsets.getField<jint>("right");
+            pxBottom = graphicsInsets.getField<jint>("bottom");
+            resolved = true;
+        }
+    }
+
+    if(!resolved)
+    {
+        pxLeft = insets.callMethod<jint>("getSystemWindowInsetLeft");
+        pxTop = insets.callMethod<jint>("getSystemWindowInsetTop");
+        pxRight = insets.callMethod<jint>("getSystemWindowInsetRight");
+        pxBottom = insets.callMethod<jint>("getSystemWindowInsetBottom");
+    }
+
+    qreal dpr = window->devicePixelRatio();
+    if(window->screen() && window->screen()->devicePixelRatio() > 0)
+        dpr = window->screen()->devicePixelRatio();
+    if(dpr <= 0)
+        dpr = 1.0;
+    auto toDp = [dpr](jint value)
+    {
+        return qRound(static_cast<qreal>(value) / dpr);
+    };
+    return QMargins(toDp(pxLeft), toDp(pxTop), toDp(pxRight), toDp(pxBottom));
+}
+#endif
+
+} // namespace
 
 ScreenInsets::ScreenInsets(QObject *parent)
     : QObject(parent)
@@ -46,6 +132,7 @@ void ScreenInsets::attachWindow(QObject *windowObject)
     m_window = window;
     connect(m_window, &QWindow::widthChanged, this, &ScreenInsets::update);
     connect(m_window, &QWindow::heightChanged, this, &ScreenInsets::update);
+    connect(m_window, &QWindow::visibilityChanged, this, &ScreenInsets::update);
     connect(m_window, &QWindow::screenChanged, this, [this](QScreen *screen)
     {
         watchScreen(screen);
@@ -58,6 +145,7 @@ void ScreenInsets::attachWindow(QObject *windowObject)
     QTimer::singleShot(0, this, &ScreenInsets::update);
     QTimer::singleShot(100, this, &ScreenInsets::update);
     QTimer::singleShot(400, this, &ScreenInsets::update);
+    QTimer::singleShot(1000, this, &ScreenInsets::update);
 }
 
 void ScreenInsets::watchScreen(QScreen *screen)
@@ -113,6 +201,27 @@ void ScreenInsets::update()
         }
     }
 
+#if defined(Q_OS_ANDROID)
+    const QMargins androidMargins = androidWindowInsets(m_window);
+    left = qMax(left, androidMargins.left());
+    top = qMax(top, androidMargins.top());
+    right = qMax(right, androidMargins.right());
+    bottom = qMax(bottom, androidMargins.bottom());
+#endif
+
+    if(m_window && m_window->width() > 0 && m_window->height() > 0)
+    {
+        const int limit = qMax(1, qMin(m_window->width(), m_window->height()) / 3);
+        if(left > limit)
+            left = 0;
+        if(top > limit)
+            top = 0;
+        if(right > limit)
+            right = 0;
+        if(bottom > limit)
+            bottom = 0;
+    }
+
     if(m_window && m_window->screen())
     {
         const QRect full = m_window->screen()->geometry();
@@ -125,6 +234,11 @@ void ScreenInsets::update()
 
     if(left == m_left && top == m_top && right == m_right && bottom == m_bottom)
         return;
+
+#if defined(Q_OS_ANDROID)
+    qInfo("ScreenInsets: left=%d top=%d right=%d bottom=%d",
+          left, top, right, bottom);
+#endif
 
     m_left = left;
     m_top = top;

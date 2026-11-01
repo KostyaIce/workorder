@@ -67,14 +67,17 @@ Team ID и сертификат выбираются из профиля; при
 
 ```bash
 # Debug APK для тестов:
-export ANDROID_NDK_ROOT="$HOME/Library/Android/sdk/ndk/<версия-для-вашего-Qt>"
 bash prod_build/build_android_apk.sh debug
 # Production APK:
-export ANDROID_BUILD_TOOLS_VERSION=35.0.0 # установленная версия SDK Build Tools
 bash prod_build/build_android_apk.sh release
 # Другой каталог ключей:
 SIGNING_DIR=/absolute/path/workorder-signing bash prod_build/build_android_apk.sh release
 ```
+
+SDK, NDK, build-tools и JDK 17/21 определяются автоматически из установленных.
+При необходимости можно переопределить `ANDROID_SDK_ROOT`, `ANDROID_NDK_ROOT`,
+`ANDROID_BUILD_TOOLS_VERSION`, `JAVA_HOME`, `QT_ROOT`, `QT_ANDROID_PATH`,
+`QT_HOST_PATH`.
 
 Production-ключи: `../workorder-signing/key.properties` и `workorder-key.jks`.
 Пример `key.properties` (замените значения в угловых скобках):
@@ -92,9 +95,47 @@ Release APK выравнивается через `zipalign`, подписыва
 Результат: `build/android-cpp-debug/WorkOrder-debug.apk` или
 `build/android-cpp-release/WorkOrder-release.apk`.
 
-```bash
-adb install -r /path/to/WorkOrder.apk
+В конце сборки скрипт печатает время старта и завершения, длительность, размер APK,
+имя пакета и готовые команды. Пример:
+
+```text
+============================================================
+ СБОРКА ЗАВЕРШЕНА: 2026-11-01 15:12:40 MSK
+ Старт: 2026-11-01 15:08:12 MSK
+ Длительность: 268s
+ APK: build/android-cpp-release/WorkOrder-release.apk (24M)
+ Пакет: com.konstantin.workorder
+...
 ```
+
+Установка и запуск на подключённом устройстве:
+
+```bash
+# Проверить, что телефон виден
+"$HOME/Library/Android/sdk/platform-tools/adb" devices
+
+# Установить или обновить APK
+"$HOME/Library/Android/sdk/platform-tools/adb" install -r build/android-cpp-debug/WorkOrder-debug.apk
+
+# Запустить приложение
+"$HOME/Library/Android/sdk/platform-tools/adb" shell monkey -p com.konstantin.workorder 1
+
+# Логи приложения
+bash prod_build/android/logcat_workorder.sh
+```
+
+Если `adb install` на Huawei/Honor падает с
+`INSTALL_FAILED_ABORTED: User rejected permissions`:
+
+- разблокируйте экран и подтвердите установку на самом устройстве;
+- включите **Настройки → Система → Для разработчиков → Install via USB**
+  (у некоторых прошивок пункт скрыт, пока не включена отладка по USB);
+- отключите **Verify apps over USB**, если пункт есть;
+- при повторной попытке на экране должно появиться подтверждение установки.
+
+SDK, NDK, build-tools и JDK 17/21 определяются автоматически. Если установлена
+preview-платформа (например `android-37.0`), скрипт собирает через временный SDK
+только со стабильными платформами, чтобы Gradle не падал на `compileSdk`.
 
 ## Desktop
 

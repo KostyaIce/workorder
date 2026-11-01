@@ -1,13 +1,21 @@
 #include "YandexDiskOAuthFlow.h"
 
 #include "YandexDiskConfig.h"
+#include "QSettingsStore.h"
 
 #if defined(Q_OS_IOS)
 #include "../ios/YandexAuth.h"
 #endif
 
+#if defined(Q_OS_ANDROID)
+#include <QJniEnvironment>
+#include <QJniObject>
+#include <QtCore/private/qjnihelpers_p.h>
+#endif
+
 #include <QAbstractSocket>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QHostAddress>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -29,6 +37,10 @@ namespace
 {
 
 constexpr int kOAuthTimeoutMs = 5 * 60 * 1000;
+constexpr int kAndroidYandexAuthRequestCode = 0x5941;
+const char *kPendingStateKey = "oauth/pending_state";
+const char *kPendingVerifierKey = "oauth/pending_verifier";
+const char *kPendingStartedAtKey = "oauth/pending_started_at";
 
 const char *kDesktopOAuthHtml = R"HTML(<!DOCTYPE html>
 <html lang="ru">
@@ -60,6 +72,117 @@ QString redirectUriForPort()
     return QStringLiteral("http://127.0.0.1:%1/callback").arg(YandexDiskConfig::desktopOAuthPort);
 }
 
+#if defined(Q_OS_ANDROID)
+QString androidCallbackPrefix()
+{
+    return QStringLiteral("%1://%2")
+        .arg(QString::fromUtf8(YandexDiskConfig::mobileOAuthCallbackScheme),
+             QString::fromUtf8(YandexDiskConfig::mobileOAuthCallbackHost));
+}
+
+QString androidCurrentIntentUrl()
+{
+    const QJniObject activity = QJniObject::callStaticObjectMethod(
+        "org/qtproject/qt/android/QtNative",
+        "activity",
+        "()Landroid/app/Activity;");
+    if(!activity.isValid())
+        return {};
+
+    const QJniObject intent = activity.callObjectMethod(
+        "getIntent", "()Landroid/content/Intent;");
+    if(!intent.isValid())
+        return {};
+
+    const QJniObject data = intent.callObjectMethod(
+        "getData", "()Landroid/net/Uri;");
+    if(!data.isValid())
+        return {};
+
+    return data.callObjectMethod("toString", "()Ljava/lang/String;").toString();
+}
+
+void clearPendingAndroidOAuth()
+{
+    QSettingsStore store;
+    store.remove(QString::fromUtf8(kPendingStateKey));
+    store.remove(QString::fromUtf8(kPendingVerifierKey));
+    store.remove(QString::fromUtf8(kPendingStartedAtKey));
+    store.sync();
+}
+
+class AndroidYandexAuthResultListener final : public QtAndroidPrivate::ActivityResultListener
+{
+public:
+    explicit AndroidYandexAuthResultListener(YandexDiskOAuthFlow *flow)
+        : m_flow(flow)
+    {
+    }
+
+    bool handleActivityResult(jint requestCode, jint resultCode, jobject data) override
+    {
+        if(requestCode != kAndroidYandexAuthRequestCode)
+            return false;
+
+        const QJniObject result = QJniObject::callStaticObjectMethod(
+            "com/konstantin/workorder/YandexAuthHelper",
+            "finish",
+            "(IILandroid/content/Intent;)Ljava/lang/String;",
+            requestCode,
+            resultCode,
+            data);
+        const QString text = result.isValid()
+            ? result.toString()
+            : QStringLiteral("ERROR:Yandex Auth SDK returned no result");
+
+        QMetaObject::invokeMethod(m_flow, [flow = m_flow, text]()
+        {
+            flow->handleAndroidSdkResult(text);
+        }, Qt::QueuedConnection);
+        return true;
+    }
+
+private:
+    YandexDiskOAuthFlow *m_flow = nullptr;
+};
+
+class AndroidOAuthIntentListener final : public QtAndroidPrivate::NewIntentListener
+{
+public:
+    explicit AndroidOAuthIntentListener(YandexDiskOAuthFlow *flow)
+        : m_flow(flow)
+    {
+    }
+
+    bool handleNewIntent(JNIEnv *, jobject intent) override
+    {
+        if(!m_flow || !intent)
+            return false;
+
+        const QJniObject intentObject(intent);
+        const QJniObject data = intentObject.callObjectMethod(
+            "getData", "()Landroid/net/Uri;");
+        if(!data.isValid())
+            return false;
+
+        const QString url = data.callObjectMethod(
+            "toString", "()Ljava/lang/String;").toString();
+        if(!url.startsWith(androidCallbackPrefix(), Qt::CaseInsensitive))
+            return false;
+
+        qInfo("YandexDiskOAuthFlow: Android callback intent received");
+        QMetaObject::invokeMethod(m_flow, [flow = m_flow, url]()
+        {
+            flow->handleAndroidOAuthCallback(url);
+        }, Qt::QueuedConnection);
+        return true;
+    }
+
+private:
+    YandexDiskOAuthFlow *m_flow = nullptr;
+};
+#endif
+
 } // namespace
 
 YandexDiskOAuthFlow::YandexDiskOAuthFlow(QObject *parent)
@@ -76,10 +199,31 @@ YandexDiskOAuthFlow::YandexDiskOAuthFlow(QObject *parent)
         fail(QStringLiteral("Время входа истекло"), QStringLiteral("OAuth timeout"));
     });
     connect(m_server, &QTcpServer::newConnection, this, &YandexDiskOAuthFlow::onNewConnection);
+#if defined(Q_OS_ANDROID)
+    m_androidResultListener = new AndroidYandexAuthResultListener(this);
+    QtAndroidPrivate::registerActivityResultListener(m_androidResultListener);
+    m_androidIntentListener = new AndroidOAuthIntentListener(this);
+    QtAndroidPrivate::registerNewIntentListener(m_androidIntentListener);
+    QTimer::singleShot(0, this, &YandexDiskOAuthFlow::checkAndroidLaunchIntent);
+#endif
 }
 
 YandexDiskOAuthFlow::~YandexDiskOAuthFlow()
 {
+#if defined(Q_OS_ANDROID)
+    if(m_androidResultListener)
+    {
+        QtAndroidPrivate::unregisterActivityResultListener(m_androidResultListener);
+        delete m_androidResultListener;
+        m_androidResultListener = nullptr;
+    }
+    if(m_androidIntentListener)
+    {
+        QtAndroidPrivate::unregisterNewIntentListener(m_androidIntentListener);
+        delete m_androidIntentListener;
+        m_androidIntentListener = nullptr;
+    }
+#endif
     cancel();
 }
 
@@ -93,6 +237,8 @@ QString YandexDiskOAuthFlow::redirectUri() const
 #if defined(Q_OS_IOS)
     return QStringLiteral("yx%1://auth/finish")
         .arg(QString::fromUtf8(YandexDiskConfig::oauthClientId));
+#elif defined(Q_OS_ANDROID)
+    return androidCallbackPrefix();
 #else
     return redirectUriForPort();
 #endif
@@ -100,7 +246,7 @@ QString YandexDiskOAuthFlow::redirectUri() const
 
 bool YandexDiskOAuthFlow::usesNativeSdk() const
 {
-#if defined(Q_OS_IOS)
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     return true;
 #else
     return false;
@@ -135,6 +281,36 @@ bool YandexDiskOAuthFlow::begin()
                 self->completeWithToken(token);
         }, Qt::QueuedConnection);
     });
+    return true;
+#elif defined(Q_OS_ANDROID)
+    const QJniObject activity = QJniObject::callStaticObjectMethod(
+        "org/qtproject/qt/android/QtNative",
+        "activity",
+        "()Landroid/app/Activity;");
+    if(!activity.isValid())
+    {
+        fail(QStringLiteral("Не удалось открыть окно Яндекс ID"),
+             QStringLiteral("Android activity is invalid"));
+        return false;
+    }
+
+    setInProgress(true);
+    m_timeout->start(kOAuthTimeoutMs);
+    setProgressMessage(QStringLiteral("Подтвердите вход в Яндекс..."));
+    qInfo("YandexDiskOAuthFlow: starting Yandex Auth SDK");
+    QJniObject::callStaticMethod<void>(
+        "com/konstantin/workorder/YandexAuthHelper",
+        "start",
+        "(Landroid/app/Activity;)V",
+        activity.object<jobject>());
+
+    QJniEnvironment environment;
+    if(environment.checkAndClearExceptions())
+    {
+        fail(QStringLiteral("Не удалось запустить Yandex Auth SDK"),
+             QStringLiteral("Yandex Auth SDK start failed"));
+        return false;
+    }
     return true;
 #else
     m_state = newOAuthState();
@@ -180,6 +356,9 @@ void YandexDiskOAuthFlow::cancel()
     }
     m_timeout->stop();
     shutdownServer();
+#if defined(Q_OS_ANDROID)
+    clearPendingAndroidOAuth();
+#endif
     m_state.clear();
     m_codeVerifier.clear();
     if(m_inProgress)
@@ -203,6 +382,102 @@ QString YandexDiskOAuthFlow::buildAuthorizeUrl() const
     url.setQuery(query);
     return url.toString(QUrl::FullyEncoded);
 }
+
+#if defined(Q_OS_ANDROID)
+void YandexDiskOAuthFlow::handleAndroidOAuthCallback(const QString &url)
+{
+    if(!m_inProgress)
+        return;
+
+    if(!url.startsWith(androidCallbackPrefix(), Qt::CaseInsensitive))
+        return;
+
+    const QUrl callbackUrl(url);
+    const QUrlQuery query(callbackUrl);
+    QMap<QString, QString> params;
+    for(const auto &item : query.queryItems(QUrl::FullyDecoded))
+        params.insert(item.first, item.second);
+
+    const QString receivedState = params.value(QStringLiteral("state"));
+    if(receivedState != m_state)
+    {
+        fail(QStringLiteral("Вход не подтверждён. Попробуйте снова."),
+             QStringLiteral("Android OAuth state mismatch"));
+        return;
+    }
+
+    qInfo("YandexDiskOAuthFlow: Android callback received");
+    completeFromParams(params, redirectUri());
+}
+
+void YandexDiskOAuthFlow::handleAndroidSdkResult(const QString &result)
+{
+    if(!m_inProgress)
+        return;
+
+    if(result.startsWith(QStringLiteral("OK:")))
+    {
+        const QString token = result.mid(3).trimmed();
+        if(token.isEmpty())
+        {
+            fail(QStringLiteral("Токен не получен"),
+                 QStringLiteral("Yandex Auth SDK returned an empty token"));
+            return;
+        }
+        completeWithToken(token);
+        return;
+    }
+
+    if(result == QStringLiteral("CANCELLED"))
+    {
+        fail(QStringLiteral("Вход отменён"), QStringLiteral("Yandex Auth SDK cancelled"));
+        return;
+    }
+
+    if(result.startsWith(QStringLiteral("ERROR:")))
+    {
+        const QString error = result.mid(6).trimmed();
+        fail(error.isEmpty() ? QStringLiteral("Ошибка входа через Яндекс")
+                             : QStringLiteral("Ошибка: %1").arg(error),
+             QStringLiteral("Yandex Auth SDK failed: %1").arg(error));
+        return;
+    }
+
+    fail(QStringLiteral("Не удалось получить токен"),
+         QStringLiteral("Unexpected Yandex Auth SDK result"));
+}
+
+void YandexDiskOAuthFlow::checkAndroidLaunchIntent()
+{
+    if(m_inProgress)
+        return;
+
+    const QString url = androidCurrentIntentUrl();
+    if(!url.startsWith(androidCallbackPrefix(), Qt::CaseInsensitive))
+        return;
+
+    QSettingsStore store;
+    const QString state = store.read(QString::fromUtf8(kPendingStateKey)).toString();
+    const QString verifier = store.read(QString::fromUtf8(kPendingVerifierKey)).toString();
+    const qint64 startedAt =
+        store.read(QString::fromUtf8(kPendingStartedAtKey), 0).toLongLong();
+    const bool expired = startedAt > 0
+        && QDateTime::currentSecsSinceEpoch() - startedAt > kOAuthTimeoutMs / 1000;
+
+    if(state.isEmpty() || verifier.isEmpty() || expired)
+    {
+        clearPendingAndroidOAuth();
+        return;
+    }
+
+    m_state = state;
+    m_codeVerifier = verifier;
+    setInProgress(true);
+    m_timeout->start(kOAuthTimeoutMs);
+    qInfo("YandexDiskOAuthFlow: Android launch callback detected");
+    handleAndroidOAuthCallback(url);
+}
+#endif
 
 void YandexDiskOAuthFlow::setInProgress(bool value)
 {

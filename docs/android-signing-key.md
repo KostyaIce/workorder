@@ -52,3 +52,26 @@ keytool -list -v \
 ```
 
 В выводе нужна строка `SHA256:`. В кабинет её копируют целиком, вместе с двоеточиями, например `AA:BB:CC:...`.
+
+## Проверка подписи release APK
+
+```bash
+TOOLS="$HOME/Library/Android/sdk/build-tools/35.0.0"
+"$TOOLS/apksigner" verify --verbose --print-certs \
+  build/android-cpp-release/WorkOrder-release.apk
+```
+
+В выводе должно быть `Verifies` и сертификат с тем же SHA-256, что у ключа
+`workorder`. Скрипт сборки также печатает этот отпечаток после release-сборки.
+
+Для `minSdkVersion=28` и `targetSdkVersion=34` `apksigner` может показать:
+
+```text
+Verified using v1 scheme: false
+Verified using v2 scheme: false
+Verified using v3 scheme: true
+```
+
+Это нормально: APK подписан схемой v3, которой достаточно для API 28+ и Google Play.
+Проверять подпись нужно через `apksigner`, а не `jarsigner`: `jarsigner` видит только
+v1-схему и может ошибочно сообщить, что APK не подписан.

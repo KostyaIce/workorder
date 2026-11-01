@@ -29,6 +29,21 @@ Build scripts run `pod install` automatically and build
 `cpp/ios/Info.plist.in` must keep `CFBundleURLSchemes` with `yx<Client ID>`.
 The SDK uses the web strategy, so Associated Domains are not required.
 
+### Android
+
+Android uses the native **Yandex Auth SDK** (`com.yandex.android:authsdk:3.1.3`)
+through `cpp/android/src/com/konstantin/workorder/YandexAuthHelper.java` and the
+JNI bridge in `cpp/backend/YandexDiskOAuthFlow.cpp`.
+
+1. Press **Открыть авторизацию**.
+2. The SDK opens a Yandex app, Chrome Custom Tabs or a WebView.
+3. The SDK returns the OAuth token through the `yx<Client ID>` scheme; C++ stores
+   it in `QSettings` (`cloud_disk/*`).
+
+The package name and release SHA-256 must be registered on the Android platform
+in `oauth.yandex.ru`. A separate browser redirect URI is not required for the
+native SDK.
+
 ### Desktop
 
 1. Press **Открыть авторизацию** (system browser via `QDesktopServices`).
