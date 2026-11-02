@@ -16,6 +16,7 @@ Dialog
     property int startOrderAt: 0
     property int currentStep: 1
     property string serviceSignature: ""
+    property bool coefficientsExpanded: true
     readonly property bool listStep: currentStep === 1 || currentStep === 3
     readonly property real topBlockOpacity: 0.82
     readonly property real topItemOpacity: 0.92
@@ -123,6 +124,7 @@ Dialog
         reportBackend.clearCurrentService()
         searchField.clearField()
         coefficientSearch.clearField()
+        coefficientsExpanded = true
         quantityField.text = "1.00"
     }
 
@@ -786,32 +788,123 @@ Dialog
                     Layout.fillWidth: true
                     spacing: 10
 
-                    FormTextArea
+                    ColumnLayout
                     {
-                        id: coefficientsEdit
                         Layout.fillWidth: true
+                        Layout.topMargin: -6
                         visible: reportBackend.currentCoefficients !== ""
-                        compact: root.compact
-                        preferredHeight: root.compact ? 88 : 76
-                        fieldColor: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
-                        label: qsTr("Выбранные коэффициенты")
-                        placeholder: qsTr("Коэффициенты не указаны")
-                        text: reportBackend.currentCoefficients
-                        field.onTextChanged:
+                        spacing: 4
+
+                        RowLayout
                         {
-                            // Ignore updates pushed from the backend. Writing them back
-                            // replaces the accumulated coefficient list with a stale value.
-                            if(!coefficientsEdit.field.activeFocus)
-                                return
-                            if(coefficientsEdit.text !== reportBackend.currentCoefficients)
-                                reportBackend.setCurrentCoefficients(coefficientsEdit.text)
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Label
+                            {
+                                text: qsTr("Выбранные коэффициенты")
+                                font.pixelSize: 14
+                                color: textSecondaryColor
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Rectangle
+                            {
+                                width: 28
+                                height: 28
+                                radius: 14
+                                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1)
+
+                                Image
+                                {
+                                    anchors.centerIn: parent
+                                    width: 14
+                                    height: 14
+                                    source: "qrc:/resources/icons/ui/angle_arrow.svg"
+                                    sourceSize.width: 64
+                                    sourceSize.height: 64
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    mipmap: true
+                                    rotation: root.coefficientsExpanded ? 180 : 0
+                                }
+
+                                MouseArea
+                                {
+                                    id: collapseMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.coefficientsExpanded = !root.coefficientsExpanded
+                                }
+
+                                ToolTip.visible: collapseMouse.containsMouse
+                                ToolTip.text: root.coefficientsExpanded
+                                              ? qsTr("Свернуть коэффициенты")
+                                              : qsTr("Развернуть коэффициенты")
+                            }
+
+                            Rectangle
+                            {
+                                width: 28
+                                height: 28
+                                radius: 14
+                                color: Qt.rgba(0.957, 0.267, 0.212, 0.12)
+
+                                Label
+                                {
+                                    anchors.centerIn: parent
+                                    text: "\u2715"
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: "#F44336"
+                                }
+
+                                MouseArea
+                                {
+                                    id: hoverArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked:
+                                    {
+                                        reportBackend.setCurrentCoefficients("")
+                                        reportBackend.setCurrentPercentSum(100)
+                                    }
+                                }
+
+                                ToolTip.visible: hoverArea.containsMouse
+                                ToolTip.text: qsTr("Убрать все коэффициенты")
+                            }
+                        }
+
+                        FormTextArea
+                        {
+                            id: coefficientsEdit
+                            Layout.fillWidth: true
+                            visible: root.coefficientsExpanded
+                            compact: root.compact
+                            preferredHeight: root.compact ? 88 : 76
+                            fieldColor: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, root.topItemOpacity)
+                            label: ""
+                            placeholder: qsTr("Коэффициенты не указаны")
+                            text: reportBackend.currentCoefficients
+                            field.onTextChanged:
+                            {
+                                // Ignore updates pushed from the backend. Writing them back
+                                // replaces the accumulated coefficient list with a stale value.
+                                if(!coefficientsEdit.field.activeFocus)
+                                    return
+                                if(coefficientsEdit.text !== reportBackend.currentCoefficients)
+                                    reportBackend.setCurrentCoefficients(coefficientsEdit.text)
+                            }
                         }
                     }
 
                     RowLayout
                     {
                         Layout.fillWidth: true
-                        visible: reportBackend.currentCoefficients !== ""
+                        visible: root.coefficientsExpanded
+                                 && reportBackend.currentCoefficients !== ""
                         spacing: 8
 
                         Label
@@ -1050,7 +1143,11 @@ Dialog
             anchors.rightMargin: 16
             anchors.bottomMargin: 16 + root.edgeBottom
             height: 56
-            text: root.currentStep === 4 ? qsTr("Добавить") : qsTr("Далее")
+            text: root.currentStep === 4
+                  ? qsTr("Добавить")
+                  : (root.currentStep === 3 && reportBackend.currentCoefficients.trim() === ""
+                     ? qsTr("Далее без коэффициента")
+                     : qsTr("Далее"))
             enabled: root.hasService
             backgroundOpacity: 0.82
             onClicked: root.goForward()

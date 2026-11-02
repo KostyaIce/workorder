@@ -28,6 +28,7 @@ function(workorder_setup_qrc_resources target)
     )
     file(GLOB _ui_icons CONFIGURE_DEPENDS
         "${WORKORDER_ROOT}/resources/icons/ui/*.png"
+        "${WORKORDER_ROOT}/resources/icons/ui/*.svg"
     )
     file(GLOB _currency_icons CONFIGURE_DEPENDS
         "${WORKORDER_ROOT}/resources/icons/currency/*.svg"

@@ -213,7 +213,7 @@ ColumnLayout
     Label
     {
         visible: !useRowLayout
-        text: root.clearAfterSelect ? qsTr("Выбрать коэффициент") : qsTr("Коэффициенты")
+        text: root.clearAfterSelect ? qsTr("Выбрать коэффициент (не обязательно)") : qsTr("Коэффициенты")
         font.pixelSize: 14
         color: textSecondaryColor
     }
@@ -226,7 +226,7 @@ ColumnLayout
 
         Label
         {
-            text: root.clearAfterSelect ? qsTr("Выбрать коэффициент") : qsTr("Коэффициенты")
+            text: root.clearAfterSelect ? qsTr("Выбрать коэффициент (не обязательно)") : qsTr("Коэффициенты")
             font.pixelSize: 12
             color: textSecondaryColor
         }

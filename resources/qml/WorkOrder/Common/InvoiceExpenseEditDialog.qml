@@ -11,9 +11,11 @@ Dialog
     property string initialDescription: ""
     property int initialAmountKopecks: 0
 
+    readonly property string amountText:
+        amountField.displayText.length > 0 ? amountField.displayText : amountField.text
     readonly property int amountKopecks:
     {
-        var rubles = parseFloat(amountField.text.replace(",", "."))
+        var rubles = parseFloat(amountText.replace(",", "."))
         return isNaN(rubles) ? 0 : Math.round(rubles * 100)
     }
     readonly property bool valid:
