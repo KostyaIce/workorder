@@ -90,12 +90,6 @@ def patch_buildozer_config():
             self.set_value("app", "source.include_exts", include_exts, raise_warning=False)
         perms = self.get_value("app", "android.permissions") or ""
         perm_set = {p.strip() for p in perms.split(",") if p.strip()}
-        perm_set.update(
-            {
-                "android.permission.READ_EXTERNAL_STORAGE",
-                "android.permission.WRITE_EXTERNAL_STORAGE",
-            }
-        )
         self.set_value("app", "android.permissions", ",".join(sorted(perm_set)))
         self.update_config()
 

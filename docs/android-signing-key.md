@@ -58,7 +58,7 @@ keytool -list -v \
 ```bash
 TOOLS="$HOME/Library/Android/sdk/build-tools/35.0.0"
 "$TOOLS/apksigner" verify --verbose --print-certs \
-  build/android-cpp-release/WorkOrder-release.apk
+  build/android-cpp-release/WorkOrder.apk
 ```
 
 В выводе должно быть `Verifies` и сертификат с тем же SHA-256, что у ключа

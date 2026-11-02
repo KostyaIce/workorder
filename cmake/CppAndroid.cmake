@@ -15,6 +15,8 @@ function(workorder_setup_android_target target)
         QT_ANDROID_PACKAGE_SOURCE_DIR "${_android_dir}"
         QT_ANDROID_APP_NAME "WorkOrder"
         QT_ANDROID_APPLICATION_ARGUMENTS "--type mobile"
+        QT_ANDROID_MIN_SDK_VERSION 28
+        QT_ANDROID_TARGET_SDK_VERSION 36
     )
 
     if(DEFINED WORKORDER_VERSION_NAME AND DEFINED WORKORDER_VERSION_CODE)
@@ -27,12 +29,6 @@ function(workorder_setup_android_target target)
     if(COMMAND qt_add_android_permission)
         qt_add_android_permission(${target}
             NAME android.permission.INTERNET
-        )
-        qt_add_android_permission(${target}
-            NAME android.permission.READ_EXTERNAL_STORAGE
-        )
-        qt_add_android_permission(${target}
-            NAME android.permission.WRITE_EXTERNAL_STORAGE
         )
     endif()
 

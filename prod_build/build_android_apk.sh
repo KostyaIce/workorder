@@ -3,17 +3,19 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MODE="${1:-debug}"
+BUILD_AAB=0
 BUILD_STARTED_AT="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 BUILD_STARTED_EPOCH="$(date +%s)"
 case "$MODE" in
     -h|--help)
-        echo 'Usage: bash prod_build/build_android_apk.sh [debug|release]'
-        echo 'Qt/C++ mobile APK. SDK, NDK and build-tools are auto-detected.'
+        echo 'Usage: bash prod_build/build_android_apk.sh [debug|release|aab]'
+        echo 'Qt/C++ mobile APK or AAB. SDK, NDK and build-tools are auto-detected.'
         echo 'Release keys: ../workorder-signing/key.properties.'
         echo 'Overrides: QT_ROOT, QT_ANDROID_PATH, QT_HOST_PATH, ANDROID_SDK_ROOT, ANDROID_NDK_ROOT, ANDROID_BUILD_TOOLS_VERSION, SIGNING_DIR, BUILD_DIR.'
         exit 0 ;;
     debug) CONFIG=Debug ;;
     release) CONFIG=Release ;;
+    aab|release-aab) MODE=release; CONFIG=Release; BUILD_AAB=1 ;;
     *) echo "ERROR: Unknown mode: $MODE" >&2; exit 1 ;;
 esac
 [ $# -le 1 ] || { echo 'ERROR: Too many arguments' >&2; exit 1; }
@@ -268,6 +270,7 @@ if [ "$MODE" = release ]; then
     case "$STORE_FILE" in /*) ;; *) STORE_FILE="$SIGNING_DIR/$STORE_FILE" ;; esac
     [ -f "$STORE_FILE" ] || { echo "ERROR: Missing keystore: $STORE_FILE" >&2; exit 1; }
     [ -x "$TOOLS/apksigner" ] && [ -x "$TOOLS/zipalign" ] || { echo "ERROR: Missing Android build tools: $TOOLS" >&2; exit 1; }
+    command -v jarsigner >/dev/null || { echo 'ERROR: Missing jarsigner' >&2; exit 1; }
 fi
 
 echo "Build started: $BUILD_STARTED_AT"
@@ -295,23 +298,41 @@ echo "Qt host: $QT_HOST_PATH"
     -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
     -DANDROID_ABI=arm64-v8a \
     -DCMAKE_BUILD_TYPE="$CONFIG" -DType=mobile -DQT_ANDROID_SIGN_APK=OFF
-"$CMAKE_BIN" --build "$BUILD_DIR" --target WorkOrder_make_apk
-APK_DIR="$BUILD_DIR/android-build/build/outputs/apk/$MODE"
-shopt -s nullglob
-APKS=("$APK_DIR/"*.apk)
-[ "${#APKS[@]}" -eq 1 ] || { echo "ERROR: Expected one APK in $APK_DIR" >&2; exit 1; }
-OUTPUT="$BUILD_DIR/WorkOrder-$MODE.apk"
-if [ "$MODE" = release ]; then
-    "$TOOLS/zipalign" -f -p 4 "${APKS[0]}" "$BUILD_DIR/aligned.apk"
-    export WORKORDER_STORE_PASSWORD="$STORE_PASSWORD" WORKORDER_KEY_PASSWORD="$KEY_PASSWORD"
-    "$TOOLS/apksigner" sign --ks "$STORE_FILE" --ks-key-alias "$KEY_ALIAS" \
-        --ks-pass env:WORKORDER_STORE_PASSWORD --key-pass env:WORKORDER_KEY_PASSWORD \
-        --out "$OUTPUT" "$BUILD_DIR/aligned.apk"
-    "$TOOLS/apksigner" verify --verbose "$OUTPUT"
-    SIGNING_CERT_SHA256="$("$TOOLS/apksigner" verify --print-certs "$OUTPUT" 2>/dev/null \
-        | awk -F': ' '/certificate SHA-256 digest/ { print $2; exit }')"
+if [ "$BUILD_AAB" = 1 ]; then
+    "$CMAKE_BIN" --build "$BUILD_DIR" --target WorkOrder_make_aab
+    AAB_DIR="$BUILD_DIR/android-build/build/outputs/bundle/release"
+    shopt -s nullglob
+    AABS=("$AAB_DIR/"*.aab)
+    [ "${#AABS[@]}" -eq 1 ] || { echo "ERROR: Expected one AAB in $AAB_DIR" >&2; exit 1; }
+    OUTPUT="$BUILD_DIR/WorkOrder.aab"
+    jarsigner -keystore "$STORE_FILE" -storepass "$STORE_PASSWORD" \
+        -keypass "$KEY_PASSWORD" -signedjar "$OUTPUT" "${AABS[0]}" "$KEY_ALIAS"
+    jarsigner -verify "$OUTPUT" >/dev/null
+    SIGNING_CERT_SHA256="$(keytool -printcert -jarfile "$OUTPUT" 2>/dev/null \
+        | awk -F': ' '/SHA256:/ { print $2; exit }')"
 else
-    cp "${APKS[0]}" "$OUTPUT"
+    "$CMAKE_BIN" --build "$BUILD_DIR" --target WorkOrder_make_apk
+    APK_DIR="$BUILD_DIR/android-build/build/outputs/apk/$MODE"
+    shopt -s nullglob
+    APKS=("$APK_DIR/"*.apk)
+    [ "${#APKS[@]}" -eq 1 ] || { echo "ERROR: Expected one APK in $APK_DIR" >&2; exit 1; }
+    if [ "$MODE" = release ]; then
+        OUTPUT="$BUILD_DIR/WorkOrder.apk"
+    else
+        OUTPUT="$BUILD_DIR/WorkOrder-debug.apk"
+    fi
+    if [ "$MODE" = release ]; then
+        "$TOOLS/zipalign" -f -p 4 "${APKS[0]}" "$BUILD_DIR/aligned.apk"
+        export WORKORDER_STORE_PASSWORD="$STORE_PASSWORD" WORKORDER_KEY_PASSWORD="$KEY_PASSWORD"
+        "$TOOLS/apksigner" sign --ks "$STORE_FILE" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:WORKORDER_STORE_PASSWORD --key-pass env:WORKORDER_KEY_PASSWORD \
+            --out "$OUTPUT" "$BUILD_DIR/aligned.apk"
+        "$TOOLS/apksigner" verify --verbose "$OUTPUT"
+        SIGNING_CERT_SHA256="$("$TOOLS/apksigner" verify --print-certs "$OUTPUT" 2>/dev/null \
+            | awk -F': ' '/certificate SHA-256 digest/ { print $2; exit }')"
+    else
+        cp "${APKS[0]}" "$OUTPUT"
+    fi
 fi
 
 PACKAGE_NAME="$(awk -F'"' '/package="/ { print $2; exit }' "$ROOT/cpp/android/AndroidManifest.xml")"
@@ -320,29 +341,38 @@ ADB_CMD="$ANDROID_SDK_ROOT/platform-tools/adb"
 [ -x "$ADB_CMD" ] || ADB_CMD="adb"
 BUILD_FINISHED_AT="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 BUILD_SECONDS=$(( $(date +%s) - BUILD_STARTED_EPOCH ))
-APK_SIZE="$(du -h "$OUTPUT" | awk '{ print $1 }')"
+ARTIFACT_SIZE="$(du -h "$OUTPUT" | awk '{ print $1 }')"
 
 echo
 echo "============================================================"
 echo " СБОРКА ЗАВЕРШЕНА: $BUILD_FINISHED_AT"
 echo " Старт: $BUILD_STARTED_AT"
 echo " Длительность: ${BUILD_SECONDS}s"
-echo " APK: $OUTPUT ($APK_SIZE)"
+if [ "$BUILD_AAB" = 1 ]; then
+    echo " AAB: $OUTPUT ($ARTIFACT_SIZE)"
+else
+    echo " APK: $OUTPUT ($ARTIFACT_SIZE)"
+fi
 echo " Пакет: $PACKAGE_NAME"
 if [ -n "$SIGNING_CERT_SHA256" ]; then
     echo " Подпись: release"
     echo " Сертификат SHA-256: $SIGNING_CERT_SHA256"
 fi
 echo
-echo " Установить на устройство:"
-echo "   \"$ADB_CMD\" install -r \"$OUTPUT\""
-echo " Если Huawei пишет INSTALL_FAILED_ABORTED: User rejected permissions —"
-echo " разблокируйте экран, включите Developer options -> Install via USB"
-echo " и подтвердите установку на устройстве."
-echo " Запустить:"
-echo "   \"$ADB_CMD\" shell monkey -p $PACKAGE_NAME 1"
-echo " Проверить подключение:"
-echo "   \"$ADB_CMD\" devices"
-echo " Смотреть логи:"
-echo "   bash prod_build/android/logcat_workorder.sh"
+if [ "$BUILD_AAB" = 1 ]; then
+    echo " Загрузите AAB в Google Play Console:"
+    echo "   $OUTPUT"
+else
+    echo " Установить на устройство:"
+    echo "   \"$ADB_CMD\" install -r \"$OUTPUT\""
+    echo " Если Huawei пишет INSTALL_FAILED_ABORTED: User rejected permissions —"
+    echo " разблокируйте экран, включите Developer options -> Install via USB"
+    echo " и подтвердите установку на устройстве."
+    echo " Запустить:"
+    echo "   \"$ADB_CMD\" shell monkey -p $PACKAGE_NAME 1"
+    echo " Проверить подключение:"
+    echo "   \"$ADB_CMD\" devices"
+    echo " Смотреть логи:"
+    echo "   bash prod_build/android/logcat_workorder.sh"
+fi
 echo "============================================================"

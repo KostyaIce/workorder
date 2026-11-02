@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.konstantin.workorder"
     android:installLocation="auto"
-    android:versionCode="100044"
-    android:versionName="1.0-44">
+    android:versionCode="100045"
+    android:versionName="1.0-45">
     <!-- %%INSERT_PERMISSIONS -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <!-- %%INSERT_FEATURES -->
 
     <supports-screens
@@ -19,7 +22,6 @@
         android:extractNativeLibs="true"
         android:hardwareAccelerated="true"
         android:label="WorkOrder"
-        android:requestLegacyExternalStorage="true"
         android:allowNativeHeapPointerTagging="false"
         android:allowBackup="true"
         android:fullBackupOnly="false"

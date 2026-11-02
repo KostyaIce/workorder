@@ -68,8 +68,10 @@ Team ID и сертификат выбираются из профиля; при
 ```bash
 # Debug APK для тестов:
 bash prod_build/build_android_apk.sh debug
-# Production APK:
+# Production APK (RuStore, direct install):
 bash prod_build/build_android_apk.sh release
+# Production AAB для Google Play:
+bash prod_build/build_android_apk.sh aab
 # Другой каталог ключей:
 SIGNING_DIR=/absolute/path/workorder-signing bash prod_build/build_android_apk.sh release
 ```
@@ -92,8 +94,9 @@ keyPassword=<пароль ключа>
 `storeFile` задаётся относительно каталога подписи или абсолютным путём.
 Используйте обычные строки `key=value`, без Java-properties escape-последовательностей.
 Release APK выравнивается через `zipalign`, подписывается `apksigner`, подпись проверяется.
-Результат: `build/android-cpp-debug/WorkOrder-debug.apk` или
-`build/android-cpp-release/WorkOrder-release.apk`.
+Результат: `build/android-cpp-debug/WorkOrder-debug.apk`,
+`build/android-cpp-release/WorkOrder.apk` или
+`build/android-cpp-release/WorkOrder.aab` для Google Play.
 
 В конце сборки скрипт печатает время старта и завершения, длительность, размер APK,
 имя пакета и готовые команды. Пример:
@@ -103,7 +106,7 @@ Release APK выравнивается через `zipalign`, подписыва
  СБОРКА ЗАВЕРШЕНА: 2026-11-01 15:12:40 MSK
  Старт: 2026-11-01 15:08:12 MSK
  Длительность: 268s
- APK: build/android-cpp-release/WorkOrder-release.apk (24M)
+ APK: build/android-cpp-release/WorkOrder.apk (24M)
  Пакет: com.konstantin.workorder
 ...
 ```

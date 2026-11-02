@@ -29,14 +29,16 @@ bash prod_build/build_ios_app_store.sh --check
 bash prod_build/build_ios_app_store.sh
 # Android: debug / production APK (SDK, NDK, build-tools, JDK auto-detected)
 bash prod_build/build_android_apk.sh debug
-bash prod_build/build_android_apk.sh release
+bash prod_build/build_android_apk.sh release   # APK: RuStore / прямая установка
+bash prod_build/build_android_apk.sh aab       # AAB: Google Play
 ```
 
 Тестовые IPA: `build/ios-local/WorkOrder-development.ipa` или
 `WorkOrder-ad-hoc.ipa`. Distribution IPA: `build/ios-app-store/WorkOrder.ipa`.
 App Store IPA загружается через Transporter; для прямой установки нужен тестовый режим.
 Android release создаётся через Qt/CMake и подписывается `apksigner` с production-ключом.
-Результат: `build/android-cpp-release/WorkOrder-release.apk`.
+Результат: `build/android-cpp-release/WorkOrder.apk` или
+`build/android-cpp-release/WorkOrder.aab`.
 
 В конце сборки скрипт выводит время старта/завершения, длительность, размер APK,
 имя пакета и команды для установки и запуска. SDK, NDK, build-tools и JDK 17/21
