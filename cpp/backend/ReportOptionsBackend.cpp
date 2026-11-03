@@ -16,7 +16,7 @@ const char *kIncludeReportHeader = "report_options/include_report_header";
 const char *kReportHeaderText = "report_options/report_header_text";
 const char *kGroupBySubobjects = "report_options/group_by_subobjects";
 const char *kIncludeCoefficients = "report_options/include_coefficients";
-const char *kDefaultReportHeader = "Отчет о проделанной работе по установке сантехники";
+const char *kDefaultReportHeader = "Отчет о проделанной работе";
 
 } // namespace
 

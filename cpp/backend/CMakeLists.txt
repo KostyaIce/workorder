@@ -13,6 +13,7 @@ set(WORKORDER_BACKEND_SOURCES
     ReportBackend.cpp
     ReportOptionsBackend.cpp
     SettingsBackend.cpp
+    TokenCipher.cpp
 )
 
 set(WORKORDER_BACKEND_HEADERS
@@ -29,6 +30,7 @@ set(WORKORDER_BACKEND_HEADERS
     ReportBackend.h
     ReportOptionsBackend.h
     SettingsBackend.h
+    TokenCipher.h
 )
 
 add_library(workorder_backend STATIC

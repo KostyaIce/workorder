@@ -16,7 +16,7 @@ _SETTINGS_KEY_INCLUDE_REPORT_HEADER = "report_options/include_report_header"
 _SETTINGS_KEY_REPORT_HEADER_TEXT = "report_options/report_header_text"
 _SETTINGS_KEY_GROUP_BY_SUBOBJECTS = "report_options/group_by_subobjects"
 
-_DEFAULT_REPORT_HEADER = "Отчет о проделанной работе по установке сантехники"
+_DEFAULT_REPORT_HEADER = "Отчет о проделанной работе"
 
 
 class ReportOptionsBackend(QObject):

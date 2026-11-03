@@ -75,3 +75,9 @@ Verified using v3 scheme: true
 Это нормально: APK подписан схемой v3, которой достаточно для API 28+ и Google Play.
 Проверять подпись нужно через `apksigner`, а не `jarsigner`: `jarsigner` видит только
 v1-схему и может ошибочно сообщить, что APK не подписан.
+
+## Google Play App Signing и PEPK
+
+Если Play Console просит передать существующий ключ подписи приложения, нужен
+PEPK. Пошаговая инструкция для macOS:
+[pepk-macos.md](pepk-macos.md).

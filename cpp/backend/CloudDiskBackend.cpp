@@ -13,6 +13,7 @@
 #include "QSettingsStore.h"
 #include "ServicesDatabase.h"
 #include "SettingsBackend.h"
+#include "TokenCipher.h"
 #include "WorksDatabase.h"
 
 #include <QDate>
@@ -1245,7 +1246,22 @@ QString CloudDiskBackend::remoteDbPath(const QString &fileName) const
 void CloudDiskBackend::loadPersisted()
 {
     QSettingsStore store;
-    m_token = store.read(QString::fromUtf8(KEY_TOKEN), QString()).toString().trimmed();
+    const QString storedToken =
+        store.read(QString::fromUtf8(KEY_TOKEN), QString()).toString().trimmed();
+    if(TokenCipher::isEncrypted(storedToken))
+    {
+        m_token = TokenCipher::decrypt(storedToken);
+        if(m_token.isEmpty())
+        {
+            qWarning("CloudDiskBackend: stored token cannot be decrypted");
+            store.remove(QString::fromUtf8(KEY_TOKEN));
+        }
+    }
+    else
+    {
+        m_token = storedToken;
+    }
+
     m_lastSyncAt = store.read(QString::fromUtf8(KEY_LAST_SYNC), 0).toLongLong();
     const QString savedUrl = store.read(QString::fromUtf8(KEY_DISK_URL), QString()).toString();
     m_diskUrl = normalizeDiskUrl(savedUrl.isEmpty()
@@ -1253,6 +1269,9 @@ void CloudDiskBackend::loadPersisted()
                                      : savedUrl);
     store.remove(QString::fromUtf8(KEY_CLIENT_ID_LEGACY));
     store.sync();
+
+    if(!storedToken.isEmpty() && !TokenCipher::isEncrypted(storedToken))
+        persistCredentials();
 }
 
 void CloudDiskBackend::persistCredentials()
@@ -1261,7 +1280,7 @@ void CloudDiskBackend::persistCredentials()
     if(m_token.isEmpty())
         store.remove(QString::fromUtf8(KEY_TOKEN));
     else
-        store.write(QString::fromUtf8(KEY_TOKEN), m_token);
+        store.write(QString::fromUtf8(KEY_TOKEN), TokenCipher::encrypt(m_token));
     store.write(QString::fromUtf8(KEY_DISK_URL), m_diskUrl);
     store.remove(QString::fromUtf8(KEY_CLIENT_ID_LEGACY));
     store.sync();

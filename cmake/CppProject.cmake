@@ -10,6 +10,14 @@ function(workorder_fix_macos_agl_framework)
 
     set(_sysroot "${CMAKE_OSX_SYSROOT}")
     if(NOT IS_DIRECTORY "${_sysroot}")
+        execute_process(
+            COMMAND xcrun --sdk macosx --show-sdk-path
+            OUTPUT_VARIABLE _sysroot
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+    if(NOT IS_DIRECTORY "${_sysroot}")
         return()
     endif()
 

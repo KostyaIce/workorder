@@ -65,8 +65,15 @@ the OAuth client).
 
 | Key | Meaning |
 |-----|---------|
-| `cloud_disk/token` | OAuth token |
+| `cloud_disk/token` | OAuth token, encrypted (`enc:v1:...`) |
 | `cloud_disk/disk_url` | API base (default `https://cloud-api.yandex.net/v1/disk`) |
+
+`cloud_disk/token` is stored with authenticated obfuscation from `TokenCipher`:
+random nonce, SHA-256-based keystream and HMAC-SHA256. The encryption
+key is hardcoded in the app, so this protects against casual reading of
+`WorkOrder.conf`, not against reverse engineering. For stronger protection use
+Keychain/Keystore. Existing plaintext tokens are re-encrypted automatically on
+the next app start.
 
 Client ID is compiled into the app, not stored in settings.
 

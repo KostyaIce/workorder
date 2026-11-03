@@ -411,7 +411,7 @@ Dialog
                 showPreview: false
                 showEditor: true
                 editorText: reportOptionsBackend.reportHeaderText
-                editorPlaceholder: qsTr("Отчет о проделанной работе по установке сантехники")
+                editorPlaceholder: qsTr("Отчет о проделанной работе")
                 checked: reportOptionsBackend.includeReportHeader
                 onCheckStateChanged: (value) => reportOptionsBackend.includeReportHeader = value
                 onEditorTextEdited: (value) => reportOptionsBackend.reportHeaderText = value
